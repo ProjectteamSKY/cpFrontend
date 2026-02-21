@@ -216,17 +216,12 @@ export function ProductListingPage() {
                   </div>
                 )}
                 <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                  {product.images.length > 0 ? (
-                    <div className="flex overflow-x-auto space-x-2 p-2">
-                      {product.images.map((img) => (
-                        <img
-                          key={img.id}
-                          src={`http://127.0.0.1:8000/${img.image_url.replaceAll("\\", "/")}`}
-                          alt={product.name}
-                          className="h-40 object-cover rounded-md"
-                        />
-                      ))}
-                    </div>
+                  {product.images?.[0]?.image_url ? (
+                    <img
+                      src={`http://127.0.0.1:8000/${product.images[0].image_url.replaceAll("\\", "/")}`}
+                      alt={product.name}
+                      className="w-full h-full object-cover rounded-md"
+                    />
                   ) : (
                     <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
                       <Printer className="w-12 h-12 text-gray-400" />

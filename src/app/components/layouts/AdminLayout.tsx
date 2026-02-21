@@ -11,6 +11,18 @@ export function AdminLayout() {
     { path: "/admin/orders", icon: ShoppingBag, label: "Orders" },
     { path: "/admin/file-review", icon: FileCheck, label: "File Review" },
     { path: "/admin/invoices", icon: Receipt, label: "Invoices" },
+    { path: "/admin/Category", icon: Receipt, label: "Category" },
+    { path: "/admin/Papertype", icon: Receipt, label: "PaperType" },
+    { path: "/admin/Cuttype", icon: Receipt, label: "CutType" },
+    { path: "/admin/Printtype", icon: Receipt, label: "PrintType" },
+    { path: "/admin/SizeType", icon: Receipt, label: "SizeType" },
+    { path: "/admin/product", icon: Receipt, label: "products" },
+
+
+
+
+
+    // { path: "/admin/SubCategory", icon: Receipt, label: "SubCategory"},
   ];
 
   return (  
