@@ -1,34 +1,62 @@
 import api from "./api";
 import { Product, ProductFormData } from "../types/product";
+import axios from "axios";
 
-/* Map UI → FormData for FastAPI Form(...) + File uploads */
-export const mapProductToFormData = (data: ProductFormData): FormData => {
+/* ✅ Map UI → FormData for FastAPI */
+export const mapProductToFormData = (
+  data: ProductFormData
+): FormData => {
   const form = new FormData();
-  form.append("name", data.name);
-  if (data.category_id) form.append("category_id", data.category_id);
-  if (data.subcategory_id) form.append("subcategory_id", data.subcategory_id);
-  if (data.description) form.append("description", data.description);
-  if (data.min_order_qty !== undefined) form.append("min_order_qty", String(data.min_order_qty));
-  if (data.max_order_qty !== undefined) form.append("max_order_qty", String(data.max_order_qty));
 
-  data.images?.forEach(f => form.append("images", f));
-  data.related_images?.forEach(f => form.append("related_images", f));
+  form.append("name", data.name ?? "");
+  form.append("category_id", data.category_id ?? "");
+  form.append("subcategory_id", data.subcategory_id ?? "");
+  form.append("description", data.description ?? "");
+
+  if (data.min_order_qty !== undefined)
+    form.append("min_order_qty", String(data.min_order_qty));
+
+  if (data.max_order_qty !== undefined)
+    form.append("max_order_qty", String(data.max_order_qty));
+
+  if (Array.isArray(data.images)) {
+    data.images.forEach((file) => {
+      if (file instanceof File) {
+        form.append("images", file);
+      }
+    });
+  }
+
+  if (Array.isArray(data.related_images)) {
+    data.related_images.forEach((file) => {
+      if (file instanceof File) {
+        form.append("related_images", file);
+      }
+    });
+  }
 
   return form;
 };
+/* ================= API SERVICES ================= */
 
-/* API Services */
 export const getAllProducts = async (): Promise<Product[]> => {
   const res = await api.get("/product/list");
   return res.data.products || [];
 };
 
-export const createProduct = async (payload: ProductFormData): Promise<void> => {
-  const body = mapProductToFormData(payload);
-  await api.post("/product/create", body);
+export const createProduct = async (data: ProductFormData) => {
+  const formData = mapProductToFormData(data);
+
+  return await axios.post(
+    "http://127.0.0.1:8000/api/product/create",
+    formData
+  );
 };
 
-export const updateProduct = async (id: string, payload: ProductFormData): Promise<void> => {
+export const updateProduct = async (
+  id: string,
+  payload: ProductFormData
+): Promise<void> => {
   const body = mapProductToFormData(payload);
   await api.put(`/product/${id}`, body);
 };

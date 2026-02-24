@@ -17,6 +17,7 @@ import { PaperType } from "../../types/paperType";
 import { PaperTypeForm } from "../forms/PaperTypeForm";
 import { ColumnDef } from "@tanstack/react-table";
 import { CustomTable } from "../common/CustomTable";
+import { SizeManagement } from "./SizeManagement";
 
 export function PaperTypeManagement() {
   const [paperTypes, setPaperTypes] = useState<PaperType[]>([]);
@@ -178,6 +179,8 @@ export function PaperTypeManagement() {
           />
         </DialogContent>
       </Dialog>
+
+      <SizeManagement />
     </div>
   );
 }

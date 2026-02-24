@@ -20,15 +20,27 @@ const mapSubcategoryToApi = (data: SubcategoryFormData) => ({
   category_id: data.category_id,
 });
 
+
+export const getSubcategoriesByCategoryId = async (
+  categoryId?: string
+): Promise<Subcategory[]> => {
+  const response = await api.get("/subcategory/list", {
+    params: categoryId ? { category_id: categoryId } : {},
+  });
+
+  return response.data.subcategories;   // 👈 RETURN ARRAY ONLY
+};
+
 /* ------------------- CRUD ------------------- */
 export const getAllSubcategories = async (categoryId?: string): Promise<Subcategory[]> => {
   try {
     const res = await api.get("/subcategory/list", {
       params: categoryId ? { category_id: categoryId } : {}, // query param
     });
+    console.log("SUBCATEGORY RESPONSE: - subcategoryApiService.ts:40", res);
     return (res.data.subcategories || []).map(mapSubcategoryFromApi);
   } catch (error: any) {
-    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:31", error.response?.data ?? error);
+    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:43", error.response?.data ?? error);
     throw new Error("Failed to fetch subcategories");
   }
 };
@@ -39,7 +51,7 @@ export const getAllSubcategoriesss = async (): Promise<Subcategory[]> => {
     const res = await api.get("/subcategory/list"); // no params
     return (res.data.subcategories || []).map(mapSubcategoryFromApi);
   } catch (error: any) {
-    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:42", error.response?.data ?? error);
+    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:54", error.response?.data ?? error);
     throw new Error("Failed to fetch subcategories");
   }
 };
@@ -61,7 +73,7 @@ export const createSubcategory = async (data: SubcategoryFormData) => {
     });
     return res.data; // return created subcategory for UI
   } catch (error: any) {
-    console.error("Create Subcategory Error: - subcategoryApiService.ts:64", error.response?.data ?? error);
+    console.error("Create Subcategory Error: - subcategoryApiService.ts:76", error.response?.data ?? error);
     throw new Error("Failed to create subcategory");
   }
 };
@@ -81,7 +93,7 @@ export const updateSubcategory = async (
       headers: { "Content-Type": "multipart/form-data" },
     });
   } catch (error: any) {
-    console.error("Update Subcategory Error: - subcategoryApiService.ts:84", error.response?.data ?? error);
+    console.error("Update Subcategory Error: - subcategoryApiService.ts:96", error.response?.data ?? error);
     throw new Error("Failed to update subcategory");
   }
 };

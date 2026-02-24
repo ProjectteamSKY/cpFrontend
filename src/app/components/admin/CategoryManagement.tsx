@@ -25,8 +25,9 @@ import { CategoryForm } from "../forms/CategoryForm";
 import { ColumnDef } from "@tanstack/react-table";
 import { CustomTable } from "../common/CustomTable";
 import { useNavigate } from "react-router-dom";
+import { getAllSubcategories, getSubcategoriesByCategoryId } from "../../service/subcategoryApiService";
 
-export function  CategoryManagement() {
+export function CategoryManagement() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -42,7 +43,12 @@ export function  CategoryManagement() {
         const data = await getAllCategories();
         setCategories(data);
     };
-
+    const [subcategoriesMap, setSubcategoriesMap] = useState<
+        Record<string, any[]>
+    >({});
+    const [loadingCategoryId, setLoadingCategoryId] = useState<
+        string | null
+    >(null);
     useEffect(() => {
         fetchCategories();
     }, []);
@@ -100,6 +106,24 @@ export function  CategoryManagement() {
 
     const handleSubcategory = (category: Category) => {
         navigate("/admin/SubCategory", { state: { categoryId: category.id } });
+    };
+
+    const fetchSubcategories = async (categoryId: string) => {
+        try {
+            setLoadingCategoryId(categoryId);
+
+            const subcategories = await getSubcategoriesByCategoryId(categoryId);
+
+            setSubcategoriesMap((prev) => ({
+                ...prev,
+                [categoryId]: subcategories,
+            }));
+
+        } catch (error) {
+            console.error("Failed to fetch subcategories", error);
+        } finally {
+            setLoadingCategoryId(null);
+        }
     };
 
     const columns: ColumnDef<Category>[] = [
@@ -255,6 +279,99 @@ export function  CategoryManagement() {
                     <CustomTable
                         data={categories}
                         columns={columns}
+
+                        onRowClick={async (category) => {
+                            if (!subcategoriesMap[category.id]) {
+                                await fetchSubcategories(category.id);
+                            }
+                        }}
+
+                        renderSubComponent={(category) => {
+                            const subs = subcategoriesMap[category.id];
+
+                            if (loadingCategoryId === category.id) {
+                                return (
+                                    <div className="p-6 text-gray-500">
+                                        Loading subcategories...
+                                    </div>
+                                );
+                            }
+
+                            if (!subs || subs.length === 0) {
+                                return (
+                                    <div className="p-6 text-gray-500">
+                                        No subcategories found.
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
+
+                                    <h3 className="text-lg font-semibold mb-4 text-[#1A1A1A]">
+                                        Subcategories
+                                    </h3>
+
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+
+                                            <thead className="bg-gray-100 text-gray-700">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-medium">
+                                                        Name
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left font-medium">
+                                                        Description
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left font-medium">
+                                                        Status
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left font-medium">
+                                                        Created At
+                                                    </th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody className="divide-y">
+                                                {subs.map((sub: any) => (
+                                                    <tr
+                                                        key={sub.id}
+                                                        className="hover:bg-white transition"
+                                                    >
+                                                        <td className="px-4 py-3 font-medium text-gray-900">
+                                                            {sub.name}
+                                                        </td>
+
+                                                        <td className="px-4 py-3 text-gray-600">
+                                                            {sub.description || "-"}
+                                                        </td>
+
+                                                        <td className="px-4 py-3">
+                                                            <span
+                                                                className={`px-3 py-1 text-xs font-medium rounded-full ${sub.is_active === 1
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : "bg-red-100 text-red-600"
+                                                                    }`}
+                                                            >
+                                                                {sub.is_active === 1
+                                                                    ? "Active"
+                                                                    : "Inactive"}
+                                                            </span>
+                                                        </td>
+
+                                                        <td className="px-4 py-3 text-gray-500">
+                                                            {new Date(sub.created_at).toLocaleDateString()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+
+                                        </table>
+                                    </div>
+
+                                </div>
+                            );
+                        }}
                     />
                 </div>
             </Card>

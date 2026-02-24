@@ -7,16 +7,23 @@ export function AdminLayout() {
 
   const navItems = [
     { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/admin/products", icon: Package, label: "Products" },
-    { path: "/admin/orders", icon: ShoppingBag, label: "Orders" },
-    { path: "/admin/file-review", icon: FileCheck, label: "File Review" },
-    { path: "/admin/invoices", icon: Receipt, label: "Invoices" },
+    // { path: "/admin/products", icon: Package, label: "Products" },
+    // { path: "/admin/orders", icon: ShoppingBag, label: "Orders" },
+    // { path: "/admin/file-review", icon: FileCheck, label: "File Review" },
+    // { path: "/admin/invoices", icon: Receipt, label: "Invoices" },
     { path: "/admin/Category", icon: Receipt, label: "Category" },
     { path: "/admin/Papertype", icon: Receipt, label: "PaperType" },
     { path: "/admin/Cuttype", icon: Receipt, label: "CutType" },
     { path: "/admin/Printtype", icon: Receipt, label: "PrintType" },
     { path: "/admin/SizeType", icon: Receipt, label: "SizeType" },
     { path: "/admin/product", icon: Receipt, label: "products" },
+    { path: "/admin/productVarient", icon: Receipt, label: "productsVarient" },
+    { path: "/admin/productDiscount", icon: Receipt, label: "productDiscount" },
+    { path: "/admin/productVarientPrice", icon: Receipt, label: "productVarientPrice" },
+    { path: "/admin/productSetup", icon: Receipt, label: "productSetup" },
+
+
+
 
 
 
@@ -25,7 +32,7 @@ export function AdminLayout() {
     // { path: "/admin/SubCategory", icon: Receipt, label: "SubCategory"},
   ];
 
-  return (  
+  return (
     <div className="min-h-screen flex bg-[#fffff]">
       {/* Sidebar */}
       <aside className="w-64 bg-white shadow-lg h-screen sticky top-0">
@@ -49,11 +56,10 @@ export function AdminLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
                     ? "bg-[#D73D32] text-white"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>

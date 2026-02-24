@@ -26,10 +26,14 @@ export function ProductManagements() {
   }, []);
 
   const handleSave = async (data: ProductFormData) => {
+    console.log("api triggerd")
     if (editingProduct) {
       await updateProduct(editingProduct.id, data);
+      console.log("update the product api triggerd ")
     } else {
       await createProduct(data);
+      console.log("create the product api triggerd ")
+
     }
     setShowAddDialog(false);
     setShowEditDialog(false);
@@ -65,14 +69,12 @@ export function ProductManagements() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => toggleStatus(p)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                p.is_active ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${p.is_active ? "bg-green-500" : "bg-gray-300"
+                }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                  p.is_active ? "translate-x-6" : "translate-x-1"
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${p.is_active ? "translate-x-6" : "translate-x-1"
+                  }`}
               />
             </button>
             <span className="text-sm">{p.is_active ? "Active" : "Inactive"}</span>

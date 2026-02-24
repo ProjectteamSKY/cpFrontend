@@ -16,9 +16,16 @@ import { CategoryManagement } from "./components/admin/CategoryManagement";
 import { SubcategoryManagement } from "./components/admin/SubcategoryManagement";
 import { PaperTypeManagement } from "./components/admin/PaperTypeManagement";
 import { CutTypeManagement } from "./components/admin/CutTypeManagement";
-import { PrintTypeManagement  } from "./components/admin/PrintTypeManagement";
+import { PrintTypeManagement } from "./components/admin/PrintTypeManagement";
 import { SizeManagement } from "./components/admin/SizeManagement";
 import { ProductManagements } from "./components/admin/ProductManagements";
+import { ProductVariantManagement } from "./components/admin/ProductVariantManagement";
+import { ProductVariantPriceManagement } from "./components/admin/ProductVariantPriceManagement";
+import { ProductDiscountManagement } from "./components/admin/ProductDiscountManagement";
+import { ProductSetupManagement } from "./components/admin/ProductSetupManagement";
+
+
+
 
 
 export const router = createBrowserRouter([
@@ -47,9 +54,15 @@ export const router = createBrowserRouter([
       { path: "Printtype", Component: PrintTypeManagement },
       { path: "Sizetype", Component: SizeManagement },
       { path: "product", Component: ProductManagements },
-      { path: "orders", Component: OrderManagement },
-      { path: "file-review", Component: FileReviewPanel },
-      { path: "invoices", Component: InvoiceSection },
+      { path: "productVarient", Component: ProductVariantManagement },
+      { path: "productDiscount", Component: ProductDiscountManagement },
+
+      { path: "productVarientPrice", Component: ProductVariantPriceManagement },
+      { path: "ProductSetup", Component: ProductSetupManagement },
+
+      // { path: "orders", Component: OrderManagement },
+      // { path: "file-review", Component: FileReviewPanel },
+      // { path: "invoices", Component: InvoiceSection },
     ],
   },
 ]);

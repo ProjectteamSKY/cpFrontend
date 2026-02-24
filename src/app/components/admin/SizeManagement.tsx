@@ -170,3 +170,5 @@ export function SizeManagement() {
     </div>
   );
 }
+
+export default SizeManagement;
