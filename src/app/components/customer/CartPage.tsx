@@ -39,7 +39,7 @@ export function CartPage() {
 
   return (
     <div className="max-w-[1440px] mx-auto px-8 py-8">
-      <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">Shopping Cart</h1>
+      <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">Shopping Cart testt</h1>
 
       {cartItems.length === 0 ? (
         <Card className="bg-white p-12 text-center shadow-sm border-0">
