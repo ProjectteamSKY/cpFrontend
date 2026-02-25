@@ -180,7 +180,6 @@ export function PaperTypeManagement() {
         </DialogContent>
       </Dialog>
 
-      <SizeManagement />
     </div>
   );
 }
