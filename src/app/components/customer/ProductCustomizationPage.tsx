@@ -118,7 +118,7 @@ export function ProductDetailPage() {
 
     // Small delay so state updates first
     setTimeout(() => {
-      navigate("/design-review", {
+      navigate("/cart", {
         state: {
           product,
           variant: selectedVariant,

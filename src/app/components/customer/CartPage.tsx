@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useState, useEffect } from "react";
+import { useLocation, Link } from "react-router";
 import { Trash2, FileCheck, AlertCircle, ArrowRight, ShoppingBag } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -7,30 +7,31 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
 export function CartPage() {
-  const [cartItems] = useState([
-    {
-      id: 1,
-      name: "Business Cards",
-      size: "90mm x 50mm",
-      material: "Matte Paper",
-      lamination: "Standard",
-      quantity: 100,
-      price: 399,
-      file: "business-card-design.pdf",
-      fileStatus: "approved",
-    },
-    {
-      id: 2,
-      name: "Brochures",
-      size: "A4",
-      material: "Glossy Paper",
-      lamination: "None",
-      quantity: 50,
-      price: 499,
-      file: "brochure-design.ai",
-      fileStatus: "pending",
-    },
-  ]);
+  const location = useLocation();
+  const newItem = location.state as any;
+
+  const [cartItems, setCartItems] = useState<any[]>([]);
+
+  // Add item from navigation state
+  useEffect(() => {
+    if (newItem?.product && newItem?.variant) {
+      setCartItems((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          name: newItem.product.name,
+          size: newItem.variant.size?.name,
+          material: newItem.variant.paperType?.name,
+          lamination: newItem.variant.lamination || "Standard",
+          quantity: newItem.quantityId,
+          price: newItem.basePrice,
+          file: newItem.designFile.name,
+          fileStatus: "pending",
+          previewUrl: newItem.preview,
+        },
+      ]);
+    }
+  }, [newItem]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const gst = subtotal * 0.18;
@@ -47,9 +48,7 @@ export function CartPage() {
           <h2 className="text-2xl font-semibold text-[#1A1A1A] mb-2">Your cart is empty</h2>
           <p className="text-gray-600 mb-6">Add some products to get started</p>
           <Link to="/products">
-            <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">
-              Browse Products
-            </Button>
+            <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">Browse Products</Button>
           </Link>
         </Card>
       ) : (
@@ -59,19 +58,21 @@ export function CartPage() {
             {cartItems.map((item) => (
               <Card key={item.id} className="bg-white p-6 shadow-sm border-0">
                 <div className="flex gap-6">
-                  {/* Product Image */}
                   <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <div className="text-xs text-gray-400">Preview</div>
+                    {item.previewUrl ? (
+                      <img src={item.previewUrl} alt="Preview" className="max-h-full max-w-full rounded-lg" />
+                    ) : (
+                      <div className="text-xs text-gray-400">Preview</div>
+                    )}
                   </div>
 
-                  {/* Product Details */}
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="text-xl font-semibold text-[#1A1A1A] mb-1">{item.name}</h3>
                         <p className="text-sm text-gray-600">Quantity: {item.quantity} pieces</p>
                       </div>
-                      <Button variant="ghost" size="icon" className="text-[#D73D32] hover:bg-red-50">
+                      <Button variant="ghost" size="icon" className="text-[#D73D32] hover:bg-red-50" onClick={() => setCartItems(cartItems.filter(ci => ci.id !== item.id))}>
                         <Trash2 className="w-5 h-5" />
                       </Button>
                     </div>
@@ -95,7 +96,6 @@ export function CartPage() {
                       </div>
                     </div>
 
-                    {/* File Status */}
                     <div className="flex items-center justify-between p-3 bg-[#EFEFEF] rounded-lg">
                       <div className="flex items-center gap-2">
                         {item.fileStatus === "approved" ? (
@@ -111,9 +111,7 @@ export function CartPage() {
                         )}
                         <span className="text-sm text-gray-600">• {item.file}</span>
                       </div>
-                      <span className="text-lg font-bold text-[#D73D32]">
-                        ₹{(item.price * item.quantity).toLocaleString()}
-                      </span>
+                      <span className="text-lg font-bold text-[#D73D32]">₹{(item.price * item.quantity).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -147,28 +145,20 @@ export function CartPage() {
                 </div>
               </div>
 
-              {/* Coupon Code */}
               <div className="mb-6">
                 <Label className="mb-2 block">Have a coupon code?</Label>
                 <div className="flex gap-2">
-                  <Input 
-                    placeholder="Enter code" 
-                    className="bg-white border-gray-200"
-                  />
-                  <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">
-                    Apply
-                  </Button>
+                  <Input placeholder="Enter code" className="bg-white border-gray-200" />
+                  <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">Apply</Button>
                 </div>
               </div>
 
-              {/* Delivery Info */}
               <div className="bg-[#EFEFEF] p-4 rounded-lg mb-6">
                 <h3 className="font-medium text-[#1A1A1A] mb-2">Delivery Information</h3>
                 <p className="text-sm text-gray-600 mb-1">Expected delivery: 3-5 business days</p>
                 <p className="text-sm text-gray-600">Free delivery on orders above ₹5,000</p>
               </div>
 
-              {/* CTA */}
               <Link to="/checkout">
                 <Button className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white py-6 text-lg mb-3">
                   Proceed to Payment

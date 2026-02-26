@@ -24,6 +24,7 @@ import { ProductVariantPriceManagement } from "./components/admin/ProductVariant
 import { ProductDiscountManagement } from "./components/admin/ProductDiscountManagement";
 import { ProductSetupManagement } from "./components/admin/ProductSetupManagement";
 import { DesignReviewPage } from "./components/customer/DesignReviewPage";
+import { LoginPage } from "./components/Auth/LoginPage";
 
 
 
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: "cart", Component: CartPage },
       { path: "checkout", Component: CheckoutPage },
       { path: "order-tracking/:orderId", Component: OrderTrackingPage },
+      { path: "login", Component: LoginPage },
     ],
   },
   {
