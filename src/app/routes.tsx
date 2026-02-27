@@ -3,7 +3,7 @@ import { RootLayout } from "./components/layouts/RootLayout";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import { HomePage } from "./components/customer/HomePage";
 import { ProductListingPage } from "./components/customer/ProductListingPage";
-import { ProductCustomizationPage } from "./components/customer/ProductCustomizationPage";
+import { ProductDetailPage } from "./components/customer/ProductCustomizationPage";
 import { CartPage } from "./components/customer/CartPage";
 import { CheckoutPage } from "./components/customer/CheckoutPage";
 import { OrderTrackingPage } from "./components/customer/OrderTrackingPage";
@@ -23,6 +23,8 @@ import { ProductVariantManagement } from "./components/admin/ProductVariantManag
 import { ProductVariantPriceManagement } from "./components/admin/ProductVariantPriceManagement";
 import { ProductDiscountManagement } from "./components/admin/ProductDiscountManagement";
 import { ProductSetupManagement } from "./components/admin/ProductSetupManagement";
+import { DesignReviewPage } from "./components/customer/DesignReviewPage";
+import { LoginPage } from "./components/Auth/LoginPage";
 
 
 
@@ -35,10 +37,12 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: HomePage },
       { path: "products", Component: ProductListingPage },
-      { path: "product/:id", Component: ProductCustomizationPage },
+      { path: "product/:id", Component: ProductDetailPage },
+      { path: "/design-review", Component: DesignReviewPage },
       { path: "cart", Component: CartPage },
       { path: "checkout", Component: CheckoutPage },
       { path: "order-tracking/:orderId", Component: OrderTrackingPage },
+      { path: "login", Component: LoginPage },
     ],
   },
   {
