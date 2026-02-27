@@ -265,7 +265,7 @@ export function CustomizeProductPage() {
     if (typeof imagePath === 'string') {
       if (imagePath.startsWith('http')) return imagePath;
       const cleanPath = imagePath.replace(/\\/g, '/');
-      return `http://127.0.0.1:8000/${cleanPath}`;
+      return `http://54.206.3.97/${cleanPath}`;
     }
     return '';
   };
