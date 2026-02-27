@@ -146,7 +146,7 @@ export function CustomizeProductPage() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://127.0.0.1:8000/api/product/${productId}`);
+        const res = await axios.get(`http://54.206.3.97/api/product/${productId}`);
         const productData = res.data;
 
         // Process images

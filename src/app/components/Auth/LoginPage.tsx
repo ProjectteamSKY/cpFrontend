@@ -34,7 +34,7 @@ export function LoginPage() {
         try {
             setLoading(true);
             await axios.post(
-                "http://127.0.0.1:8000/api/users/register",
+                "http://54.206.3.97/api/users/register",
                 new URLSearchParams({
                     full_name: data.full_name,
                     email: data.email,
@@ -54,7 +54,7 @@ export function LoginPage() {
         try {
             setLoading(true);
             await axios.post(
-                "http://127.0.0.1:8000/api/users/verify-otp",
+                "http://54.206.3.97/api/users/verify-otp",
                 new URLSearchParams({
                     email: getValues("email"),
                     otp: data.otp || "",
@@ -76,7 +76,7 @@ export function LoginPage() {
             setLoading(true);
 
             const response = await axios.post(
-                "http://127.0.0.1:8000/api/users/login",
+                "http://54.206.3.97/api/users/login",
                 new URLSearchParams({
                     email: data.email,
                     password: data.password,
@@ -109,7 +109,7 @@ export function LoginPage() {
             const token = credentialResponse.credential;
 
             const response = await axios.post(
-                "http://127.0.0.1:8000/api/users/google-login",
+                "http://54.206.3.97/api/users/google-login",
                 { token },
                 { withCredentials: true }
             );
