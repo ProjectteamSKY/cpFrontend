@@ -345,13 +345,13 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       let response;
       if (isEditing && defaultValues?.id) {
         // Update existing product
-        response = await axios.put(`http://127.0.0.1:8000/api/productsetup/update/${defaultValues.id}`, formData, {
+        response = await axios.put(`http://54.206.3.97/api/productsetup/update/${defaultValues.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         alert("Product Updated Successfully!");
       } else {
         // Create new product
-        response = await axios.post("http://127.0.0.1:8000/api/productsetup/create", formData, {
+        response = await axios.post("http://54.206.3.97/api/productsetup/create", formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         alert("Product Created Successfully!");
