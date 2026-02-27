@@ -22,24 +22,26 @@ export function RootLayout() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname === '/' ? 'text-[#D73D32]' : ''}`}
               >
                 Home
               </Link>
-              <Link 
-                to="/products" 
+              <Link
+                to="/products"
                 className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname === '/products' ? 'text-[#D73D32]' : ''}`}
               >
                 Products
               </Link>
-              <Link 
-                to="/order-tracking/ORD-2024-001" 
+              
+              <Link
+                to="/orderhistory"
                 className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname.includes('/order-tracking') ? 'text-[#D73D32]' : ''}`}
               >
-                Track Order
+                orderhistory
               </Link>
+             
             </nav>
 
             {/* Actions */}

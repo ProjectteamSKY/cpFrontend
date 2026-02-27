@@ -80,7 +80,7 @@ export const getImageUrl = (image: any): string => {
       return imagePath;
     }
     const cleanPath = imagePath.replace(/\\/g, '/');
-    return `http://54.206.3.97/${cleanPath}`;
+    return `http://127.0.0.1:8000/${cleanPath}`;
   }
   return '';
 };

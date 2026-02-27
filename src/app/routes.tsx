@@ -6,7 +6,10 @@ import { ProductListingPage } from "./components/customer/ProductListingPage";
 import { ProductDetailPage } from "./components/customer/ProductCustomizationPage";
 import { CartPage } from "./components/customer/CartPage";
 import { CheckoutPage } from "./components/customer/CheckoutPage";
-import { OrderTrackingPage } from "./components/customer/OrderTrackingPage";
+import { OrderHistoryPage } from "./components/customer/OrderTrackingPage";
+import { ViewOrderPage } from "./components/customer/ViewOrderPage";
+
+
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { ProductManagement } from "./components/admin/ProductManagement";
 import { OrderManagement } from "./components/admin/OrderManagement";
@@ -41,7 +44,10 @@ export const router = createBrowserRouter([
       { path: "/design-review", Component: DesignReviewPage },
       { path: "cart", Component: CartPage },
       { path: "checkout", Component: CheckoutPage },
-      { path: "order-tracking/:orderId", Component: OrderTrackingPage },
+      { path: "orderhistory", Component: OrderHistoryPage},
+      { path: "vieworder/:orderId", Component: ViewOrderPage},
+
+      
       { path: "login", Component: LoginPage },
     ],
   },

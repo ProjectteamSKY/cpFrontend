@@ -1,13 +1,18 @@
-import { useState } from "react";
-import { useLocation, Link, useNavigate } from "react-router";
-import { Trash2, FileCheck, AlertCircle, ArrowRight, ShoppingBag } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { Trash2, FileCheck, ShoppingBag } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
+import api from "../../service/api";
 
 export function DesignReviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as any;
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   if (!state || !state.designFile) {
     return (
@@ -17,152 +22,230 @@ export function DesignReviewPage() {
     );
   }
 
-  const { product, variant, quantityId, totalPrice, designFile } = state;
+  // ===========================
+  // Destructure state properly
+  // ===========================
+  const {
+    product,
+    variant,
+    quantity: selectedQuantity, // ✅ match the property sent from previous page
+    priceId,
+    designFile,
+    selected_options
+  } = state;
 
-  const [cartItems] = useState([
-    {
-      id: 1,
-      name: product.name,
-      size: variant.size?.name,
-      material: variant.paperType?.name,
-      lamination: "Standard", // you can adjust if needed
-      quantity: quantityId,
-      price: variant.prices.find((p: any) => String(p.id) === String(quantityId))?.price || 0,
-      file: designFile.name || "design-file",
-      fileStatus: "approved", // or dynamic status if available
-      previewUrl: designFile?.type?.startsWith("image/") ? URL.createObjectURL(designFile) : null,
-    },
-  ]);
+  const accessToken = sessionStorage.getItem("access_token");
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // =========================================================
+  // 🔥 SAFE IMAGE PREVIEW (NO MEMORY LEAK)
+  // =========================================================
+  useEffect(() => {
+    if (designFile && designFile.type?.startsWith("image/")) {
+      const objectUrl = URL.createObjectURL(designFile);
+      setPreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+  }, [designFile]);
+
+  // =========================================================
+  // 🚀 GET OR CREATE CART
+  // =========================================================
+  const getCartId = async (userId: string): Promise<string> => {
+    try {
+      const response = await api.get(`/cart/carts/user/${userId}`);
+      const carts = response.data;
+
+      if (Array.isArray(carts) && carts.length > 0) {
+        return String(carts[0].id); // return existing cart
+      }
+
+      // create new cart if none
+      const createResponse = await api.post("/cart/carts", {
+        user_id: userId,
+        status: "active",
+        total_amount: 0,
+        total_discount: 0,
+      });
+      return String(createResponse.data.id);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        const createResponse = await api.post("/cart/carts", {
+          user_id: userId,
+          status: "active",
+          total_amount: 0,
+          total_discount: 0,
+        });
+        return String(createResponse.data.id);
+      }
+      console.error("Failed to get/create cart", error);
+      throw error;
+    }
+  };
+
+  // =========================================================
+  // 🛒 ADD TO CART
+  // =========================================================
+  const handleAddToCart = async () => {
+    if (!accessToken) {
+      navigate("/Login");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const userId =
+        sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+      if (!userId) throw new Error("User ID not found. Please login again.");
+
+      const cartId = await getCartId(userId);
+
+      // ✅ convert quantity to number
+      const quantityNumber = Number(selectedQuantity || variant.prices[0].min_qty);
+
+      const formData = new FormData();
+      formData.append("cart_id", cartId);
+      formData.append("product_id", String(product.id));
+      formData.append("variant_id", String(variant.id));
+      formData.append("quantity", String(quantityNumber));
+      formData.append("price_id", String(priceId));
+      formData.append("selected_options", JSON.stringify(selected_options));
+
+      if (designFile) formData.append("front_file", designFile);
+
+      await api.post("/cartitems/cart-items/with-files", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      navigate("/cart");
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err?.response?.data?.detail
+          ? typeof err.response.data.detail === "string"
+            ? err.response.data.detail
+            : JSON.stringify(err.response.data.detail, null, 2)
+          : err?.message || "Failed to add item to cart"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // =========================================================
+  // 💰 PRICE CALCULATION
+  // =========================================================
+  const quantityNumber = Number(selectedQuantity || variant.prices[0].min_qty);
+  const price =
+    variant.prices.find((p: any) => String(p.id) === String(priceId))?.price ||
+    0;
+  const subtotal = price * quantityNumber;
   const gst = subtotal * 0.18;
   const deliveryCharge = 100;
   const total = subtotal + gst + deliveryCharge;
 
-  const accessToken = sessionStorage.getItem("access_token");
-  const refreshToken = sessionStorage.getItem("refresh_token");
-  
-  const handleAddToCart = () => {
-    if (accessToken) {
-      alert("Added to cart!");
-    } else {
-      navigate("/LoginPage");
-    }
-  };
-
+  // =========================================================
+  // RENDER
+  // =========================================================
   return (
     <div className="max-w-[1440px] mx-auto px-8 py-8">
-      <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">Design Review</h1>
+      <h1 className="text-4xl font-bold mb-8">Design Review</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Design Preview */}
-        <div className="lg:col-span-2 space-y-4">
-          {cartItems.map((item) => (
-            <Card key={item.id} className="bg-white p-6 shadow-sm border-0">
-              <div className="flex gap-6">
-                {/* Preview */}
-                <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center">
-                  {item.previewUrl ? (
-                    <img src={item.previewUrl} alt="Design Preview" className="w-full h-full object-contain rounded-lg" />
-                  ) : (
-                    <div className="text-xs text-gray-400">Preview</div>
-                  )}
-                </div>
+        {/* LEFT SECTION */}
+        <div className="lg:col-span-2">
+          <Card className="p-6">
+            <div className="flex gap-6">
+              {/* Preview */}
+              <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <span className="text-gray-400 text-sm">No Preview</span>
+                )}
+              </div>
 
-                {/* Product Details */}
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-xl font-semibold text-[#1A1A1A] mb-1">{item.name}</h3>
-                      <p className="text-sm text-gray-600">Quantity: {item.quantity} pieces</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-[#D73D32] hover:bg-red-50">
-                      <Trash2 className="w-5 h-5" />
-                    </Button>
+              {/* Details */}
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Quantity: {quantityNumber} pieces
+                </p>
+
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                  <div>
+                    <p className="text-gray-500">Size</p>
+                    <p>{variant.size?.name}</p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Size</p>
-                      <p className="text-sm font-medium text-[#1A1A1A]">{item.size}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Material</p>
-                      <p className="text-sm font-medium text-[#1A1A1A]">{item.material}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Lamination</p>
-                      <p className="text-sm font-medium text-[#1A1A1A]">{item.lamination}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Price per unit</p>
-                      <p className="text-sm font-medium text-[#1A1A1A]">₹{item.price}</p>
-                    </div>
+                  <div>
+                    <p className="text-gray-500">Material</p>
+                    <p>{variant.paperType?.name}</p>
                   </div>
-
-                  {/* File Status */}
-                  <div className="flex items-center justify-between p-3 bg-[#EFEFEF] rounded-lg">
-                    <div className="flex items-center gap-2">
-                      {item.fileStatus === "approved" ? (
-                        <>
-                          <FileCheck className="w-4 h-4 text-green-600" />
-                          <span className="text-sm text-green-700 font-medium">File Approved</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-4 h-4 text-yellow-600" />
-                          <span className="text-sm text-yellow-700 font-medium">Under Review</span>
-                        </>
-                      )}
-                      <span className="text-sm text-gray-600">• {item.file}</span>
-                    </div>
-                    <span className="text-lg font-bold text-[#D73D32]">
-                      ₹{(item.price * item.quantity).toLocaleString()}
-                    </span>
+                  <div>
+                    <p className="text-gray-500">Lamination</p>
+                    <p>{selected_options?.lamination || "Standard"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Price per unit</p>
+                    <p>₹{price}</p>
                   </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
 
-        {/* Right Column - Order Summary */}
-        <div className="lg:col-span-1">
-          <Card className="bg-white p-6 shadow-md border-0 sticky top-24 space-y-6">
-            <h2 className="text-xl font-semibold text-[#1A1A1A] mb-6">Order Summary</h2>
-
-            <div className="space-y-4 mb-6">
-              <div className="flex justify-between text-[#1A1A1A]">
-                <span>Subtotal</span>
-                <span className="font-medium">₹{subtotal.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-[#1A1A1A]">
-                <span>GST (18%)</span>
-                <span className="font-medium">₹{gst.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-[#1A1A1A]">
-                <span>Delivery Charge</span>
-                <span className="font-medium">₹{deliveryCharge}</span>
-              </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between text-[#1A1A1A]">
-                  <span className="text-lg font-semibold">Grand Total</span>
-                  <span className="text-2xl font-bold text-[#D73D32]">₹{total.toLocaleString()}</span>
+                <div className="flex justify-between items-center bg-gray-100 p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-green-600" />
+                    <span className="text-green-700 text-sm">File Ready</span>
+                  </div>
+                  <span className="font-bold text-lg">₹{subtotal.toLocaleString()}</span>
                 </div>
               </div>
             </div>
+          </Card>
 
-            {/* CTA */}
+          {error && <p className="text-red-500 mt-4 text-sm">{error}</p>}
+        </div>
+
+        {/* RIGHT SECTION */}
+        <div>
+          <Card className="p-6 space-y-4 sticky top-24">
+            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>₹{subtotal.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>GST (18%)</span>
+              <span>₹{gst.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Delivery</span>
+              <span>₹{deliveryCharge}</span>
+            </div>
+
+            <div className="border-t pt-4 flex justify-between font-bold text-lg">
+              <span>Total</span>
+              <span>₹{total.toLocaleString()}</span>
+            </div>
+
             <Button
               onClick={handleAddToCart}
-              className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white py-6 text-lg flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full bg-black text-white py-5"
             >
-              <ShoppingBag size={20} />
-              Add to Cart
+              {loading ? "Adding..." : "Add to Cart"}
+              <ShoppingBag className="ml-2" size={18} />
             </Button>
 
             <Link to="/products">
-              <Button variant="outline" className="w-full border-gray-200">
+              <Button variant="outline" className="w-full">
                 Continue Shopping
               </Button>
             </Link>

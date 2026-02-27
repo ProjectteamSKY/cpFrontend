@@ -128,7 +128,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(imagesArray)) {
             const existingMainImages = imagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '', // Add base URL if needed
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '', // Add base URL if needed
               isExisting: true,
               url: img.url,
               id: img.id,
@@ -155,7 +155,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(relatedImagesArray)) {
             const existingRelatedImages = relatedImagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '', // Add base URL if needed
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '', // Add base URL if needed
               isExisting: true,
               url: img.url,
               id: img.id
@@ -345,13 +345,13 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       let response;
       if (isEditing && defaultValues?.id) {
         // Update existing product
-        response = await axios.put(`http://54.206.3.97/api/productsetup/update/${defaultValues.id}`, formData, {
+        response = await axios.put(`http://127.0.0.1:8000/api/productsetup/update/${defaultValues.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         alert("Product Updated Successfully!");
       } else {
         // Create new product
-        response = await axios.post("http://54.206.3.97/api/productsetup/create", formData, {
+        response = await axios.post("http://127.0.0.1:8000/api/productsetup/create", formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         alert("Product Created Successfully!");

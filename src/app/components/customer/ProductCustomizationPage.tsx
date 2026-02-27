@@ -114,23 +114,35 @@ export function ProductDetailPage() {
     handleFileUpload(e);
 
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !selectedVariant) return;
 
-    // Small delay so state updates first
+    // Ensure quantity is a number
+    const quantityNumber = parseInt(selectedQuantity, 10) || selectedVariant.prices[0].min_qty;
+    console.log("quantityNumber", quantityNumber)
+    // Build selected options dynamically
+    const selectedOptions = {
+      size: selectedVariant.size.name,
+      material: selectedVariant.paperType.name,
+      lamination: selectedVariant.printType.name,
+    };
+
     setTimeout(() => {
-      navigate("/cart", {
+      navigate("/design-review", {
         state: {
           product,
           variant: selectedVariant,
-          quantityId: selectedQuantity,
-          designFile: file,   // 👈 YOU SENT designFile
+          quantity: quantityNumber,       // ✅ now a number
+          priceId: selectedVariant.prices[0].id,
+          selected_options: selectedOptions,
+          designFile: file,
           preview: URL.createObjectURL(file),
           basePrice,
           totalPrice
         }
       });
-    }, 500);
+    }, 300); // small delay to allow state update
   };
+
   const sidesOptions = [
     { label: "Single Sided", value: "1" },
     { label: "Double Sided", value: "2" }

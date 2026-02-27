@@ -34,7 +34,7 @@ export function LoginPage() {
         try {
             setLoading(true);
             await axios.post(
-                "http://54.206.3.97/api/users/register",
+                "http://127.0.0.1:8000/api/users/register",
                 new URLSearchParams({
                     full_name: data.full_name,
                     email: data.email,
@@ -54,7 +54,7 @@ export function LoginPage() {
         try {
             setLoading(true);
             await axios.post(
-                "http://54.206.3.97/api/users/verify-otp",
+                "http://127.0.0.1:8000/api/users/verify-otp",
                 new URLSearchParams({
                     email: getValues("email"),
                     otp: data.otp || "",
@@ -76,7 +76,7 @@ export function LoginPage() {
             setLoading(true);
 
             const response = await axios.post(
-                "http://54.206.3.97/api/users/login",
+                "http://127.0.0.1:8000/api/users/login",
                 new URLSearchParams({
                     email: data.email,
                     password: data.password,
@@ -87,10 +87,13 @@ export function LoginPage() {
             // Save tokens in sessionStorage
             const accessToken = response.data.access_token;
             const refreshToken = response.data.refresh_token;
+            const user_id = response.data.user_id;
 
             sessionStorage.setItem("access_token", accessToken);
             sessionStorage.setItem("refresh_token", refreshToken);
+            localStorage.setItem("user_id", user_id);
 
+            console.log("user_id:", user_id);
             console.log("Access Token:", accessToken);
             console.log("Refresh Token:", refreshToken);
 
@@ -109,20 +112,23 @@ export function LoginPage() {
             const token = credentialResponse.credential;
 
             const response = await axios.post(
-                "http://54.206.3.97/api/users/google-login",
+                "http://127.0.0.1:8000/api/users/google-login",
                 { token },
                 { withCredentials: true }
             );
 
             const accessToken = response.data.access_token;
             const refreshToken = response.data.refresh_token;
+            const user_id = response.data.user_id;
 
             sessionStorage.setItem("access_token", accessToken);
             sessionStorage.setItem("refresh_token", refreshToken);
+            localStorage.setItem("user_id", user_id);
 
+            console.log("user_id:", user_id);
             console.log("Access Token:", accessToken);
             console.log("Refresh Token:", refreshToken);
-            window.location.href = "/";
+            // window.location.href = "/";
         } catch (err: any) {
             alert(err.response?.data?.detail || "Google login failed");
         } finally {

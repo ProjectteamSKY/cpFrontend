@@ -1,173 +1,255 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router";
-import { Trash2, FileCheck, AlertCircle, ArrowRight, ShoppingBag } from "lucide-react";
+import axios from "axios";
+import {
+  Trash2,
+  ArrowRight,
+  ShoppingBag,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 export function CartPage() {
   const location = useLocation();
   const newItem = location.state as any;
 
-  const [cartItems, setCartItems] = useState<any[]>([]);
+  const userId = localStorage.getItem("user_id");
 
-  // Add item from navigation state
-  useEffect(() => {
-    if (newItem?.product && newItem?.variant) {
-      setCartItems((prev) => [
-        ...prev,
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // ====================================
+  // FETCH CART ITEMS + PRODUCT DETAILS
+  // ====================================
+  const fetchCartItems = async () => {
+    if (!userId) return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE}/cartitems/cart-items/user/${userId}`,
+        { withCredentials: true }
+      );
+
+      const items = res.data.items;
+
+      // Fetch product + variant details for each item
+      const enrichedItems = await Promise.all(
+        items.map(async (item: any) => {
+          const productRes = await axios.get(
+            `${API_BASE}/product/${item.product_id}`
+          );
+
+          const variantRes = await axios.get(
+            `${API_BASE}/product_variant/${item.variant_id}`
+          );
+
+          const product = productRes.data;
+          const variant = variantRes.data;
+
+          // Parse images JSON string
+          const images = JSON.parse(product.images || "[]");
+          const defaultImage = images.find((img: any) => img.is_default);
+
+          return {
+            ...item,
+            product_name: product.name,
+            product_image: defaultImage
+              ? MEDIA_BASE + defaultImage.url
+              : null,
+            size_name: variant.size_name,
+            paper_type_name: variant.paper_type_name,
+            print_type_name: variant.print_type_name,
+            cut_type_name: variant.cut_type_name,
+            orientation: variant.orientation,
+          };
+        })
+      );
+
+      setCartItems(enrichedItems);
+    } catch (err) {
+      console.error("Failed to fetch cart items", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ====================================
+  // ADD ITEM
+  // ====================================
+  const addToCart = async () => {
+    if (!newItem?.variant || !userId) return;
+
+    try {
+      await axios.post(
+        `${API_BASE}/cartitems/cart-items/`,
         {
-          id: Date.now(),
-          name: newItem.product.name,
-          size: newItem.variant.size?.name,
-          material: newItem.variant.paperType?.name,
-          lamination: newItem.variant.lamination || "Standard",
+          user_id: userId,
+          product_id: newItem.product.id,
+          variant_id: newItem.variant.id,
           quantity: newItem.quantityId,
-          price: newItem.basePrice,
-          file: newItem.designFile.name,
-          fileStatus: "pending",
-          previewUrl: newItem.preview,
         },
-      ]);
+        { withCredentials: true }
+      );
+
+      fetchCartItems();
+    } catch (err) {
+      console.error("Add to cart failed", err);
+    }
+  };
+
+  // ====================================
+  // DELETE ITEM
+  // ====================================
+  const deleteItem = async (id: string) => {
+    try {
+      await axios.delete(
+        `${API_BASE}/cartitems/cart-items/${id}`,
+        { withCredentials: true }
+      );
+
+      fetchCartItems();
+    } catch (err) {
+      console.error("Delete failed", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCartItems();
+  }, []);
+
+  useEffect(() => {
+    if (newItem?.variant) {
+      addToCart();
     }
   }, [newItem]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // ====================================
+  // CALCULATIONS
+  // ====================================
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + Number(item.total_price),
+    0
+  );
+
   const gst = subtotal * 0.18;
-  const deliveryCharge = 100;
+  const deliveryCharge = subtotal > 5000 ? 0 : 100;
   const total = subtotal + gst + deliveryCharge;
+
+  if (loading) return <div className="p-10">Loading cart...</div>;
 
   return (
     <div className="max-w-[1440px] mx-auto px-8 py-8">
-      <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">Shopping Cart</h1>
+      <h1 className="text-4xl font-bold mb-8">Shopping Cart</h1>
 
       {cartItems.length === 0 ? (
-        <Card className="bg-white p-12 text-center shadow-sm border-0">
-          <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-[#1A1A1A] mb-2">Your cart is empty</h2>
-          <p className="text-gray-600 mb-6">Add some products to get started</p>
+        <Card className="p-12 text-center">
+          <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+          <h2 className="text-2xl font-semibold mb-2">
+            Your cart is empty
+          </h2>
           <Link to="/products">
-            <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">Browse Products</Button>
+            <Button>Browse Products</Button>
           </Link>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
+
+          {/* CART ITEMS */}
           <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item) => (
-              <Card key={item.id} className="bg-white p-6 shadow-sm border-0">
+              <Card key={item.id} className="p-6">
                 <div className="flex gap-6">
-                  <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center">
-                    {item.previewUrl ? (
-                      <img src={item.previewUrl} alt="Preview" className="max-h-full max-w-full rounded-lg" />
-                    ) : (
-                      <div className="text-xs text-gray-400">Preview</div>
-                    )}
-                  </div>
 
+                  {/* IMAGE */}
+                  {item.product_image && (
+                    <img
+                      src={item.product_image}
+                      alt={item.product_name}
+                      className="w-32 h-32 object-cover rounded"
+                    />
+                  )}
+
+                  {/* DETAILS */}
                   <div className="flex-1">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-xl font-semibold text-[#1A1A1A] mb-1">{item.name}</h3>
-                        <p className="text-sm text-gray-600">Quantity: {item.quantity} pieces</p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="text-[#D73D32] hover:bg-red-50" onClick={() => setCartItems(cartItems.filter(ci => ci.id !== item.id))}>
-                        <Trash2 className="w-5 h-5" />
-                      </Button>
-                    </div>
+                    <h3 className="text-xl font-semibold">
+                      {item.product_name}
+                    </h3>
 
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Size</p>
-                        <p className="text-sm font-medium text-[#1A1A1A]">{item.size}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Material</p>
-                        <p className="text-sm font-medium text-[#1A1A1A]">{item.material}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Lamination</p>
-                        <p className="text-sm font-medium text-[#1A1A1A]">{item.lamination}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Price per unit</p>
-                        <p className="text-sm font-medium text-[#1A1A1A]">₹{item.price}</p>
-                      </div>
-                    </div>
+                    <p className="text-sm text-gray-600">
+                      Size: {item.size_name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Paper: {item.paper_type_name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Print: {item.print_type_name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Cut: {item.cut_type_name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Orientation: {item.orientation}
+                    </p>
 
-                    <div className="flex items-center justify-between p-3 bg-[#EFEFEF] rounded-lg">
-                      <div className="flex items-center gap-2">
-                        {item.fileStatus === "approved" ? (
-                          <>
-                            <FileCheck className="w-4 h-4 text-green-600" />
-                            <span className="text-sm text-green-700 font-medium">File Approved</span>
-                          </>
-                        ) : (
-                          <>
-                            <AlertCircle className="w-4 h-4 text-yellow-600" />
-                            <span className="text-sm text-yellow-700 font-medium">Under Review</span>
-                          </>
-                        )}
-                        <span className="text-sm text-gray-600">• {item.file}</span>
-                      </div>
-                      <span className="text-lg font-bold text-[#D73D32]">₹{(item.price * item.quantity).toLocaleString()}</span>
+                    <p className="mt-2">
+                      Quantity: {item.quantity}
+                    </p>
+                    <p>
+                      Unit Price: ₹{item.unit_price}
+                    </p>
+
+                    <div className="mt-3 font-bold text-red-600 text-lg">
+                      ₹{Number(item.total_price).toLocaleString()}
                     </div>
                   </div>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => deleteItem(item.id)}
+                  >
+                    <Trash2 />
+                  </Button>
                 </div>
               </Card>
             ))}
           </div>
 
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <Card className="bg-white p-6 shadow-md border-0 sticky top-24">
-              <h2 className="text-xl font-semibold text-[#1A1A1A] mb-6">Order Summary</h2>
+          {/* ORDER SUMMARY */}
+          <div>
+            <Card className="p-6 sticky top-24">
+              <h2 className="text-xl font-semibold mb-6">
+                Order Summary
+              </h2>
 
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between text-[#1A1A1A]">
+              <div className="space-y-3">
+                <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="font-medium">₹{subtotal.toLocaleString()}</span>
+                  <span>₹{subtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-[#1A1A1A]">
+
+                <div className="flex justify-between">
                   <span>GST (18%)</span>
-                  <span className="font-medium">₹{gst.toLocaleString()}</span>
+                  <span>₹{gst.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-[#1A1A1A]">
-                  <span>Delivery Charge</span>
-                  <span className="font-medium">₹{deliveryCharge}</span>
-                </div>
-                <div className="border-t pt-4">
-                  <div className="flex justify-between text-[#1A1A1A]">
-                    <span className="text-lg font-semibold">Grand Total</span>
-                    <span className="text-2xl font-bold text-[#D73D32]">₹{total.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="mb-6">
-                <Label className="mb-2 block">Have a coupon code?</Label>
-                <div className="flex gap-2">
-                  <Input placeholder="Enter code" className="bg-white border-gray-200" />
-                  <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">Apply</Button>
+                <div className="flex justify-between">
+                  <span>Delivery</span>
+                  <span>₹{deliveryCharge}</span>
                 </div>
-              </div>
 
-              <div className="bg-[#EFEFEF] p-4 rounded-lg mb-6">
-                <h3 className="font-medium text-[#1A1A1A] mb-2">Delivery Information</h3>
-                <p className="text-sm text-gray-600 mb-1">Expected delivery: 3-5 business days</p>
-                <p className="text-sm text-gray-600">Free delivery on orders above ₹5,000</p>
+                <div className="border-t pt-4 flex justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>₹{total.toLocaleString()}</span>
+                </div>
               </div>
 
               <Link to="/checkout">
-                <Button className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white py-6 text-lg mb-3">
+                <Button className="w-full mt-6">
                   Proceed to Payment
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-              <Link to="/products">
-                <Button variant="outline" className="w-full border-gray-200">
-                  Continue Shopping
+                  <ArrowRight className="ml-2" />
                 </Button>
               </Link>
             </Card>
