@@ -69,6 +69,9 @@ export const router = createBrowserRouter([
 
       { path: "productVarientPrice", Component: ProductVariantPriceManagement },
       { path: "ProductSetup", Component: ProductSetupManagement },
+      { path: "Order", Component: OrderManagement },
+
+      
 
       // { path: "orders", Component: OrderManagement },
       // { path: "file-review", Component: FileReviewPanel },

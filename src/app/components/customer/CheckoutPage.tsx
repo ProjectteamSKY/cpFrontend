@@ -48,9 +48,8 @@ export function CheckoutPage() {
 
       // 2️⃣ Extract cart ID
       const cartId = res.data[0].cart_id;
-
       // 3️⃣ Fetch items in the cart
-      const itemsRes = await axios.get(`${API_BASE}/cartitems/cart-items/cart/${cartId}`, { withCredentials: true });
+      const itemsRes = await axios.get(`${API_BASE}/cartitems/cart-items/user/${userId}`, { withCredentials: true });
       const items = Array.isArray(itemsRes.data) ? itemsRes.data : itemsRes.data.items || [];
 
       // 4️⃣ Enrich items with product, variant, and files

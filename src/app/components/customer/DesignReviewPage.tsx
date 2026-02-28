@@ -81,14 +81,16 @@ export function DesignReviewPage() {
       throw error;
     }
   };
-
+  const userId =
+        sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+      if (!userId) throw new Error("User ID not found. Please login again.");
   // =========================================================
   // 🛒 ADD TO CART
   // =========================================================
   const handleAddToCart = async () => {
-    if (!accessToken) {
+    if (!userId) {
       navigate("/Login");
-      return;
+      return; 
     }
 
     try {

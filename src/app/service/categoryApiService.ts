@@ -88,7 +88,7 @@ export const deleteCategory = async (
   id: string
 ): Promise<void> => {
   try {
-    await api.delete(`/category/${id}`);
+    await api.delete(`/category/category/${id}`);
   } catch (error: any) {
     console.error("Delete Category Error: - categoryApiService.ts:93", error.response?.data);
     throw new Error("Failed to delete category");

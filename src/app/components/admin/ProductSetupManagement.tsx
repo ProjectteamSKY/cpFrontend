@@ -304,7 +304,7 @@ export function ProductSetupManagement() {
             >
               <Edit className="w-4 h-4" />
             </Button>
-            <Button
+            {/* <Button
               variant="ghost"
               size="icon"
               onClick={() => handleDelete(product.id)}
@@ -312,7 +312,7 @@ export function ProductSetupManagement() {
               disabled={loading}
             >
               <Trash2 className="w-4 h-4" />
-            </Button>
+            </Button> */}
           </div>
         );
       },

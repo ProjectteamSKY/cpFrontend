@@ -21,6 +21,8 @@ export function AdminLayout() {
     { path: "/admin/productDiscount", icon: Receipt, label: "productDiscount" },
     { path: "/admin/productVarientPrice", icon: Receipt, label: "productVarientPrice" },
     { path: "/admin/productSetup", icon: Receipt, label: "productSetup" },
+    { path: "/admin/Order", icon: Receipt, label: "Order" },
+
 
 
 
@@ -57,8 +59,8 @@ export function AdminLayout() {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                    ? "bg-[#D73D32] text-white"
-                    : "text-gray-700 hover:bg-gray-100"
+                  ? "bg-[#D73D32] text-white"
+                  : "text-gray-700 hover:bg-gray-100"
                   }`}
               >
                 <Icon className="w-5 h-5" />
