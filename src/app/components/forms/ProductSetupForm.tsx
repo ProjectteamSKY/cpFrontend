@@ -10,9 +10,10 @@ import { getAllPrintTypes } from "../../service/printTypeApiService";
 import { getAllCutTypes } from "../../service/cutTypeApiService";
 import axios from "axios";
 import { ProductSetupFormData } from "../../types/productSetup";
-import { productsetupValidation } from "../../validation/productSetupValidation";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
+import { productSetupValidation } from "../../validation/productSetupValidation";
+import { X, Upload } from "lucide-react";
 import "../../../styles/index.css"
+
 interface Props {
   defaultValues?: ProductSetupFormData | null;
   onCancel: () => void;
@@ -26,6 +27,7 @@ interface ImageFile {
   isExisting?: boolean;
   url?: string;
   id?: string;
+  is_default?: boolean;
 }
 
 export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isEditing = false }: Props) {
@@ -44,17 +46,29 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
   const { register, control, watch, handleSubmit, setValue, formState: { errors } } =
     useForm<ProductSetupFormData>({
-      defaultValues: defaultValues || {
+      defaultValues: defaultValues ? {
+        ...defaultValues,
+        // Ensure max_order_qty is properly set
+        max_order_qty: defaultValues.max_order_qty || null,
+        // Parse images if they're strings
+        images: typeof defaultValues.images === 'string'
+          ? JSON.parse(defaultValues.images)
+          : defaultValues.images,
+        related_images: typeof defaultValues.related_images === 'string'
+          ? JSON.parse(defaultValues.related_images)
+          : defaultValues.related_images,
+      } : {
         category_id: "",
         subcategory_id: "",
         name: "",
         description: "",
         min_order_qty: 100,
-        max_order_qty: 500,
+        max_order_qty: null, // Add max_order_qty at product level
         images: [],
         related_images: [],
         variants: [
           {
+            id: undefined,
             size_id: "",
             paper_type_id: "",
             print_type_id: "",
@@ -64,7 +78,12 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
             four_side_cut: false,
             orientation: "Landscape",
             prices: [
-              { min_qty: 100, max_qty: 500, price: 0, discount: null },
+              {
+                id: undefined,
+                min_qty: 100,
+                price: 0,
+                discount: null
+              },
             ],
           },
         ],
@@ -91,12 +110,6 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
           getAllCutTypes()
         ]);
 
-        console.log("Categories:", categoriesData);
-        console.log("Sizes:", sizesData);
-        console.log("Paper Types:", paperTypesData);
-        console.log("Print Types:", printTypesData);
-        console.log("Cut Types:", cutTypesData);
-
         setCategories(Array.isArray(categoriesData) ? categoriesData : []);
         setSizes(Array.isArray(sizesData) ? sizesData : []);
         setPaperTypes(Array.isArray(paperTypesData) ? paperTypesData : []);
@@ -114,28 +127,22 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
   // Load existing images when editing
   useEffect(() => {
     if (isEditing && defaultValues) {
-      console.log("Default values for editing:", defaultValues); // Debug log
-
       // Parse and load main images
       if (defaultValues.images) {
         try {
-          // Check if images is a string (JSON) or already an array
           let imagesArray = defaultValues.images;
-
           if (typeof defaultValues.images === 'string') {
             imagesArray = JSON.parse(defaultValues.images);
           }
 
           if (Array.isArray(imagesArray)) {
             const existingMainImages = imagesArray.map((img: any) => ({
-              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '', // Add base URL if needed
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id,
               is_default: img.is_default || false
             }));
-
-            console.log("Processed main images:", existingMainImages);
             setMainImages(existingMainImages);
           }
         } catch (error) {
@@ -146,22 +153,18 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       // Parse and load related images
       if (defaultValues.related_images) {
         try {
-          // Check if related_images is a string (JSON) or already an array
           let relatedImagesArray = defaultValues.related_images;
-
           if (typeof defaultValues.related_images === 'string') {
             relatedImagesArray = JSON.parse(defaultValues.related_images);
           }
 
           if (Array.isArray(relatedImagesArray)) {
             const existingRelatedImages = relatedImagesArray.map((img: any) => ({
-              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '', // Add base URL if needed
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id
             }));
-
-            console.log("Processed related images:", existingRelatedImages);
             setRelatedImagesList(existingRelatedImages);
           }
         } catch (error) {
@@ -177,7 +180,6 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       if (selectedCategory) {
         try {
           const subcats = await getAllSubcategories(selectedCategory);
-          console.log("Subcategories for category", selectedCategory, ":", subcats);
           setSubcategories(Array.isArray(subcats) ? subcats : []);
         } catch (error) {
           console.error("Error fetching subcategories:", error);
@@ -200,7 +202,6 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         isExisting: false
       }));
       setMainImages(prev => [...prev, ...newImages]);
-      setValue("images", files as any);
     }
   };
 
@@ -213,32 +214,16 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         isExisting: false
       }));
       setRelatedImagesList(prev => [...prev, ...newImages]);
-      setValue("related_images", files as any);
     }
   };
 
   const removeMainImage = (index: number) => {
     setMainImages(prev => {
       const newImages = [...prev];
-      // Revoke object URL if it's a new file
       if (!newImages[index].isExisting && newImages[index].preview) {
         URL.revokeObjectURL(newImages[index].preview);
       }
       newImages.splice(index, 1);
-
-      // Update form data
-      const fileList = newImages
-        .filter(img => !img.isExisting && img.file)
-        .map(img => img.file) as File[];
-
-      if (fileList.length > 0) {
-        const dataTransfer = new DataTransfer();
-        fileList.forEach(file => dataTransfer.items.add(file));
-        setValue("images", dataTransfer.files as any);
-      } else {
-        setValue("images", undefined as any);
-      }
-
       return newImages;
     });
   };
@@ -246,25 +231,10 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
   const removeRelatedImage = (index: number) => {
     setRelatedImagesList(prev => {
       const newImages = [...prev];
-      // Revoke object URL if it's a new file
       if (!newImages[index].isExisting && newImages[index].preview) {
         URL.revokeObjectURL(newImages[index].preview);
       }
       newImages.splice(index, 1);
-
-      // Update form data
-      const fileList = newImages
-        .filter(img => !img.isExisting && img.file)
-        .map(img => img.file) as File[];
-
-      if (fileList.length > 0) {
-        const dataTransfer = new DataTransfer();
-        fileList.forEach(file => dataTransfer.items.add(file));
-        setValue("related_images", dataTransfer.files as any);
-      } else {
-        setValue("related_images", undefined as any);
-      }
-
       return newImages;
     });
   };
@@ -285,12 +255,33 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
     };
   }, []);
 
-  // Helper function to get error message
-  const getErrorMessage = (error: any): string | null => {
-    if (!error) return null;
-    if (typeof error === 'string') return error;
-    if (error.message) return error.message;
-    return null;
+  // Add price range to a variant
+  const addPriceRange = (variantIndex: number) => {
+    const currentPrices = watch(`variants.${variantIndex}.prices`) || [];
+    const lastPrice = currentPrices[currentPrices.length - 1];
+    const newMinQty = lastPrice ? lastPrice.min_qty + 100 : 100;
+
+    // Use field array append or manual update
+    const newPrices = [
+      ...currentPrices,
+      {
+        id: undefined,
+        min_qty: newMinQty,
+        price: 0,
+        discount: null
+      }
+    ];
+
+    setValue(`variants.${variantIndex}.prices`, newPrices);
+  };
+
+  // Remove price range from a variant
+  const removePriceRange = (variantIndex: number, priceIndex: number) => {
+    const currentPrices = watch(`variants.${variantIndex}.prices`) || [];
+    if (currentPrices.length > 1) {
+      const newPrices = currentPrices.filter((_, index) => index !== priceIndex);
+      setValue(`variants.${variantIndex}.prices`, newPrices);
+    }
   };
 
   const onSubmit = async (data: ProductSetupFormData) => {
@@ -298,75 +289,164 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       setLoading(true);
       const formData = new FormData();
 
+      // Append basic product info
       formData.append("category_id", data.category_id);
       formData.append("subcategory_id", data.subcategory_id || "");
       formData.append("name", data.name);
       formData.append("description", data.description || "");
       formData.append("min_order_qty", data.min_order_qty.toString());
-      formData.append("max_order_qty", (data.max_order_qty || 0).toString());
+
+      // Append max_order_qty if it exists (product level)
+      if (data.max_order_qty) {
+        formData.append("max_order_qty", data.max_order_qty.toString());
+      }
 
       // Append new main images
       const newMainImages = mainImages.filter(img => !img.isExisting && img.file);
-      if (newMainImages.length > 0) {
-        newMainImages.forEach(img => {
-          if (img.file) formData.append("images", img.file);
-        });
-      }
+      newMainImages.forEach(img => {
+        if (img.file) formData.append("images", img.file);
+      });
 
       // Append new related images
       const newRelatedImages = relatedImagesList.filter(img => !img.isExisting && img.file);
-      if (newRelatedImages.length > 0) {
-        newRelatedImages.forEach(img => {
-          if (img.file) formData.append("related_images", img.file);
-        });
-      }
+      newRelatedImages.forEach(img => {
+        if (img.file) formData.append("related_images", img.file);
+      });
 
-      // If editing and there are existing images to keep, you might need to send their IDs
-      if (isEditing) {
-        const existingMainImageIds = mainImages
-          .filter(img => img.isExisting && img.id)
-          .map(img => img.id);
+      // Prepare variants data - WITH variant IDs for updates
+      const variantsData = data.variants.map(variant => {
+        // Create the base variant object
+        const variantObj: any = {
+          size_id: variant.size_id,
+          paper_type_id: variant.paper_type_id,
+          print_type_id: variant.print_type_id,
+          cut_type_id: variant.cut_type_id,
+          sides: Number(variant.sides),
+          two_side_cut: variant.two_side_cut === true,
+          four_side_cut: variant.four_side_cut === true,
+          orientation: variant.orientation,
+          prices: variant.prices.map(price => {
+            // Create the base price object
+            const priceObj: any = {
+              min_qty: Number(price.min_qty),
+              price: Number(price.price),
+            };
 
-        if (existingMainImageIds.length > 0) {
-          formData.append("existing_main_image_ids", JSON.stringify(existingMainImageIds));
+            // Add price id if it exists (for updates)
+            if (price.id) {
+              priceObj.id = price.id;
+            }
+
+            // Add discount if exists
+            if (price.discount && price.discount.discount > 0) {
+              const discountObj: any = {
+                description: price.discount.description || "",
+                discount: Number(price.discount.discount),
+                start_date: price.discount.start_date,
+                end_date: price.discount.end_date
+              };
+
+              // Add discount id if it exists (for updates)
+              if (price.discount.id) {
+                discountObj.id = price.discount.id;
+              }
+
+              priceObj.discount = discountObj;
+            }
+
+            return priceObj;
+          })
+        };
+
+        // Add variant id if it exists (for updates)
+        if (variant.id) {
+          variantObj.id = variant.id;
         }
 
-        const existingRelatedImageIds = relatedImagesList
-          .filter(img => img.isExisting && img.id)
-          .map(img => img.id);
+        return variantObj;
+      });
 
-        if (existingRelatedImageIds.length > 0) {
-          formData.append("existing_related_image_ids", JSON.stringify(existingRelatedImageIds));
-        }
-      }
+      console.log("Sending variants data:", JSON.stringify(variantsData, null, 2));
 
-      formData.append("variants", JSON.stringify(data.variants));
+      const variantsJson = JSON.stringify(variantsData);
+      formData.append("variants", variantsJson);
 
       let response;
       if (isEditing && defaultValues?.id) {
-        // Update existing product
-        response = await axios.put(`http://127.0.0.1:8000/api/productsetup/update/${defaultValues.id}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        alert("Product Updated Successfully!");
+        console.log("Updating product with ID:", defaultValues.id);
+
+        // Use fetch instead of axios to see more details
+        const fetchResponse = await fetch(
+          `http://127.0.0.1:8000/api/productsetup/update/${defaultValues.id}`,
+          {
+            method: 'PUT',
+            body: formData,
+            // Don't set Content-Type header - browser will set it with boundary
+          }
+        );
+
+        const responseData = await fetchResponse.json();
+        console.log("Fetch response status:", fetchResponse.status);
+        console.log("Fetch response data:", responseData);
+
+        if (!fetchResponse.ok) {
+          throw new Error(responseData.detail || 'Update failed');
+        }
+
+        if (responseData.status === "success") {
+          alert("Product Updated Successfully!");
+          if (onSubmitSuccess) {
+            onSubmitSuccess();
+          }
+        }
       } else {
-        // Create new product
-        response = await axios.post("http://127.0.0.1:8000/api/productsetup/create", formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        alert("Product Created Successfully!");
+        response = await axios.post("http://127.0.0.1:8000/api/productsetup/create", formData);
+
+        console.log("Create response:", response.data);
+
+        if (response.data.status === "success") {
+          alert("Product Created Successfully!");
+          if (onSubmitSuccess) {
+            onSubmitSuccess();
+          }
+        }
       }
 
-      if (onSubmitSuccess) {
-        onSubmitSuccess();
-      }
       onCancel();
     } catch (error) {
       console.error("Error saving product:", error);
-      alert("Error saving product. Please try again.");
+
+      if (error instanceof Error) {
+        alert(`Error: ${error.message}`);
+      } else if (axios.isAxiosError(error) && error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+
+        let errorMessage = 'Failed to save product';
+        if (error.response.data?.detail) {
+          if (Array.isArray(error.response.data.detail)) {
+            errorMessage = error.response.data.detail.map((err: any) => err.msg).join(', ');
+          } else {
+            errorMessage = error.response.data.detail;
+          }
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+
+        alert(`Error: ${errorMessage}`);
+      } else {
+        alert("Error saving product. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const getErrorMessage = (error: any): string | null => {
+    if (!error) return null;
+    if (typeof error === 'string') return error;
+    if (error.message) return error.message;
+    return null;
   };
 
   if (fetchingData) {
@@ -378,22 +458,18 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6 bg-white rounded shadow-md">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6 bg-white rounded shadow-md max-h-[80vh] overflow-y-auto">
       <h2 className="text-2xl font-bold mb-4">{isEditing ? 'Edit Product' : 'Add New Product'}</h2>
 
       {/* Category */}
       <div>
         <Label>Category <span className="text-red-500">*</span></Label>
         <select
-          {...register("category_id", productsetupValidation.category_id)}
+          {...register("category_id", productSetupValidation.category_id)}
           className="w-full border rounded p-2"
         >
           <option value="">Select Category</option>
-          {categories.length > 0 ? (
-            categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-          ) : (
-            <option value="" disabled>No categories available</option>
-          )}
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         {errors.category_id && (
           <p className="text-red-500 text-sm">{getErrorMessage(errors.category_id)}</p>
@@ -404,16 +480,12 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       <div>
         <Label>Subcategory <span className="text-red-500">*</span></Label>
         <select
-          {...register("subcategory_id", productsetupValidation.subcategory_id)}
+          {...register("subcategory_id", productSetupValidation.subcategory_id)}
           className="w-full border rounded p-2"
           disabled={!selectedCategory}
         >
           <option value="">Select Subcategory</option>
-          {subcategories.length > 0 ? (
-            subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)
-          ) : (
-            selectedCategory && <option value="" disabled>No subcategories available</option>
-          )}
+          {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         {errors.subcategory_id && (
           <p className="text-red-500 text-sm">{getErrorMessage(errors.subcategory_id)}</p>
@@ -424,7 +496,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       <div>
         <Label>Name <span className="text-red-500">*</span></Label>
         <input
-          {...register("name", productsetupValidation.name)}
+          {...register("name", productSetupValidation.name)}
           className="w-full border rounded p-2"
           placeholder="Product name"
         />
@@ -437,7 +509,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       <div>
         <Label>Description</Label>
         <textarea
-          {...register("description", productsetupValidation.description)}
+          {...register("description", productSetupValidation.description)}
           className="w-full border rounded p-2"
           rows={3}
           placeholder="Product description"
@@ -447,13 +519,13 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         )}
       </div>
 
-      {/* Min / Max Order */}
+      {/* Order Quantity Range - Product Level */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Min Order Quantity <span className="text-red-500">*</span></Label>
           <input
             type="number"
-            {...register("min_order_qty", productsetupValidation.min_order_qty)}
+            {...register("min_order_qty", productSetupValidation.min_order_qty)}
             className="border rounded p-2 w-full"
           />
           {errors.min_order_qty && (
@@ -461,15 +533,13 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
           )}
         </div>
         <div>
-          <Label>Max Order Quantity <span className="text-red-500">*</span></Label>
+          <Label>Max Order Quantity</Label>
           <input
             type="number"
-            {...register("max_order_qty", productsetupValidation.max_order_qty)}
+            {...register("max_order_qty")}
             className="border rounded p-2 w-full"
+            placeholder="Optional"
           />
-          {errors.max_order_qty && (
-            <p className="text-red-500 text-sm">{getErrorMessage(errors.max_order_qty)}</p>
-          )}
         </div>
       </div>
 
@@ -513,9 +583,9 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  {image.isExisting && (
-                    <span className="absolute bottom-0 left-0 bg-green-500 text-white text-xs px-1 rounded">
-                      Existing
+                  {image.is_default && (
+                    <span className="absolute bottom-0 left-0 bg-blue-500 text-white text-xs px-1 rounded">
+                      Default
                     </span>
                   )}
                 </div>
@@ -523,9 +593,6 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
             </div>
           )}
         </div>
-        {!isEditing && errors.images && (
-          <p className="text-red-500 text-sm mt-1">{getErrorMessage(errors.images)}</p>
-        )}
       </div>
 
       {/* Related Images with Preview */}
@@ -568,19 +635,11 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  {image.isExisting && (
-                    <span className="absolute bottom-0 left-0 bg-green-500 text-white text-xs px-1 rounded">
-                      Existing
-                    </span>
-                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
-        {errors.related_images && (
-          <p className="text-red-500 text-sm mt-1">{getErrorMessage(errors.related_images)}</p>
-        )}
       </div>
 
       {/* Variants */}
@@ -591,6 +650,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
             type="button"
             onClick={() =>
               append({
+                id: undefined,
                 size_id: "",
                 paper_type_id: "",
                 print_type_id: "",
@@ -599,7 +659,14 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
                 two_side_cut: false,
                 four_side_cut: false,
                 orientation: "Landscape",
-                prices: [{ min_qty: 100, max_qty: 500, price: 0, discount: null }],
+                prices: [
+                  {
+                    id: undefined,
+                    min_qty: 100,
+                    price: 0,
+                    discount: null
+                  },
+                ],
               })
             }
             className="bg-blue-500 hover:bg-blue-600"
@@ -608,200 +675,190 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
           </Button>
         </div>
 
-        {variantFields.map((variant, index) => (
-          <div key={variant.id} className="border p-4 rounded bg-gray-50 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold">Variant {index + 1}</h3>
-              {variantFields.length > 1 && (
-                <Button
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="bg-red-500 hover:bg-red-600 text-sm"
-                >
-                  Remove
-                </Button>
-              )}
-            </div>
+        {variantFields.map((variant, variantIndex) => {
+          const prices = watch(`variants.${variantIndex}.prices`) || [];
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {/* Size */}
-              <div>
-                <select
-                  {...register(`variants.${index}.size_id`, { required: "Size is required" })}
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="">Select Size</option>
-                  {sizes.length > 0 ? (
-                    sizes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)
-                  ) : (
-                    <option value="" disabled>No sizes available</option>
-                  )}
-                </select>
-                {errors.variants?.[index]?.size_id && (
-                  <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[index]?.size_id)}</p>
+          return (
+            <div key={variant.id} className="border p-4 rounded bg-gray-50 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold">Variant {variantIndex + 1}</h3>
+                {variantFields.length > 1 && (
+                  <Button
+                    type="button"
+                    onClick={() => remove(variantIndex)}
+                    className="bg-red-500 hover:bg-red-600 text-sm"
+                  >
+                    Remove
+                  </Button>
                 )}
               </div>
 
-              {/* Paper Type */}
-              <div>
-                <select
-                  {...register(`variants.${index}.paper_type_id`, { required: "Paper Type is required" })}
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="">Select Paper Type</option>
-                  {paperTypes.length > 0 ? (
-                    paperTypes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
-                  ) : (
-                    <option value="" disabled>No paper types available</option>
-                  )}
-                </select>
-                {errors.variants?.[index]?.paper_type_id && (
-                  <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[index]?.paper_type_id)}</p>
-                )}
-              </div>
-
-              {/* Print Type */}
-              <div>
-                <select
-                  {...register(`variants.${index}.print_type_id`, { required: "Print Type is required" })}
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="">Select Print Type</option>
-                  {printTypes.length > 0 ? (
-                    printTypes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
-                  ) : (
-                    <option value="" disabled>No print types available</option>
-                  )}
-                </select>
-                {errors.variants?.[index]?.print_type_id && (
-                  <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[index]?.print_type_id)}</p>
-                )}
-              </div>
-
-              {/* Cut Type */}
-              <div>
-                <select
-                  {...register(`variants.${index}.cut_type_id`, { required: "Cut Type is required" })}
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="">Select Cut Type</option>
-                  {cutTypes.length > 0 ? (
-                    cutTypes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-                  ) : (
-                    <option value="" disabled>No cut types available</option>
-                  )}
-                </select>
-                {errors.variants?.[index]?.cut_type_id && (
-                  <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[index]?.cut_type_id)}</p>
-                )}
-              </div>
-
-              {/* Sides */}
-              <div>
-                <select
-                  {...register(`variants.${index}.sides`, { required: true })}
-                  className="border p-2 rounded w-full"
-                >
-                  <option value={1}>Single Side</option>
-                  <option value={2}>Double Side</option>
-                </select>
-              </div>
-
-              {/* Orientation */}
-              <div>
-                <select
-                  {...register(`variants.${index}.orientation`, { required: true })}
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="Landscape">Landscape</option>
-                  <option value="Portrait">Portrait</option>
-                </select>
-              </div>
-
-              {/* Checkboxes */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  {...register(`variants.${index}.two_side_cut`)}
-                  className="rounded h-4 w-4"
-                  id={`two_side_cut_${index}`}
-                />
-                <Label htmlFor={`two_side_cut_${index}`}>2 Side Cut</Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  {...register(`variants.${index}.four_side_cut`)}
-                  className="rounded h-4 w-4"
-                  id={`four_side_cut_${index}`}
-                />
-                <Label htmlFor={`four_side_cut_${index}`}>4 Side Cut</Label>
-              </div>
-            </div>
-
-            {/* Prices */}
-            <div className="mt-4">
-              <Label className="font-medium">Price Range <span className="text-red-500">*</span></Label>
-              <div className="grid grid-cols-3 gap-3 mt-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {/* Size */}
                 <div>
-                  <input
-                    type="number"
-                    {...register(`variants.${index}.prices.0.min_qty`, {
-                      required: "Min quantity required",
-                      min: { value: 1, message: "Min quantity must be at least 1" }
-                    })}
-                    placeholder="Min Qty"
+                  <select
+                    {...register(`variants.${variantIndex}.size_id`, { required: "Size is required" })}
                     className="border p-2 rounded w-full"
-                  />
-                  {errors.variants?.[index]?.prices?.[0]?.min_qty && (
-                    <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[index]?.prices?.[0]?.min_qty)}</p>
+                  >
+                    <option value="">Select Size</option>
+                    {sizes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  {errors.variants?.[variantIndex]?.size_id && (
+                    <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[variantIndex]?.size_id)}</p>
                   )}
                 </div>
+
+                {/* Paper Type */}
                 <div>
-                  <input
-                    type="number"
-                    {...register(`variants.${index}.prices.0.max_qty`, {
-                      required: "Max quantity required",
-                      validate: (value) => {
-                        const minQty = watch(`variants.${index}.prices.0.min_qty`);
-                        return Number(value) >= Number(minQty) || "Max quantity must be greater than or equal to min quantity";
-                      }
-                    })}
-                    placeholder="Max Qty"
+                  <select
+                    {...register(`variants.${variantIndex}.paper_type_id`, { required: "Paper Type is required" })}
                     className="border p-2 rounded w-full"
-                  />
-                  {errors.variants?.[index]?.prices?.[0]?.max_qty && (
-                    <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[index]?.prices?.[0]?.max_qty)}</p>
+                  >
+                    <option value="">Select Paper Type</option>
+                    {paperTypes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  {errors.variants?.[variantIndex]?.paper_type_id && (
+                    <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[variantIndex]?.paper_type_id)}</p>
                   )}
                 </div>
+
+                {/* Print Type */}
                 <div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    {...register(`variants.${index}.prices.0.price`, {
-                      required: "Price required",
-                      min: { value: 0, message: "Price must be greater than or equal to 0" }
-                    })}
-                    placeholder="Price"
+                  <select
+                    {...register(`variants.${variantIndex}.print_type_id`, { required: "Print Type is required" })}
                     className="border p-2 rounded w-full"
-                  />
-                  {errors.variants?.[index]?.prices?.[0]?.price && (
-                    <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[index]?.prices?.[0]?.price)}</p>
+                  >
+                    <option value="">Select Print Type</option>
+                    {printTypes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  {errors.variants?.[variantIndex]?.print_type_id && (
+                    <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[variantIndex]?.print_type_id)}</p>
                   )}
+                </div>
+
+                {/* Cut Type */}
+                <div>
+                  <select
+                    {...register(`variants.${variantIndex}.cut_type_id`, { required: "Cut Type is required" })}
+                    className="border p-2 rounded w-full"
+                  >
+                    <option value="">Select Cut Type</option>
+                    {cutTypes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  {errors.variants?.[variantIndex]?.cut_type_id && (
+                    <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[variantIndex]?.cut_type_id)}</p>
+                  )}
+                </div>
+
+                {/* Sides */}
+                <div>
+                  <select
+                    {...register(`variants.${variantIndex}.sides`, { required: true })}
+                    className="border p-2 rounded w-full"
+                  >
+                    <option value={1}>Single Side</option>
+                    <option value={2}>Double Side</option>
+                  </select>
+                </div>
+
+                {/* Orientation */}
+                <div>
+                  <select
+                    {...register(`variants.${variantIndex}.orientation`, { required: true })}
+                    className="border p-2 rounded w-full"
+                  >
+                    <option value="Landscape">Landscape</option>
+                    <option value="Portrait">Portrait</option>
+                  </select>
+                </div>
+
+                {/* Checkboxes */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    {...register(`variants.${variantIndex}.two_side_cut`)}
+                    className="rounded h-4 w-4"
+                    id={`two_side_cut_${variantIndex}`}
+                  />
+                  <Label htmlFor={`two_side_cut_${variantIndex}`}>2 Side Cut</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    {...register(`variants.${variantIndex}.four_side_cut`)}
+                    className="rounded h-4 w-4"
+                    id={`four_side_cut_${variantIndex}`}
+                  />
+                  <Label htmlFor={`four_side_cut_${variantIndex}`}>4 Side Cut</Label>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
 
-        {errors.variants && !Array.isArray(errors.variants) && (
-          <p className="text-red-500 text-sm">{getErrorMessage(errors.variants)}</p>
-        )}
+              {/* Prices - NO MAX QTY */}
+              <div className="mt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <Label className="font-medium">Price Ranges <span className="text-red-500">*</span></Label>
+                  <Button
+                    type="button"
+                    onClick={() => addPriceRange(variantIndex)}
+                    className="bg-green-500 hover:bg-green-600 text-sm"
+                    size="sm"
+                  >
+                    Add Price Range
+                  </Button>
+                </div>
+
+                {prices.map((price, priceIndex) => (
+                  <div key={priceIndex} className="grid grid-cols-2 gap-3 mt-2 relative">
+                    <div>
+                      <input
+                        type="number"
+                        {...register(`variants.${variantIndex}.prices.${priceIndex}.min_qty`, {
+                          required: "Min quantity required",
+                          min: { value: 1, message: "Min quantity must be at least 1" }
+                        })}
+                        placeholder="Min Qty"
+                        className="border p-2 rounded w-full"
+                      />
+                      {errors.variants?.[variantIndex]?.prices?.[priceIndex]?.min_qty && (
+                        <p className="text-red-500 text-sm">{getErrorMessage(errors.variants[variantIndex]?.prices?.[priceIndex]?.min_qty)}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        {...register(`variants.${variantIndex}.prices.${priceIndex}.price`, {
+                          required: "Price required",
+                          min: { value: 0, message: "Price must be greater than or equal to 0" }
+                        })}
+                        placeholder="Price"
+                        className="border p-2 rounded w-full"
+                      />
+                      {prices.length > 1 && (
+                        <Button
+                          type="button"
+                          onClick={() => removePriceRange(variantIndex, priceIndex)}
+                          className="bg-red-500 hover:bg-red-600 text-sm px-2"
+                          size="sm"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {errors.variants?.[variantIndex]?.prices?.[priceIndex]?.price && (
+                      <p className="text-red-500 text-sm col-span-2">{getErrorMessage(errors.variants[variantIndex]?.prices?.[priceIndex]?.price)}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="flex gap-4 justify-end">
-        <Button type="submit" disabled={loading || fetchingData} className="bg-green-500 hover:bg-green-600">
+      <div className="flex gap-4 justify-end sticky bottom-0 bg-white py-4 border-t">
+        <Button type="submit" disabled={loading} className="bg-green-500 hover:bg-green-600">
           {loading ? 'Saving...' : (isEditing ? 'Update Product' : 'Save Product')}
         </Button>
         <Button type="button" onClick={onCancel} variant="outline">

@@ -108,17 +108,24 @@ export function ProductDetailPage() {
   } = useDesignUpload();
   // Static options
 
-  const handleUploadAndRedirect = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleUploadAndRedirect = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFileUpload(e);
 
     const file = e.target.files?.[0];
-    if (!file || !selectedVariant) return;
+    if (!file || !selectedVariant || !selectedQuantity) return;
 
-    // Ensure quantity is a number
-    const quantityNumber = parseInt(selectedQuantity, 10) || selectedVariant.prices[0].min_qty;
-    console.log("quantityNumber", quantityNumber)
+    // Find the price object for the selected quantity
+    const selectedPriceObj = selectedVariant.prices.find(
+      (p) => String(p.id) === String(selectedQuantity)
+    );
+
+    if (!selectedPriceObj) {
+      console.warn("Selected quantity does not match any price.");
+      return;
+    }
+
+    const quantityNumber = parseInt(selectedPriceObj.min_qty.toString(), 10);
+
     // Build selected options dynamically
     const selectedOptions = {
       size: selectedVariant.size.name,
@@ -131,16 +138,16 @@ export function ProductDetailPage() {
         state: {
           product,
           variant: selectedVariant,
-          quantity: quantityNumber,       // ✅ now a number
-          priceId: selectedVariant.prices[0].id,
+          quantity: quantityNumber,       // ✅ dynamic based on selected quantity
+          priceId: selectedPriceObj.id,   // ✅ dynamic price ID
           selected_options: selectedOptions,
           designFile: file,
           preview: URL.createObjectURL(file),
-          basePrice,
-          totalPrice
+          basePrice: selectedPriceObj.price,
+          totalPrice: selectedPriceObj.price
         }
       });
-    }, 300); // small delay to allow state update
+    }, 300);
   };
 
   const sidesOptions = [

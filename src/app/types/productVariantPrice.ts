@@ -2,10 +2,9 @@ export interface ProductVariantPrice {
   id: string;
 
   variant_id: string;
-  variant_name: string;
+  variant_name?: string;
 
   min_qty: number;
-  max_qty: number;
   price: number;
   discount_id?: string;
   discount_name?: string;
@@ -19,7 +18,6 @@ export interface ProductVariantPrice {
 export interface ProductVariantPriceFormData {
   variant_id: string;
   min_qty: number;
-  max_qty: number;
   price: number;
   discount_id?: string;
   is_active: boolean;

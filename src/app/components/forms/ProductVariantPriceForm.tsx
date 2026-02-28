@@ -36,12 +36,11 @@ export function ProductVariantPriceForm({ defaultValues, onSubmit, onCancel }: P
       ? {
           variant_id: defaultValues.variant_id,
           min_qty: defaultValues.min_qty,
-          max_qty: defaultValues.max_qty,
           price: defaultValues.price,
           discount_id: defaultValues.discount_id ?? "",
           is_active: defaultValues.is_active ?? true,
         }
-      : { variant_id: "", min_qty: 1, max_qty: 1, price: 0, discount_id: "", is_active: true },
+      : { variant_id: "", min_qty: 1, price: 0, discount_id: "", is_active: true },
   });
 
   if (loadingOptions) return <p className="text-center py-4">Loading...</p>;
@@ -63,7 +62,8 @@ export function ProductVariantPriceForm({ defaultValues, onSubmit, onCancel }: P
         {errors.variant_id && <p className="text-red-500 text-sm">{errors.variant_id.message}</p>}
       </div>
 
-       <div>
+      {/* Discount */}
+      <div>
         <Label>Discount</Label>
         <select {...register("discount_id")} className="w-full border rounded px-3 py-2">
           <option value="">No Discount</option>
@@ -82,22 +82,12 @@ export function ProductVariantPriceForm({ defaultValues, onSubmit, onCancel }: P
         {errors.min_qty && <p className="text-red-500 text-sm">{errors.min_qty.message}</p>}
       </div>
 
-      {/* Max Qty */}
-      <div>
-        <Label>Max Qty *</Label>
-        <input type="number" {...register("max_qty", productVariantPriceValidation.max_qty)} className="w-full border rounded px-3 py-2"/>
-        {errors.max_qty && <p className="text-red-500 text-sm">{errors.max_qty.message}</p>}
-      </div>
-
       {/* Price */}
       <div>
         <Label>Price *</Label>
         <input type="number" step="0.01" {...register("price", productVariantPriceValidation.price)} className="w-full border rounded px-3 py-2"/>
         {errors.price && <p className="text-red-500 text-sm">{errors.price.message}</p>}
       </div>
-
-      {/* Discount */}
-     
 
       {/* Active */}
       <div className="flex items-center gap-2">

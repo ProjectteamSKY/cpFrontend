@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Key } from "react";
 import { useNavigate } from "react-router";
 import { CreditCard, Building2, Smartphone, CheckCircle } from "lucide-react";
 import { Button } from "../ui/button";
@@ -37,51 +37,62 @@ export function CheckoutPage() {
     if (!userId) return;
 
     try {
-      // 1️⃣ Fetch user's active cart
-      const res = await axios.get(`${API_BASE}/cart/carts/user/${userId}`, { withCredentials: true });
-      console.log("res@@@@@@@@@@@@@@@@@fetchCartItems", res);
+      // 1️⃣ Fetch user cart
+      const res = await axios.get(`${API_BASE}/cartitems/cart-items/user/${userId}`, { withCredentials: true });
 
-      let cartId: string;
-      if (Array.isArray(res.data)) {
-        // old behavior if backend returns array
-        if (res.data.length === 0) {
-          setCartItems([]);
-          return;
-        }
-        cartId = res.data[0].id;
-      } else if (res.data && res.data.id) {
-        // new behavior: single object
-        cartId = res.data.id;
-      } else {
+      if (!Array.isArray(res.data) || res.data.length === 0) {
         setCartItems([]);
+        setLoadingCart(false);
         return;
       }
 
-      // 2️⃣ Fetch items in the active cart
-      const itemsRes = await axios.get(`${API_BASE}/cartitems/cart-items/${cartId}`, { withCredentials: true });
-      const items = itemsRes.data.items;
+      // 2️⃣ Extract cart ID
+      const cartId = res.data[0].cart_id;
 
-      // 3️⃣ Enrich items with product and variant info
+      // 3️⃣ Fetch items in the cart
+      const itemsRes = await axios.get(`${API_BASE}/cartitems/cart-items/cart/${cartId}`, { withCredentials: true });
+      const items = Array.isArray(itemsRes.data) ? itemsRes.data : itemsRes.data.items || [];
+
+      // 4️⃣ Enrich items with product, variant, and files
       const enrichedItems = await Promise.all(
         items.map(async (item: any) => {
+          // Find the files from the original user-cart response
+          const originalItem = res.data.find((i: any) => i.id === item.id);
+          const files = (originalItem?.files || []).map((f: any) => ({
+            ...f,
+            front_side_url: f.front_side_url ? MEDIA_BASE + f.front_side_url.replace(/^\/?/, "") : null,
+            back_side_url: f.back_side_url ? MEDIA_BASE + f.back_side_url.replace(/^\/?/, "") : null,
+          }));
+
           const productRes = await axios.get(`${API_BASE}/product/${item.product_id}`);
           const variantRes = await axios.get(`${API_BASE}/product_variant/${item.variant_id}`);
 
           const product = productRes.data;
           const variant = variantRes.data;
-          const images = JSON.parse(product.images || "[]");
-          const defaultImage = images.find((img: any) => img.is_default);
+
+          let productImage = null;
+          if (product.images) {
+            const images = JSON.parse(product.images || "[]");
+            const defaultImg = images.find((img: any) => img.is_default);
+            if (defaultImg) productImage = MEDIA_BASE + defaultImg.url.replace(/^\/?/, "");
+          } else if (product.image_url) {
+            productImage = MEDIA_BASE + product.image_url.replace(/^\/?/, "");
+          }
+
+          console.log("files for item", item.id, files);
 
           return {
             ...item,
-            cart_id: cartId,
+            cart_id: item.cart_id || null,
             product_name: product.name,
-            product_image: defaultImage ? MEDIA_BASE + defaultImage.url : null,
+            product_image: productImage,
             size_name: variant.size_name,
             paper_type_name: variant.paper_type_name,
             print_type_name: variant.print_type_name,
             cut_type_name: variant.cut_type_name,
             orientation: variant.orientation,
+            selected_options: item.selected_options ? JSON.parse(item.selected_options) : {},
+            files,
           };
         })
       );
@@ -106,81 +117,52 @@ export function CheckoutPage() {
 
   // ====== PLACE ORDER ======
   const handlePlaceOrder = async () => {
-    console.log("api triggered @@@@@@@@@@@@@@@@@@@@@@@@@");
     if (!userId) {
       alert("User not logged in!");
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      alert("Cart is empty!");
       return;
     }
 
     setPlacingOrder(true);
 
     try {
-      // ✅ Dynamically fetch active cart if cartItems empty
-      let activeCartId = cartItems[0]?.cart_id;
-      let items = cartItems;
-
-      if (!activeCartId || items.length === 0) {
-        console.log("Fetching active cart dynamically...");
-        const res = await axios.get(`${API_BASE}/cart/carts/user/${userId}`, { withCredentials: true });
-        const carts = res.data;
-        if (!Array.isArray(carts) || carts.length === 0) throw new Error("No active cart found");
-        activeCartId = carts[0].id;
-
-        const itemsRes = await axios.get(`${API_BASE}/cartitems/cart-items/${activeCartId}`, { withCredentials: true });
-        items = itemsRes.data.items;
-
-        // You might want to enrich items with product/variant info if needed
-        // For minimal dynamic functionality, we can use as-is
-      }
-
-      if (items.length === 0) throw new Error("Cart is empty");
-
-      // 1️⃣ Save user address
-      const addressRes = await axios.post(`${API_BASE}/user_addresses/create`, {
-        user_id: userId,
-        address: address.street,
-        city: address.city,
-        state: address.state,
-        country: address.country,
-        postal_code: address.postal_code,
-        phone: address.phone,
-      }, { withCredentials: true });
+      const addressRes = await axios.post(
+        `${API_BASE}/user_addresses/create`,
+        {
+          user_id: userId,
+          address: address.street,
+          city: address.city,
+          state: address.state,
+          country: address.country,
+          postal_code: address.postal_code,
+          phone: address.phone,
+        },
+        { withCredentials: true }
+      );
 
       const addressId = addressRes.data.id;
 
-      // 2️⃣ Create order
-      const orderRes = await axios.post(`${API_BASE}/orders_routes/create`, {
-        user_id: userId,
-        cart_id: activeCartId,
-        address_id: addressId,
-        total_amount: total,
-        status: "pending",
-      }, { withCredentials: true });
-
-      const newOrderId = orderRes.data.id;
-      setOrderId(newOrderId);
-
-      // 3️⃣ Create order items
-      await Promise.all(
-        items.map((item) =>
-          axios.post(`${API_BASE}/order_items_routes/create`, {
-            order_id: newOrderId,
-            cart_item_id: item.id,
-            product_id: item.product_id,
-            variant_id: item.variant_id,
-            quantity: item.quantity,
-            price: item.unit_price,
-            total: item.total_price,
-          }, { withCredentials: true })
-        )
+      const checkoutRes = await axios.post(
+        `${API_BASE}/orders_routes/checkout`,
+        {
+          user_id: userId,
+          cart_id: cartItems[0].cart_id,
+          cart_item_ids: cartItems.map((item) => item.id),
+          address_id: addressId,
+          payment_method: paymentMethod,
+        },
+        { withCredentials: true }
       );
 
+      const newOrderId = checkoutRes.data.order_id;
+      setOrderId(newOrderId);
       setShowSuccess(true);
 
-      setTimeout(() => {
-        navigate(`/order-tracking/${newOrderId}`);
-      }, 2000);
-
+      setTimeout(() => navigate(`/order-tracking/${newOrderId}`), 2000);
     } catch (err: any) {
       console.error("Checkout failed", err.response?.data || err.message);
       alert("Failed to place order. Try again.");
@@ -188,6 +170,7 @@ export function CheckoutPage() {
       setPlacingOrder(false);
     }
   };
+
   if (loadingCart) return <div className="p-10">Loading cart...</div>;
 
   if (showSuccess)
@@ -219,9 +202,8 @@ export function CheckoutPage() {
     <div className="max-w-[1440px] mx-auto px-8 py-8">
       <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">Checkout</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Form & Payment */}
+        {/* Billing & Payment */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Billing */}
           <Card className="bg-white p-6 shadow-sm border-0">
             <h2 className="text-xl font-semibold text-[#1A1A1A] mb-6">Billing Address</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -254,43 +236,24 @@ export function CheckoutPage() {
             </div>
           </Card>
 
-          {/* Payment */}
           <Card className="bg-white p-6 shadow-sm border-0">
             <h2 className="text-xl font-semibold text-[#1A1A1A] mb-6">Payment Method</h2>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
               <div className="space-y-4">
-                <div className="flex items-start justify-between p-4 border-2 border-gray-200 rounded-lg hover:border-[#D73D32] cursor-pointer transition-colors">
-                  <div className="flex items-start gap-3">
-                    <RadioGroupItem value="upi" id="payment-upi" className="mt-1" />
-                    <div>
-                      <label htmlFor="payment-upi" className="font-medium cursor-pointer flex items-center gap-2">
-                        <Smartphone className="w-5 h-5 text-[#D73D32]" /> UPI Payment
+                {[
+                  { id: "upi", label: "UPI Payment", icon: <Smartphone className="w-5 h-5 text-[#D73D32]" /> },
+                  { id: "netbanking", label: "Net Banking", icon: <Building2 className="w-5 h-5 text-[#D73D32]" /> },
+                  { id: "card", label: "Card", icon: <CreditCard className="w-5 h-5 text-[#D73D32]" /> },
+                ].map((method) => (
+                  <div key={method.id} className="flex items-start justify-between p-4 border-2 border-gray-200 rounded-lg hover:border-[#D73D32] cursor-pointer transition-colors">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value={method.id} id={`payment-${method.id}`} className="mt-1" />
+                      <label htmlFor={`payment-${method.id}`} className="font-medium cursor-pointer flex items-center gap-2">
+                        {method.icon} {method.label}
                       </label>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex items-start justify-between p-4 border-2 border-gray-200 rounded-lg hover:border-[#D73D32] cursor-pointer transition-colors">
-                  <div className="flex items-start gap-3">
-                    <RadioGroupItem value="netbanking" id="payment-netbanking" className="mt-1" />
-                    <div>
-                      <label htmlFor="payment-netbanking" className="font-medium cursor-pointer flex items-center gap-2">
-                        <Building2 className="w-5 h-5 text-[#D73D32]" /> Net Banking
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start justify-between p-4 border-2 border-gray-200 rounded-lg hover:border-[#D73D32] cursor-pointer transition-colors">
-                  <div className="flex items-start gap-3">
-                    <RadioGroupItem value="card" id="payment-card" className="mt-1" />
-                    <div>
-                      <label htmlFor="payment-card" className="font-medium cursor-pointer flex items-center gap-2">
-                        <CreditCard className="w-5 h-5 text-[#D73D32]" /> Card
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </RadioGroup>
           </Card>
@@ -300,16 +263,58 @@ export function CheckoutPage() {
         <div className="lg:col-span-1">
           <Card className="bg-white p-6 shadow-md border-0 sticky top-24">
             <h2 className="text-xl font-semibold text-[#1A1A1A] mb-6">Order Summary</h2>
-
             <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
               {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3">
-                  <img src={item.product_image || ""} className="w-16 h-16 object-cover rounded flex-shrink-0" alt={item.product_name} />
-                  <div className="flex-1">
-                    <p className="font-medium text-[#1A1A1A] text-sm">{item.product_name}</p>
-                    <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
+                <div key={item.id} className="flex flex-col gap-2">
+                  {/* FILE IMAGES */}
+                  <div className="flex flex-col gap-2">
+                    {item.files?.length ? (
+                      <div className="flex gap-2 overflow-x-auto">
+                        {item.files.map((file: any) => (
+                          <div key={file.id} className="flex gap-2">
+                            {file.front_side_url && (
+                              <img
+                                src={file.front_side_url}
+                                alt={file.front_original_name}
+                                className="w-32 h-32 object-cover rounded"
+                              />
+                            )}
+                            {file.back_side_url && (
+                              <img
+                                src={file.back_side_url}
+                                alt={file.back_original_name}
+                                className="w-32 h-32 object-cover rounded"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      item.product_image && (
+                        <img
+                          src={item.product_image}
+                          alt={item.product_name}
+                          className="w-32 h-32 object-cover rounded"
+                        />
+                      )
+                    )}
                   </div>
-                  <p className="font-semibold text-[#1A1A1A]">₹{item.total_price}</p>
+
+                  {/* DETAILS */}
+                  <div className="flex items-center justify-between mt-1">
+                    <div>
+                      <p className="font-medium text-[#1A1A1A] text-sm">{item.product_name}</p>
+                      <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
+                      {item.selected_options && (
+                        <p className="text-xs text-gray-500">
+                          {Object.entries(item.selected_options)
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <p className="font-semibold text-[#1A1A1A]">₹{item.total_price}</p>
+                  </div>
                 </div>
               ))}
             </div>

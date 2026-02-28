@@ -4,7 +4,6 @@ import { ProductVariantPriceFormData } from "../types/productVariantPrice";
 type PriceValidationType = {
   variant_id: RegisterOptions<ProductVariantPriceFormData, "variant_id">;
   min_qty: RegisterOptions<ProductVariantPriceFormData, "min_qty">;
-  max_qty: RegisterOptions<ProductVariantPriceFormData, "max_qty">;
   price: RegisterOptions<ProductVariantPriceFormData, "price">;
 };
 
@@ -15,12 +14,6 @@ export const productVariantPriceValidation: PriceValidationType = {
   min_qty: {
     required: "Minimum quantity is required",
     min: { value: 1, message: "Minimum quantity must be at least 1" },
-  },
-  max_qty: {
-    required: "Maximum quantity is required",
-    min: { value: 1, message: "Maximum quantity must be at least 1" },
-    validate: (value, formValues) =>
-      value >= formValues.min_qty || "Maximum quantity cannot be less than minimum quantity",
   },
   price: {
     required: "Price is required",

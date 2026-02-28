@@ -15,12 +15,14 @@ import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
 // Define the API response type
+// Define the API response type
 interface ApiResponse {
   status?: string;
-  data?: ProductSetup[];
-  products?: ProductSetup[];
-  product?: ProductSetup;
+  product?: ProductSetup;      // For single product responses
+  products?: ProductSetup[];   // For list responses
+  data?: ProductSetup[] | ProductSetup; // Alternative structure
   message?: string;
+  count?: number;              // If API returns count
 }
 
 export function ProductSetupManagement() {
@@ -31,33 +33,47 @@ export function ProductSetupManagement() {
   const [error, setError] = useState<string | null>(null);
 
   /* ---------------- Fetch ---------------- */
+  /* ---------------- Fetch ---------------- */
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await getAllProducts();
-      
-      console.log("Fetch products response:", response); // Debug log
-      
+
+      console.log("Fetch products response:", response);
+
       // Handle different response types
       let productData: ProductSetup[] = [];
-      
+
       if (Array.isArray(response)) {
         productData = response;
       } else if (response && typeof response === 'object') {
-        // Check if it's an ApiResponse type with data/products property
         const apiResponse = response as ApiResponse;
-        
-        if (apiResponse.data && Array.isArray(apiResponse.data)) {
-          productData = apiResponse.data;
-        } else if (apiResponse.products && Array.isArray(apiResponse.products)) {
+
+        // Based on your API response structure
+        if (apiResponse.status === 'success') {
+          // Check for products array (plural) for list responses
+          if (apiResponse.products && Array.isArray(apiResponse.products)) {
+            productData = apiResponse.products;
+          }
+          // Check for data property
+          else if (apiResponse.data && Array.isArray(apiResponse.data)) {
+            productData = apiResponse.data;
+          }
+          // If product (singular) is returned but we expect an array
+          else if (apiResponse.product) {
+            productData = [apiResponse.product];
+          }
+        }
+        // Fallback checks
+        else if (apiResponse.products && Array.isArray(apiResponse.products)) {
           productData = apiResponse.products;
-        } else if (apiResponse.status === 'success' && apiResponse.data) {
-          productData = apiResponse.data as ProductSetup[];
+        } else if (apiResponse.data && Array.isArray(apiResponse.data)) {
+          productData = apiResponse.data;
         }
       }
-      
-      console.log("Processed product data:", productData); // Debug log
+
+      console.log("Processed product data:", productData);
       setProducts(productData);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -88,25 +104,24 @@ export function ProductSetupManagement() {
   };
 
   /* ---------------- Edit ---------------- */
+  /* ---------------- Edit ---------------- */
   const handleEdit = async (id: string) => {
     try {
       setLoading(true);
       setError(null);
       const response = await getProductById(id);
-      console.log("Product data for edit:", response);
-      
-      // Extract product data from response
-      let productData: any = response;
-      
-      // Handle different response structures
+      console.log("Raw product data for edit:", response);
+
+      let productData: any = null;
+
       if (response && typeof response === 'object') {
         const apiResponse = response as ApiResponse;
-        if (apiResponse.status === 'success' && apiResponse.data) {
-          productData = apiResponse.data;
-        } else if (apiResponse.product) {
+
+        if (apiResponse.status === 'success' && apiResponse.product) {
           productData = apiResponse.product;
-        } else if (apiResponse.data) {
-          productData = apiResponse.data;
+          console.log("Extracted product data:", productData);
+        } else {
+          productData = response;
         }
       }
 
@@ -114,12 +129,12 @@ export function ProductSetupManagement() {
         throw new Error("Product data not found");
       }
 
-      // Ensure variants array exists
-      const variants = productData.variants && Array.isArray(productData.variants) 
-        ? productData.variants 
-        : [];
+      // Log the original values
+      console.log("Original variant data:", productData.variants?.[0]);
+      console.log("Variant ID:", productData.variants?.[0]?.id);
+      console.log("Price IDs:", productData.variants?.[0]?.prices?.map((p: any) => p.id));
+      console.log("Discount IDs:", productData.variants?.[0]?.prices?.map((p: any) => p.discount?.id));
 
-      // Transform the data to match ProductSetupFormData structure
       const formData: ProductSetupFormData = {
         id: productData.id,
         category_id: productData.category_id,
@@ -127,42 +142,65 @@ export function ProductSetupManagement() {
         name: productData.name || "",
         description: productData.description || "",
         min_order_qty: productData.min_order_qty || 100,
-        max_order_qty: productData.max_order_qty || 500,
+        max_order_qty: productData.max_order_qty || null,
         images: productData.images || [],
         related_images: productData.related_images || [],
-        variants: variants.length > 0 
-          ? variants.map((variant: any) => ({
+        variants: productData.variants && Array.isArray(productData.variants) && productData.variants.length > 0
+          ? productData.variants.map((variant: any) => {
+            console.log("Processing variant with ID:", variant.id);
+
+            return {
+              id: variant.id, // IMPORTANT: Keep the variant ID
               size_id: variant.size_id || "",
               paper_type_id: variant.paper_type_id || "",
               print_type_id: variant.print_type_id || "",
               cut_type_id: variant.cut_type_id || "",
-              sides: variant.sides || 1,
+              sides: Number(variant.sides) || 1,
               two_side_cut: variant.two_side_cut === 1 || variant.two_side_cut === true,
               four_side_cut: variant.four_side_cut === 1 || variant.four_side_cut === true,
               orientation: variant.orientation || "Landscape",
               prices: variant.prices && Array.isArray(variant.prices) && variant.prices.length > 0
-                ? variant.prices.map((price: any) => ({
-                    min_qty: price.min_qty || 100,
-                    max_qty: price.max_qty || 500,
-                    price: price.price || 0,
-                    discount: price.discount || null
-                  }))
-                : [{ min_qty: 100, max_qty: 500, price: 0, discount: null }]
-            }))
+                ? variant.prices.map((price: any) => {
+                  console.log("Processing price with ID:", price.id);
+
+                  const priceObj: any = {
+                    id: price.id, // IMPORTANT: Keep the price ID
+                    min_qty: Number(price.min_qty) || 100,
+                    price: Number(price.price) || 0,
+                  };
+
+                  if (price.discount) {
+                    console.log("Processing discount with ID:", price.discount.id);
+                    priceObj.discount = {
+                      id: price.discount.id, // IMPORTANT: Keep the discount ID
+                      description: price.discount.description,
+                      discount: Number(price.discount.discount),
+                      start_date: price.discount.start_date,
+                      end_date: price.discount.end_date
+                    };
+                  } else {
+                    priceObj.discount = null;
+                  }
+
+                  return priceObj;
+                })
+                : [{ min_qty: 100, price: 0, discount: null }]
+            };
+          })
           : [{
-              size_id: "",
-              paper_type_id: "",
-              print_type_id: "",
-              cut_type_id: "",
-              sides: 1,
-              two_side_cut: false,
-              four_side_cut: false,
-              orientation: "Landscape",
-              prices: [{ min_qty: 100, max_qty: 500, price: 0, discount: null }]
-            }]
+            size_id: "",
+            paper_type_id: "",
+            print_type_id: "",
+            cut_type_id: "",
+            sides: 1,
+            two_side_cut: false,
+            four_side_cut: false,
+            orientation: "Landscape",
+            prices: [{ min_qty: 100, price: 0, discount: null }]
+          }]
       };
-      
-      console.log("Transformed form data:", formData); // Debug log
+
+      console.log("Final transformed form data (with all IDs preserved):", JSON.stringify(formData, null, 2));
       setEditingProduct(formData);
       setShowForm(true);
     } catch (error) {
@@ -243,13 +281,7 @@ export function ProductSetupManagement() {
         return price?.min_qty ?? "N/A";
       },
     },
-    {
-      header: "Max Qty",
-      cell: ({ row }) => {
-        const price = row.original.variants?.[0]?.prices?.[0];
-        return price?.max_qty ?? "N/A";
-      },
-    },
+
     {
       header: "Price",
       cell: ({ row }) => {
@@ -333,8 +365,8 @@ export function ProductSetupManagement() {
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 onClick={fetchProducts}
                 className="ml-2 text-red-700 underline"
               >
