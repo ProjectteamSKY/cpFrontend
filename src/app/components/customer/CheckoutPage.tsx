@@ -8,8 +8,8 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000/api";
-const MEDIA_BASE = "http://127.0.0.1:8000/";
+const API_BASE = "http://54.206.3.97/api";
+const MEDIA_BASE = "http://54.206.3.97/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();

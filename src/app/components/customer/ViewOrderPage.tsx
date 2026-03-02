@@ -4,8 +4,8 @@
 // import { Button } from "../ui/button";
 // import axios from "axios";
 
-// const API_BASE = "http://127.0.0.1:8000/api";
-// const MEDIA_BASE = "http://127.0.0.1:8000/";
+// const API_BASE = "http://54.206.3.97/api";
+// const MEDIA_BASE = "http://54.206.3.97/";
 
 // export function ViewOrderPage() {
 //   const { orderId } = useParams();
@@ -97,8 +97,8 @@
 // import { Button } from "../ui/button";
 // import axios from "axios";
 
-// const API_BASE = "http://127.0.0.1:8000/api";
-// const MEDIA_BASE = "http://127.0.0.1:8000/";
+// const API_BASE = "http://54.206.3.97/api";
+// const MEDIA_BASE = "http://54.206.3.97/";
 
 // const ORDER_STEPS = [
 //   { key: "pending", label: "Order Placed", icon: "🧾" },
@@ -285,8 +285,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000/api";
-const MEDIA_BASE = "http://127.0.0.1:8000/";
+const API_BASE = "http://54.206.3.97/api";
+const MEDIA_BASE = "http://54.206.3.97/";
 
 const ORDER_STEPS = [
   { key: "pending", label: "Order Placed", icon: ShoppingBag, color: "from-yellow-400 to-yellow-500" },
