@@ -139,11 +139,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             />
             
             {/* Zoom Indicator */}
-            {/* <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-xl">
                 <ZoomIn className="w-6 h-6 text-[#D73D32]" />
               </div>
-            </div> */}
+            </div>
             
             {/* Related Images Indicator */}
             {/* {allImages.length > 1 && (
