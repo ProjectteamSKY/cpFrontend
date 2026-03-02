@@ -72,3 +72,8 @@ export const deleteSize = async (id: string): Promise<void> => {
 export const activateSize = async (id: string): Promise<void> => {
   await api.put(`/size/${id}/activate`);
 };
+
+export const deactivateSize = async (id: string): Promise<void> => {
+  await api.put(`/size/${id}/deactivate`);
+};
+

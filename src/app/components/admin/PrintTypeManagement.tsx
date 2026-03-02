@@ -51,17 +51,19 @@ export function PrintTypeManagement() {
     {
       header: "Status",
       cell: ({ row }) => {
-        const pt = row.original;
+        const ct = row.original;
         return (
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => toggleStatus(pt)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${pt.is_active ? "bg-green-500" : "bg-gray-300"}`}
+              onClick={() => toggleStatus(ct)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${ct.is_active ? "bg-green-500" : "bg-gray-300"}`}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${pt.is_active ? "translate-x-6" : "translate-x-1"}`} />
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${ct.is_active ? "translate-x-6" : "translate-x-1"}`}
+              />
             </button>
-            <span className="text-sm">{pt.is_active ? "Active" : "Inactive"}</span>
+            <span className="text-sm">{ct.is_active ? "Active" : "Inactive"}</span>
           </div>
         );
       },

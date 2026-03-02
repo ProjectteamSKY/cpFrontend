@@ -16,6 +16,7 @@ import {
   updateSize,
   deleteSize,
   activateSize,
+  deactivateSize,
 } from "../../service/sizeApiService";
 
 export function SizeManagement() {
@@ -23,7 +24,7 @@ export function SizeManagement() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingSize, setEditingSize] = useState<Size | null>(null);
-
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetchSizes = async () => {
@@ -63,8 +64,20 @@ export function SizeManagement() {
 
   /* ---------- Toggle / Activate ---------- */
   const toggleStatus = async (size: Size) => {
-    await activateSize(size.id);
-    fetchSizes();
+    try {
+      setLoadingId(size.id);
+
+      if (size.is_active) {
+        await deactivateSize(size.id);
+      } else {
+        await activateSize(size.id);
+      }
+
+      await fetchSizes();
+
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const columns: ColumnDef<Size>[] = [
@@ -81,15 +94,14 @@ export function SizeManagement() {
           <div className="flex items-center gap-3">
             <button
               type="button"
+              disabled={loadingId === s.id}
               onClick={() => toggleStatus(s)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                s.is_active ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${s.is_active ? "bg-green-500" : "bg-gray-300"
+                } ${loadingId === s.id ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                  s.is_active ? "translate-x-6" : "translate-x-1"
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${s.is_active ? "translate-x-6" : "translate-x-1"
+                  }`}
               />
             </button>
             <span className="text-sm">{s.is_active ? "Active" : "Inactive"}</span>

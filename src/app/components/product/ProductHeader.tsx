@@ -23,13 +23,13 @@ export const ProductHeader: React.FC = () => {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Badge className="bg-white/90 text-[#D73D32] hover:bg-white border-0 px-4 py-2 text-sm font-semibold shadow-lg">
-                🚚 Free Shipping
+              Free Shipping
               </Badge>
               <Badge className="bg-white/90 text-[#D73D32] hover:bg-white border-0 px-4 py-2 text-sm font-semibold shadow-lg">
-                ⚡ 24h Dispatch
+              24h Dispatch
               </Badge>
               <Badge className="bg-white/90 text-[#D73D32] hover:bg-white border-0 px-4 py-2 text-sm font-semibold shadow-lg">
-                ✓ Quality Guaranteed
+                Quality Guaranteed
               </Badge>
             </div>
           </div>

@@ -45,7 +45,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D73D32] via-[#B83227] to-[#D73D32] opacity-0 group-hover:opacity-100 transition-opacity"></div>
       
       {/* Badges */}
-      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+      {/* <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
         {product.popular && (
           <Badge className="bg-gradient-to-r from-[#1A1A1A] to-[#3A3A3A] text-white border-0 shadow-lg backdrop-blur-sm">
             🔥 Popular
@@ -61,7 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.discount}% OFF
           </Badge>
         )}
-      </div>
+      </div> */}
 
       {/* Action Buttons */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
@@ -86,7 +86,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </Tooltip>
         </TooltipProvider>
 
-        <TooltipProvider>
+        {/* <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -101,7 +101,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <p className="font-medium">Quick view</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
+        </TooltipProvider> */}
 
         <TooltipProvider>
           <Tooltip>
@@ -139,14 +139,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             />
             
             {/* Zoom Indicator */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+            {/* <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-xl">
                 <ZoomIn className="w-6 h-6 text-[#D73D32]" />
               </div>
-            </div>
+            </div> */}
             
             {/* Related Images Indicator */}
-            {allImages.length > 1 && (
+            {/* {allImages.length > 1 && (
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 px-3">
                 {allImages.slice(0, 5).map((_, idx) => (
                   <button
@@ -161,7 +161,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   </span>
                 )}
               </div>
-            )}
+            )} */}
           </>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
@@ -195,7 +195,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </p>
 
         {/* Rating */}
-        {product.rating && (
+        {/* {product.rating && (
           <div className="flex items-center gap-2 mb-4">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
@@ -216,11 +216,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               ({product.review_count} reviews)
             </span>
           </div>
-        )}
+        )} */}
 
         {/* Price & CTA */}
         <div className="flex items-end justify-between gap-4">
-          <div className="flex-1">
+          {/* <div className="flex-1">
             <div className="flex items-baseline gap-2 mb-1">
               <span className="text-2xl font-bold bg-gradient-to-r from-[#D73D32] to-[#B83227] bg-clip-text text-transparent">
                 ₹{product.price || 0}
@@ -234,7 +234,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <p className="text-xs text-gray-500 bg-gray-50 inline-block px-2 py-1 rounded-full">
               Min. {product.min_order_qty} pcs
             </p>
-          </div>
+          </div> */}
           
           <Button
             className="bg-gradient-to-r from-[#D73D32] to-[#B83227] hover:from-[#B83227] hover:to-[#9A2A1F] text-white rounded-full px-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"

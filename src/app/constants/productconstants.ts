@@ -8,10 +8,10 @@ export const PAPER_TYPES = ["Matte", "Glossy", "Premium", "Recycled", "Textured"
 export const FINISHES = ["Standard", "Laminated", "UV Coated", "Embossed", "Foil Stamped"];
 
 export const SORT_OPTIONS = [
-  { value: "popular", label: "⭐ Most Popular" },
-  { value: "price-low", label: "💰 Price: Low to High" },
-  { value: "price-high", label: "💎 Price: High to Low" },
-  { value: "newest", label: "🆕 Newest First" }
+  { value: "popular", label: "Most Popular" },
+  { value: "price-low", label: "Price: Low to High" },
+  { value: "price-high", label: "Price: High to Low" },
+  { value: "newest", label: "Newest First" }
 ];
 
 export const PRODUCTS_PER_PAGE = 12;

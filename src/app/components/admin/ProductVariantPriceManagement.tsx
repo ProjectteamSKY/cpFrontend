@@ -55,8 +55,7 @@ export function ProductVariantPriceManagement() {
 
     const columns: ColumnDef<ProductVariantPrice>[] = [
         { header: "Variant", accessorKey: "variant_name" },
-        { header: "Min Qty", accessorKey: "min_qty" },
-        { header: "Max Qty", accessorKey: "max_qty" },
+        { header: "Qty", accessorKey: "min_qty" },
         { header: "Price", accessorKey: "price" },
         { header: "Discount", accessorKey: "discount_name" },
         {

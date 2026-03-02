@@ -108,29 +108,48 @@ export function ProductDetailPage() {
   } = useDesignUpload();
   // Static options
 
-  const handleUploadAndRedirect = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleUploadAndRedirect = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFileUpload(e);
 
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !selectedVariant || !selectedQuantity) return;
 
-    // Small delay so state updates first
+    // Find the price object for the selected quantity
+    const selectedPriceObj = selectedVariant.prices.find(
+      (p) => String(p.id) === String(selectedQuantity)
+    );
+
+    if (!selectedPriceObj) {
+      console.warn("Selected quantity does not match any price.");
+      return;
+    }
+
+    const quantityNumber = parseInt(selectedPriceObj.min_qty.toString(), 10);
+
+    // Build selected options dynamically
+    const selectedOptions = {
+      size: selectedVariant.size.name,
+      material: selectedVariant.paperType.name,
+      lamination: selectedVariant.printType.name,
+    };
+
     setTimeout(() => {
-      navigate("/cart", {
+      navigate("/design-review", {
         state: {
           product,
           variant: selectedVariant,
-          quantityId: selectedQuantity,
-          designFile: file,   // 👈 YOU SENT designFile
+          quantity: quantityNumber,       // ✅ dynamic based on selected quantity
+          priceId: selectedPriceObj.id,   // ✅ dynamic price ID
+          selected_options: selectedOptions,
+          designFile: file,
           preview: URL.createObjectURL(file),
-          basePrice,
-          totalPrice
+          basePrice: selectedPriceObj.price,
+          totalPrice: selectedPriceObj.price
         }
       });
-    }, 500);
+    }, 300);
   };
+
   const sidesOptions = [
     { label: "Single Sided", value: "1" },
     { label: "Double Sided", value: "2" }
