@@ -4,7 +4,7 @@
 // import { Button } from "../ui/button";
 // import axios from "axios";
 
-// const API_BASE = "http://54.206.3.97/api";
+// const API_BASE = "http://127.0.0.1:8000/api";
 
 // export function OrderHistoryPage() {
 //   const navigate = useNavigate();
@@ -61,7 +61,7 @@
 // import { Button } from "../ui/button";
 // import axios from "axios";
 
-// const API_BASE = "http://54.206.3.97/api";
+// const API_BASE = "http://127.0.0.1:8000/api";
 
 // const getStatusColor = (status: string) => {
 //   switch (status) {
@@ -187,8 +187,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 
 

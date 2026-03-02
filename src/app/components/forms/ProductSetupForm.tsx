@@ -137,7 +137,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(imagesArray)) {
             const existingMainImages = imagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '',
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id,
@@ -160,7 +160,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(relatedImagesArray)) {
             const existingRelatedImages = relatedImagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '',
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id
@@ -377,7 +377,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
         // Use fetch instead of axios to see more details
         const fetchResponse = await fetch(
-          `http://54.206.3.97/api/productsetup/update/${defaultValues.id}`,
+          `http://127.0.0.1:8000/api/productsetup/update/${defaultValues.id}`,
           {
             method: 'PUT',
             body: formData,
@@ -400,7 +400,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
           }
         }
       } else {
-        response = await axios.post("http://54.206.3.97/api/productsetup/create", formData);
+        response = await axios.post("http://127.0.0.1:8000/api/productsetup/create", formData);
 
         console.log("Create response:", response.data);
 

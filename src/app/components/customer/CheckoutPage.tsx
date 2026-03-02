@@ -8,8 +8,8 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import axios from "axios";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -161,7 +161,7 @@ export function CheckoutPage() {
       setOrderId(newOrderId);
       setShowSuccess(true);
 
-      setTimeout(() => navigate(`/order-tracking/${newOrderId}`), 2000);
+      setTimeout(() => navigate(`/viewOrder/${newOrderId}`), 2000);
     } catch (err: any) {
       console.error("Checkout failed", err.response?.data || err.message);
       alert("Failed to place order. Try again.");
