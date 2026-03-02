@@ -161,7 +161,7 @@ export function CheckoutPage() {
       setOrderId(newOrderId);
       setShowSuccess(true);
 
-      setTimeout(() => navigate(`/order-tracking/${newOrderId}`), 2000);
+      setTimeout(() => navigate(`/viewOrder/${newOrderId}`), 2000);
     } catch (err: any) {
       console.error("Checkout failed", err.response?.data || err.message);
       alert("Failed to place order. Try again.");
