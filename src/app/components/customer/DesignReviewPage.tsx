@@ -81,30 +81,31 @@ export function DesignReviewPage() {
       throw error;
     }
   };
-  const userId =
-        sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
-      if (!userId) throw new Error("User ID not found. Please login again.");
+  // const userId =
+  //       sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+  //     if (!userId) throw new Error("User ID not found. Please login again.");
   // =========================================================
   // 🛒 ADD TO CART
   // =========================================================
   const handleAddToCart = async () => {
+    const userId =
+      sessionStorage.getItem("user_id") ||
+      localStorage.getItem("user_id");
+
     if (!userId) {
-      navigate("/Login");
-      return; 
+      navigate("/login"); // use one consistent route
+      return;
     }
 
     try {
       setLoading(true);
       setError("");
 
-      const userId =
-        sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
-      if (!userId) throw new Error("User ID not found. Please login again.");
-
       const cartId = await getCartId(userId);
 
-      // ✅ convert quantity to number
-      const quantityNumber = Number(selectedQuantity || variant.prices[0].min_qty);
+      const quantityNumber = Number(
+        selectedQuantity || variant.prices[0].min_qty
+      );
 
       const formData = new FormData();
       formData.append("cart_id", cartId);
@@ -112,22 +113,38 @@ export function DesignReviewPage() {
       formData.append("variant_id", String(variant.id));
       formData.append("quantity", String(quantityNumber));
       formData.append("price_id", String(priceId));
-      formData.append("selected_options", JSON.stringify(selected_options));
+      formData.append(
+        "selected_options",
+        JSON.stringify(selected_options)
+      );
 
-      if (designFile) formData.append("front_file", designFile);
+      if (designFile) {
+        formData.append("front_file", designFile);
+      }
 
-      await api.post("/cartitems/cart-items/with-files", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await api.post(
+        "/cartitems/cart-items/with-files",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       navigate("/cart");
     } catch (err: any) {
       console.error(err);
+
       setError(
         err?.response?.data?.detail
           ? typeof err.response.data.detail === "string"
             ? err.response.data.detail
-            : JSON.stringify(err.response.data.detail, null, 2)
+            : JSON.stringify(
+              err.response.data.detail,
+              null,
+              2
+            )
           : err?.message || "Failed to add item to cart"
       );
     } finally {
