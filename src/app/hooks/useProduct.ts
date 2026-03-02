@@ -50,7 +50,7 @@ export const useProducts = () => {
 
     fetchProducts();
   }, []);
-
+  
   useEffect(() => {
     const result = applyFilters(products, searchQuery, filters, sortBy);
     setFilteredProducts(result);

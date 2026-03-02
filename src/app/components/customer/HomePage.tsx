@@ -1,8 +1,9 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ArrowRight, Upload, Printer, Truck, CheckCircle, Star } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import headerImg from "../../../media/header2.png";
+import { useProducts } from "../../hooks/useProduct";
 
 export function HomePage() {
   const categories = [
@@ -32,6 +33,10 @@ export function HomePage() {
     },
   ];
 
+   const navigate = useNavigate();
+  const { filteredProducts, loading } = useProducts();
+
+  const featuredProducts = filteredProducts.slice(0, 6);
   return (
     <div className="space-y-10">
       {/* Hero Section */}
@@ -88,48 +93,83 @@ export function HomePage() {
 
 
       {/* Featured Products */}
-      <section className="max-w-[1440px] mx-auto px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-[#1A1A1A] mb-4">Our Products</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Browse our most popular printing products with customizable options
-          </p>
-        </div>
+      <div className="space-y-16">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {categories.map((category) => (
-            <Card
-              key={category.id}
-              className="group bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border-0 relative"
-            >
-              {category.popular && (
-                <div className="absolute top-4 right-4 bg-[#1A1A1A] text-white text-xs px-3 py-1 rounded-full z-10">
-                  Popular
-                </div>
-              )}
-              <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                  <Printer className="w-16 h-16 text-gray-400" />
-                </div>
+        
+        <section className="max-w-[1440px] mx-auto px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-[#1A1A1A] mb-4">
+              Our Products
+            </h2>
+            <p className="text-lg text-gray-600">
+              Explore our premium printing collection
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-20">Loading products...</div>
+          ) : featuredProducts.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              No products available
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {featuredProducts.map((product) => (
+                  <Card
+                    key={product.id}
+                    onClick={() => navigate(`/product/${product.id}`)}
+                    className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  >
+                    {/* Product Image */}
+                    <div className="aspect-[4/3] overflow-hidden">
+                      <img
+                        src={product.images?.[0] || "/placeholder.png"}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                    </div>
+
+                    {/* Product Details */}
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold text-[#1A1A1A] mb-2">
+                        {product.name}
+                      </h3>
+
+                      <p className="text-gray-500 text-sm mb-4 line-clamp-2">
+                        {product.description}
+                      </p>
+
+                      <div className="flex items-center justify-between">
+                        {/* <span className="text-2xl font-bold text-[#D73D32]">
+                          ₹{product.price}
+                        </span> */}
+
+                        <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-[#1A1A1A] mb-2">{category.name}</h3>
-                <p className="text-gray-600 mb-4">Starting from</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-[#D73D32]">{category.price}</span>
-                  <Link to={`/product/${category.id}`}>
-                    <Button
-                      className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white"
-                    >
-                      Customize
-                    </Button>
-                  </Link>
-                </div>
+
+              {/* View All Button */}
+              <div className="text-center mt-12">
+                <Link to="/products">
+                  <Button
+                    size="lg"
+                    className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-8 py-6 text-lg"
+                  >
+                    View All Products
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
               </div>
-            </Card>
-          ))}
-        </div>
-      </section>
+            </>
+          )}
+        </section>
+      </div>
 
       {/* How It Works */}
       <section className="max-w-[1440px] mx-auto px-8 py-16 bg-white rounded-2xl shadow-sm">
