@@ -48,7 +48,7 @@ export const createProduct = async (data: ProductFormData) => {
   const formData = mapProductToFormData(data);
 
   return await axios.post(
-    "http://127.0.0.1:8000/api/product/create",
+    "http://54.206.3.97/api/product/create",
     formData
   );
 };
