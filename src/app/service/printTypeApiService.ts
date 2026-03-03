@@ -33,6 +33,11 @@ export const getAllPrintTypes = async (): Promise<PrintType[]> => {
   return (res.data.print_types || []).map(mapPrintTypeFromApi);
 };
 
+export const getAllPrintTypesActive = async (): Promise<PrintType[]> => {
+  const res = await api.get("/print_type/list/active");
+  return (res.data.print_types || []).map(mapPrintTypeFromApi);
+};
+
 /* =========================================================
    Create PrintType
 ========================================================= */

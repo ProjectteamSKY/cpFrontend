@@ -29,6 +29,13 @@ export const getAllCutTypes = async (): Promise<CutType[]> => {
   return (res.data.cut_types || []).map(mapCutTypeFromApi);
 };
 
+
+export const getAllCutTypesActive = async (): Promise<CutType[]> => {
+  const res = await api.get("/cut_type/list/active");
+  return (res.data.cut_types || []).map(mapCutTypeFromApi);
+};
+
+
 /* Create Cut Type */
 export const createCutType = async (payload: CutTypeFormData): Promise<void> => {
   const body = mapCutTypeToFormData(payload);

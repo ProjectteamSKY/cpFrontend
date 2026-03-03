@@ -7,7 +7,6 @@ const mapFromApi = (p: any): ProductVariantPrice => ({
   variant_id: p.variant_id,
   variant_name: p.product_name ?? "N/A",
   min_qty: p.min_qty,
-  max_qty: p.max_qty,
   price: p.price,
   discount_id: p.discount_id ?? null,
   discount_name: p.discount_name ?? "N/A",
@@ -21,7 +20,6 @@ const toFormData = (data: ProductVariantPriceFormData) => {
   const formData = new FormData();
   formData.append("variant_id", data.variant_id);
   formData.append("min_qty", String(data.min_qty));
-  formData.append("max_qty", String(data.max_qty));
   formData.append("price", String(data.price));
   if (data.discount_id) formData.append("discount_id", data.discount_id);
   formData.append("is_active", data.is_active ? "true" : "false");
@@ -52,4 +50,8 @@ export const deleteProductVariantPrice = async (id: string) => {
 /* Activate */
 export const activateProductVariantPrice = async (id: string) => {
   await api.put(`/product_variant_price/${id}/activate`);
+};
+
+export const deactivateProductVariantPrice = async (id: string) => {
+  await api.put(`/product_variant_price/${id}/deactivate`);
 };

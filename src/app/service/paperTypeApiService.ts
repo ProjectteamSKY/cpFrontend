@@ -24,6 +24,14 @@ export const getAllPaperTypes = async (): Promise<PaperType[]> => {
   return (res.data.paper_types || []).map(mapPaperTypeFromApi);
 };
 
+
+export const getAllPaperTypesActive = async (): Promise<PaperType[]> => {
+  const res = await api.get("/paper_type/list/active");
+  return (res.data.paper_types || []).map(mapPaperTypeFromApi);
+};
+
+
+
 export const createPaperType = async (payload: PaperTypeFormData): Promise<void> => {
   const formData = toFormData(payload);
   await api.post("/paper_type/create", formData, {
@@ -47,5 +55,5 @@ export const activatePaperType = async (id: string): Promise<void> => {
 };
 
 export const deactivatePaperType = async (id: string): Promise<void> => {
-  await api.put(`/paper-type/${id}/deactivate`);
+  await api.put(`/paper_type/${id}/deactivate`);
 };

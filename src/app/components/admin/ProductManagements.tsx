@@ -1,62 +1,96 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { CustomTable } from "../common/CustomTable";
 import { Product, ProductFormData } from "../../types/product";
 import { ProductForm } from "../forms/ProductForm";
 import { ColumnDef } from "@tanstack/react-table";
 
-import { getAllProducts, createProduct, updateProduct, deleteProduct, activateProduct } from "../../service/productApiService";
+import {
+  getAllProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  activateProduct,
+  deactivateProduct,
+} from "../../service/productApiService";
 
 export function ProductManagements() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [mode, setMode] = useState<"list" | "add" | "edit">("list");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Fetch Products
   const fetchProducts = async () => {
-    const data = await getAllProducts();
-    setProducts(data);
+    try {
+      const data = await getAllProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error("Failed to fetch products", error);
+    }
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  const handleSave = async (data: ProductFormData) => {
-    console.log("api triggerd")
-    if (editingProduct) {
-      await updateProduct(editingProduct.id, data);
-      console.log("update the product api triggerd ")
-    } else {
-      await createProduct(data);
-      console.log("create the product api triggerd ")
-
+  // Save Product (Add / Edit)
+  const handleSave = async (
+    data: ProductFormData & {
+      existing_image_ids: string[];
+      existing_related_image_ids: string[];
     }
-    setShowAddDialog(false);
-    setShowEditDialog(false);
-    setEditingProduct(null);
-    fetchProducts();
+  ) => {
+    try {
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, data);
+      } else {
+        await createProduct(data);
+      }
+
+      setMode("list");
+      setEditingProduct(null);
+      fetchProducts();
+    } catch (error) {
+      console.error("Save failed", error);
+    }
   };
 
+  // Edit
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
-    setShowEditDialog(true);
+    setMode("edit");
   };
 
+  // Delete
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
-    await deleteProduct(id);
-    fetchProducts();
+
+    try {
+      await deleteProduct(id);
+      fetchProducts();
+    } catch (error) {
+      console.error("Delete failed", error);
+    }
   };
 
+  // Toggle Active Status
   const toggleStatus = async (product: Product) => {
-    await activateProduct(product.id);
-    fetchProducts();
+    try {
+      if (product.is_active) {
+        await deactivateProduct(product.id);
+      } else {
+        await activateProduct(product.id);
+      }
+
+      fetchProducts();
+    } catch (err: any) {
+      alert(err.message || "Failed to toggle status");
+    }
   };
 
+  // Table Columns
   const columns: ColumnDef<Product>[] = [
     { header: "Name", accessorKey: "name" },
     { header: "Min Order", accessorKey: "min_order_qty" },
@@ -77,7 +111,9 @@ export function ProductManagements() {
                   }`}
               />
             </button>
-            <span className="text-sm">{p.is_active ? "Active" : "Inactive"}</span>
+            <span className="text-sm">
+              {p.is_active ? "Active" : "Inactive"}
+            </span>
           </div>
         );
       },
@@ -91,7 +127,11 @@ export function ProductManagements() {
             <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}>
               <Edit className="w-4 h-4 text-[#D73D32]" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDelete(p.id)}
+            >
               <Trash2 className="w-4 h-4 text-[#D73D32]" />
             </Button>
           </div>
@@ -102,45 +142,68 @@ export function ProductManagements() {
 
   return (
     <div className="space-y-8">
+
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Product Management</h1>
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A11A]/90 text-white">
-              <Plus className="w-4 h-4 mr-2" /> Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Product</DialogTitle>
-            </DialogHeader>
-            <ProductForm onSubmit={handleSave} onCancel={() => setShowAddDialog(false)} />
-          </DialogContent>
-        </Dialog>
+
+        {mode === "list" && (
+          <Button
+            className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+            onClick={() => {
+              setEditingProduct(null);
+              setMode("add");
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Product
+          </Button>
+        )}
       </div>
 
-      <Card>
-        <div className="overflow-x-auto">
-          <CustomTable data={products} columns={columns} />
-        </div>
-      </Card>
+      {/* FULL WIDTH FORM */}
+      {(mode === "add" || mode === "edit") && (
+        <Card className="p-6 space-y-6">
 
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
-          </DialogHeader>
+          {/* Title + Back */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              {mode === "add" ? "Add Product" : "Edit Product"}
+            </h2>
+
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => {
+                setMode("list");
+                setEditingProduct(null);
+              }}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Products
+            </Button>
+          </div>
+
           <ProductForm
             key={editingProduct?.id || "new"}
             defaultValues={editingProduct}
             onSubmit={handleSave}
             onCancel={() => {
-              setShowEditDialog(false);
+              setMode("list");
               setEditingProduct(null);
             }}
           />
-        </DialogContent>
-      </Dialog>
+        </Card>
+      )}
+
+      {/* PRODUCT TABLE */}
+      {mode === "list" && (
+        <Card>
+          <div className="overflow-x-auto">
+            <CustomTable data={products} columns={columns} />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

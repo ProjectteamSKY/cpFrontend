@@ -17,6 +17,8 @@ import {
     createProductVariantPrice,
     updateProductVariantPrice,
     deleteProductVariantPrice,
+    deactivateProductVariantPrice,
+    activateProductVariantPrice,
 } from "../../service/productVariantPriceApiService";
 
 import { ProductVariantPrice, ProductVariantPriceFormData } from "../../types/productVariantPrice";
@@ -63,25 +65,25 @@ export function ProductVariantPriceManagement() {
             cell: ({ row }) => {
                 const item = row.original;
 
+                const handleToggle = async () => {
+                    try {
+                        if (item.is_active) {
+                            await deactivateProductVariantPrice(item.id);
+                        } else {
+                            await activateProductVariantPrice(item.id);
+                        }
+
+                        await fetchPrices();        
+                    } catch (error) {
+                        console.error("Failed to toggle status", error);
+                    }
+                };
+
                 return (
                     <div className="flex items-center gap-3">
-                        {/* Toggle Button */}
                         <button
                             type="button"
-                            onClick={async () => {
-                                try {
-                                    // toggle is_active
-                                    await updateProductVariantPrice(item.id, {
-                                        ...item,
-                                        is_active: !item.is_active,
-                                    });
-
-                                    // refresh the prices list
-                                    await fetchPrices();
-                                } catch (error) {
-                                    console.error("Failed to toggle status", error);
-                                }
-                            }}
+                            onClick={handleToggle}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${item.is_active ? "bg-green-500" : "bg-gray-300"
                                 }`}
                         >
@@ -91,9 +93,8 @@ export function ProductVariantPriceManagement() {
                             />
                         </button>
 
-                        {/* Status Text */}
-                        <span className="text-sm">
-                            {item.is_active }
+                        <span className="text-sm font-medium">
+                            {item.is_active ? "Active" : "Inactive"}
                         </span>
                     </div>
                 );

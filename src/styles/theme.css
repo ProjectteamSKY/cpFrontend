@@ -6,15 +6,18 @@
   --brand-cta-orange: #1A1A1A;
   --brand-alert-red: #D73D32;
 
-    --brand-alert-red: #cc635c;
-        --brand-alert-red: #D73D32;
-
+  --brand-alert-red: #cc635c;
+  --brand-alert-red: #D73D32;
+  --header-primary: #D73D32;      /* Main header */
+  --header-secondary: #E74C3C;    /* Hover state */
+  --header-accent: #C0392B;       /* Darker accent */
+  --header-light: #EC7063; 
 
   --brand-bg-light-gray: #ffffff;
   --brand-dark-text: #1A1A1A;
-
+  
   --font-size: 16px;
-  --background: #ffffff;
+  --background: #803c3c;
   --foreground: #1A1A1A;
   --card: #ffffff;
   --card-foreground: #1A1A1A;
