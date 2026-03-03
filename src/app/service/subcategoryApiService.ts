@@ -99,7 +99,7 @@ export const updateSubcategory = async (
 };
 
 export const deleteSubcategory = async (id: string): Promise<void> => {
-  await api.delete(`/subcategory/${id}`);
+  await api.delete(`/subcategory/delete/subcategory/${id}`);  
 };
 
 export const activateSubcategory = async (id: string): Promise<void> => {

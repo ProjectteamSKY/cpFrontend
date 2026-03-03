@@ -51,16 +51,31 @@ export const getAllCategories = async (): Promise<Category[]> => {
 ========================================================= */
 export const createCategory = async (
   payload: CategoryFormData
-): Promise<void> => {
+): Promise<{ success: boolean; message: string }> => {
   try {
     const body = mapCategoryToApi(payload);
 
     console.log("Sending body: - categoryApiService.ts:58", body);
 
     await api.post("/category/create", body);
+
+    return { success: true, message: "Category created successfully" };
   } catch (error: any) {
-    console.error("Create Category Error: - categoryApiService.ts:62", error.response?.data);
-    throw new Error("Failed to create category");
+    if (error.isAxiosError && error.response) {
+      const status = error.response.status;
+      const data = error.response.data;
+
+      if (status === 400 && data?.detail) {
+        // Return the exact backend message
+        return { success: false, message: data.detail };
+      }
+
+      // Other backend errors
+      return { success: false, message: data?.detail || "Server error" };
+    }
+
+    // Network or unexpected errors
+    return { success: false, message: "Failed to create category" };
   }
 };
 
@@ -76,7 +91,7 @@ export const updateCategory = async (
 
     await api.put(`/category/${id}`, body);
   } catch (error: any) {
-    console.error("Update Category Error: - categoryApiService.ts:79", error.response?.data);
+    console.error("Update Category Error: - categoryApiService.ts:94", error.response?.data);
     throw new Error("Failed to update category");
   }
 };
@@ -90,7 +105,7 @@ export const deleteCategory = async (
   try {
     await api.delete(`/category/category/${id}`);
   } catch (error: any) {
-    console.error("Delete Category Error: - categoryApiService.ts:93", error.response?.data);
+    console.error("Delete Category Error: - categoryApiService.ts:108", error.response?.data);
     throw new Error("Failed to delete category");
   }
 };
@@ -107,7 +122,7 @@ export const toggleCategoryStatus = async (
       is_active: Boolean(is_active),
     });
   } catch (error: any) {
-    console.error("Toggle Status Error: - categoryApiService.ts:110", error.response?.data);
+    console.error("Toggle Status Error: - categoryApiService.ts:125", error.response?.data);
     throw new Error("Failed to toggle category status");
   }
 };
@@ -115,9 +130,9 @@ export const toggleCategoryStatus = async (
 export const activateCategory = async (id: string): Promise<void> => {
   try {
     await api.put(`/category/${id}/activate`);
-    console.log(`Category ${id} activated - categoryApiService.ts:118`);
+    console.log(`Category ${id} activated - categoryApiService.ts:133`);
   } catch (error: any) {
-    console.error("Activate Category Error: - categoryApiService.ts:120", error.response?.data);
+    console.error("Activate Category Error: - categoryApiService.ts:135", error.response?.data);
     throw new Error("Failed to activate category");
   }
 };
@@ -125,9 +140,9 @@ export const activateCategory = async (id: string): Promise<void> => {
 export const deactivateCategory = async (id: string): Promise<void> => {
   try {
     await api.put(`/category/${id}/deactivate`);
-    console.log(`Category ${id} deactivated - categoryApiService.ts:128`);
+    console.log(`Category ${id} deactivated - categoryApiService.ts:143`);
   } catch (error: any) {
-    console.error("Deactivate Category Error: - categoryApiService.ts:130", error.response?.data);
+    console.error("Deactivate Category Error: - categoryApiService.ts:145", error.response?.data);
     throw new Error("Failed to deactivate category");
   }
 };

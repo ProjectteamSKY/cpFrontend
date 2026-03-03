@@ -39,6 +39,11 @@ export const getAllSizes = async (): Promise<Size[]> => {
   return (res.data.sizes || []).map(mapSizeFromApi);
 };
 
+export const getAllSizesActive = async (): Promise<Size[]> => {
+  const res = await api.get("/size/list/active");
+  return (res.data.sizes || []).map(mapSizeFromApi);
+};
+
 /* =========================================================
    Create Size
 ========================================================= */

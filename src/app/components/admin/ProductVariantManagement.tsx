@@ -99,15 +99,6 @@ export function ProductVariantManagement() {
       cell: ({ row }) =>
         row.original.four_side_cut ? "Yes" : "No",
     },
-    // {
-    //   header: "Status",
-    //   cell: ({ row }) =>
-    //     row.original.is_active ? (
-    //       <span className="text-green-600 font-medium">Active</span>
-    //     ) : (
-    //       <span className="text-red-500 font-medium">Inactive</span>
-    //     ),
-    // },
     {
       header: "Actions",
       cell: ({ row }) => (

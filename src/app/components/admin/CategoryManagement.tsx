@@ -56,16 +56,33 @@ export function CategoryManagement() {
     /* ---------- Save Handler ---------- */
 
     const handleSave = async (data: any) => {
-        if (editingCategory) {
-            await updateCategory(editingCategory.id, data);
-        } else {
-            await createCategory(data);
-        }
+        try {
+            let response;
 
-        setShowAddDialog(false);
-        setShowEditDialog(false);
-        setEditingCategory(null);
-        fetchCategories();
+            if (editingCategory) {
+                // For update
+                response = await updateCategory(editingCategory.id, data);
+            } else {
+                // For create
+                response = await createCategory(data);
+            }
+
+            // If response indicates failure (e.g., name exists)
+            if (response && response.success === false) {
+                alert(response.message); // Show the backend message
+                return; // Stop further execution
+            }
+
+            // Success: close dialogs and refresh
+            setShowAddDialog(false);
+            setShowEditDialog(false);
+            setEditingCategory(null);
+            fetchCategories();
+
+        } catch (err: any) {
+            // Fallback in case of unexpected errors    
+            alert(err.message || "Something went wrong");
+        }
     };
 
     /* ---------- Edit ---------- */

@@ -29,7 +29,7 @@ const toFormData = (data: ProductDiscountFormData) => {
 
 /* ============================ CRUD ============================ */
 export const getAllProductDiscounts = async (): Promise<ProductDiscount[]> => {
-  const res = await api.get("/product_discount/list");
+  const res = await api.get("/product_discount/list/active");
   return (res.data.discounts || []).map(mapFromApi);
 };
 
@@ -50,4 +50,8 @@ export const deleteProductDiscount = async (id: string) => {
 
 export const activateProductDiscount = async (id: string) => {
   await api.put(`/product_discount/${id}/activate`);
+};
+
+export const deactivateProductDiscount = async (id: string) => {
+  await api.put(`/product_discount/${id}/deactivate`);
 };
