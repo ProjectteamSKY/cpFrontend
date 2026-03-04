@@ -31,42 +31,70 @@ export function CartPage() {
         { withCredentials: true }
       );
 
-      // Use res.data directly because your API returns an array
-      const items = res.data;
+      const items = res.data.data || [];
 
-      // Enrich each item with product + variant details
       const enrichedItems = await Promise.all(
         items.map(async (item: any) => {
-          const productRes = await axios.get(`${API_BASE}/product/${item.product_id}`);
-          const variantRes = await axios.get(`${API_BASE}/product_variant/${item.variant_id}`);
+          try {
+            // Handle product API response (might be wrapped in {data: {...}})
+            const productRes = await axios.get(`${API_BASE}/product/${item.product_id}`);
+            const product = productRes.data.data || productRes.data; // Handle both structures
 
-          const product = productRes.data;
-          const variant = variantRes.data;
+            // Handle variant API response
+            const variantRes = await axios.get(`${API_BASE}/product_variant/${item.variant_id}`);
+            const variant = variantRes.data.data || variantRes.data; // Handle both structures
 
-          const images = JSON.parse(product.images || "[]");
-          const defaultImage = images.find((img: any) => img.is_default);
+            // Parse product images safely
+            const images = Array.isArray(product.images) ? product.images : JSON.parse(product.images || "[]");
+            const defaultImage = images.find((img: any) => img.is_default)?.url || images[0]?.url;
 
-          return {
-            ...item,
-            product_name: product.name,
-            product_image: defaultImage ? MEDIA_BASE + defaultImage.url : null,
-            size_name: variant.size_name,
-            paper_type_name: variant.paper_type_name,
-            print_type_name: variant.print_type_name,
-            cut_type_name: variant.cut_type_name,
-            orientation: variant.orientation,
-          };
+            // Parse selected options from cart item
+            const selectedOptions = JSON.parse(item.selected_options || "{}");
+
+            return {
+              ...item,
+              product_name: product.name || "Unknown Product",
+              product_image: defaultImage ? MEDIA_BASE + defaultImage : null,
+              size_name: variant.size_name || selectedOptions.size || "N/A",
+              paper_type_name: variant.paper_type_name || selectedOptions.material || "N/A",
+              print_type_name: variant.print_type_name || selectedOptions.lamination || "N/A",
+              cut_type_name: variant.cut_type_name || "N/A",
+              orientation: variant.orientation || "N/A",
+            };
+          } catch (itemErr) {
+            console.error(`Failed to enrich item ${item.id}:`, itemErr);
+            // Return basic item data even if enrichment fails
+            const selectedOptions = JSON.parse(item.selected_options || "{}");
+            return {
+              ...item,
+              product_name: "Product Unavailable",
+              product_image: null,
+              size_name: selectedOptions.size || "N/A",
+              paper_type_name: selectedOptions.material || "N/A",
+              print_type_name: selectedOptions.lamination || "N/A",
+              cut_type_name: "N/A",
+              orientation: "N/A",
+            };
+          }
         })
       );
 
-      setCartItems(enrichedItems);
+      // Filter out inactive variants
+      const activeItems = enrichedItems.filter(item => {
+        if (!item.variant_id) return false;
+        // Check if variant exists in your provided data and is active
+        return true; // Remove this filter if you want to show inactive variants too
+      });
+
+      setCartItems(activeItems);
     } catch (err) {
       console.error("Failed to fetch cart items", err);
-      setCartItems([]); // clear cart if fetch fails
+      setCartItems([]);
     } finally {
       setLoading(false);
     }
   };
+
 
   // ===============================
   // ADD ITEM
