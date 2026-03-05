@@ -1,4 +1,5 @@
 import axios from "axios";
+import api from "./api";
 
 const API_BASE_URL = "http://localhost:8000/api/shipping";
 
@@ -35,9 +36,37 @@ export const generateAWB = async (
 };
 
 // ✅ Download Label
-export const downloadLabel = (orderId: string) => {
-  window.open(
-    `${API_BASE_URL}/label/${orderId}`,
-    "_blank"
-  );
+export const downloadLabel = async (orderId: string) => {
+  const res = await api.get(`/shipping/label/${orderId}`);
+
+  const url = res.data?.label_url;
+
+  if (!url) return;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `label-${orderId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+export const handlePrintLabel = (labelUrl: string) => {
+  const printWindow = window.open(labelUrl, "_blank");
+
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  }
+};
+
+export const cancelOrder = async (orderId: string) => {
+  const res = await api.post(`/shipping/cancel-order/${orderId}`);
+  return res.data;
+};
+
+export const refundOrder = async (orderId: string) => {
+  const res = await api.post(`/shipping/refund-order/${orderId}`);
+  return res.data;
 };
