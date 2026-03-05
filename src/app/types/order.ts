@@ -49,7 +49,9 @@ export type OrderStatus =
   | "printing"
   | "packed"
   | "shipment"
-  | "delivery";
+  | "delivery"
+  | "cancelled"
+  | "refunded";
 
 export interface OrderItem {
   id: number;
@@ -78,12 +80,14 @@ export interface OrderAddress {
 
 /* ✅ ADD THIS */
 export interface Shipment {
-  id: string;
-  courier_name: string;
-  awb_code: string;
-  tracking_url: string;
-  current_status: string;
-  created_at: string;
+  awb_code: string
+  courier_name: string
+  freight_charges: number
+  tracking_url?: string | null
+  label_url?: string | null
+  pickup_status?: string | null
+  current_status?: string
+  delivered_at?: string | null
 }
 
 /* ✅ UPDATE ORDER */
