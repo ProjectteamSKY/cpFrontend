@@ -287,35 +287,62 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
   const onSubmit = async (data: ProductSetupFormData) => {
     try {
       setLoading(true);
+
       const formData = new FormData();
 
-      // Append basic product info
-      formData.append("category_id", data.category_id);
-      formData.append("subcategory_id", data.subcategory_id || "");
-      formData.append("name", data.name);
-      formData.append("description", data.description || "");
-      formData.append("min_order_qty", data.min_order_qty.toString());
+      /* ================= BASIC PRODUCT INFO ================= */
+      formData.append("category_id", data.category_id ?? "");
+      formData.append("subcategory_id", data.subcategory_id ?? "");
+      formData.append("name", data.name ?? "");
+      formData.append("description", data.description ?? "");
+      formData.append("min_order_qty", String(data.min_order_qty ?? 0));
 
-      // Append max_order_qty if it exists (product level)
-      if (data.max_order_qty) {
-        formData.append("max_order_qty", data.max_order_qty.toString());
+      if (data.max_order_qty !== undefined && data.max_order_qty !== null) {
+        formData.append("max_order_qty", String(data.max_order_qty));
       }
 
-      // Append new main images
-      const newMainImages = mainImages.filter(img => !img.isExisting && img.file);
-      newMainImages.forEach(img => {
-        if (img.file) formData.append("images", img.file);
+      /* ================= NEW MAIN IMAGES ================= */
+      const newMainImages = mainImages.filter(
+        (img) => !img.isExisting && img.file
+      );
+
+      newMainImages.forEach((img) => {
+        if (img.file) {
+          formData.append("images", img.file);
+        }
       });
 
-      // Append new related images
-      const newRelatedImages = relatedImagesList.filter(img => !img.isExisting && img.file);
-      newRelatedImages.forEach(img => {
-        if (img.file) formData.append("related_images", img.file);
+      /* ================= NEW RELATED IMAGES ================= */
+      const newRelatedImages = relatedImagesList.filter(
+        (img) => !img.isExisting && img.file
+      );
+
+      newRelatedImages.forEach((img) => {
+        if (img.file) {
+          formData.append("related_images", img.file);
+        }
       });
 
-      // Prepare variants data - WITH variant IDs for updates
-      const variantsData = data.variants.map(variant => {
-        // Create the base variant object
+      /* ================= EXISTING IMAGE IDS ================= */
+      const existingImageIds = mainImages
+        .filter((img) => img.isExisting && img.id)
+        .map((img) => img.id as string);
+
+      existingImageIds.forEach((id) => {
+        formData.append("existing_image_ids", id);
+      });
+
+      /* ================= EXISTING RELATED IMAGE IDS ================= */
+      const existingRelatedImageIds = relatedImagesList
+        .filter((img) => img.isExisting && img.id)
+        .map((img) => img.id as string);
+
+      existingRelatedImageIds.forEach((id) => {
+        formData.append("existing_related_image_ids", id);
+      });
+
+      /* ================= PREPARE VARIANTS ================= */
+      const variantsData = data.variants.map((variant) => {
         const variantObj: any = {
           size_id: variant.size_id,
           paper_type_id: variant.paper_type_id,
@@ -325,28 +352,24 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
           two_side_cut: variant.two_side_cut === true,
           four_side_cut: variant.four_side_cut === true,
           orientation: variant.orientation,
-          prices: variant.prices.map(price => {
-            // Create the base price object
+          prices: variant.prices.map((price) => {
             const priceObj: any = {
               min_qty: Number(price.min_qty),
               price: Number(price.price),
             };
 
-            // Add price id if it exists (for updates)
             if (price.id) {
               priceObj.id = price.id;
             }
 
-            // Add discount if exists
             if (price.discount && price.discount.discount > 0) {
               const discountObj: any = {
-                description: price.discount.description || "",
+                description: price.discount.description ?? "",
                 discount: Number(price.discount.discount),
                 start_date: price.discount.start_date,
-                end_date: price.discount.end_date
+                end_date: price.discount.end_date,
               };
 
-              // Add discount id if it exists (for updates)
               if (price.discount.id) {
                 discountObj.id = price.discount.id;
               }
@@ -355,10 +378,9 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
             }
 
             return priceObj;
-          })
+          }),
         };
 
-        // Add variant id if it exists (for updates)
         if (variant.id) {
           variantObj.id = variant.id;
         }
@@ -366,77 +388,59 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         return variantObj;
       });
 
-      console.log("Sending variants data:", JSON.stringify(variantsData, null, 2));
+      formData.append("variants", JSON.stringify(variantsData));
 
-      const variantsJson = JSON.stringify(variantsData);
-      formData.append("variants", variantsJson);
-
-      let response;
+      /* ================= UPDATE OR CREATE ================= */
       if (isEditing && defaultValues?.id) {
-        console.log("Updating product with ID:", defaultValues.id);
-
-        // Use fetch instead of axios to see more details
-        const fetchResponse = await fetch(
+        const response = await fetch(
           `http://54.206.3.97/api/productsetup/update/${defaultValues.id}`,
           {
-            method: 'PUT',
+            method: "PUT",
             body: formData,
-            // Don't set Content-Type header - browser will set it with boundary
           }
         );
 
-        const responseData = await fetchResponse.json();
-        console.log("Fetch response status:", fetchResponse.status);
-        console.log("Fetch response data:", responseData);
+        const responseData = await response.json();
 
-        if (!fetchResponse.ok) {
-          throw new Error(responseData.detail || 'Update failed');
+        if (!response.ok) {
+          throw new Error(responseData.detail || "Update failed");
         }
 
-        if (responseData.status === "success") {
-          alert("Product Updated Successfully!");
-          if (onSubmitSuccess) {
-            onSubmitSuccess();
-          }
-        }
+        alert("Product Updated Successfully!");
+        onSubmitSuccess?.();
       } else {
-        response = await axios.post("http://54.206.3.97/api/productsetup/create", formData);
-
-        console.log("Create response:", response.data);
+        const response = await axios.post(
+          "http://54.206.3.97/api/productsetup/create",
+          formData
+        );
 
         if (response.data.status === "success") {
           alert("Product Created Successfully!");
-          if (onSubmitSuccess) {
-            onSubmitSuccess();
-          }
+          onSubmitSuccess?.();
         }
       }
 
       onCancel();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving product:", error);
 
-      if (error instanceof Error) {
-        alert(`Error: ${error.message}`);
-      } else if (axios.isAxiosError(error) && error.response) {
-        console.error("Error response data:", error.response.data);
-        console.error("Error response status:", error.response.status);
+      let errorMessage = "Failed to save product";
 
-        let errorMessage = 'Failed to save product';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (axios.isAxiosError(error) && error.response) {
         if (error.response.data?.detail) {
           if (Array.isArray(error.response.data.detail)) {
-            errorMessage = error.response.data.detail.map((err: any) => err.msg).join(', ');
+            errorMessage = error.response.data.detail
+              .map((err: any) => err.msg)
+              .join(", ");
           } else {
             errorMessage = error.response.data.detail;
           }
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
         }
-
-        alert(`Error: ${errorMessage}`);
-      } else {
-        alert("Error saving product. Please try again.");
       }
+
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -458,7 +462,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6 bg-white rounded shadow-md max-h-[80vh] overflow-y-auto">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6 bg-white rounded shadow-md">
       <h2 className="text-2xl font-bold mb-4">{isEditing ? 'Edit Product' : 'Add New Product'}</h2>
 
       {/* Category */}

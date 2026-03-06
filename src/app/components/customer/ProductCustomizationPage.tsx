@@ -107,14 +107,41 @@ export function ProductDetailPage() {
     removeFile
   } = useDesignUpload();
   // Static options
-
-  const handleUploadAndRedirect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFileUpload(e);
-
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
+  const handleFrontUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedVariant || !selectedQuantity) return;
+    if (!file) return;
 
-    // Find the price object for the selected quantity
+    setFrontFile(file);
+    setFrontPreview(URL.createObjectURL(file));
+  };
+
+  const handleBackUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBackFile(file);
+    setBackPreview(URL.createObjectURL(file));
+  };
+
+  const handleUploadAndRedirect = () => {
+    if (!selectedVariant || !selectedQuantity) return;
+
+    // 🔒 Validation
+    if (!frontFile) {
+      alert("Front design is required.");
+      return;
+    }
+
+    if (selectedSides === "2" && !backFile) {
+      alert("Back design is required for double-sided printing.");
+      return;
+    }
+
+    // Find selected price
     const selectedPriceObj = selectedVariant.prices.find(
       (p) => String(p.id) === String(selectedQuantity)
     );
@@ -124,30 +151,34 @@ export function ProductDetailPage() {
       return;
     }
 
-    const quantityNumber = parseInt(selectedPriceObj.min_qty.toString(), 10);
+    const quantityNumber = Number(selectedPriceObj.min_qty);
 
-    // Build selected options dynamically
     const selectedOptions = {
-      size: selectedVariant.size.name,
-      material: selectedVariant.paperType.name,
-      lamination: selectedVariant.printType.name,
+      size: selectedVariant.size?.name ?? "",
+      material: selectedVariant.paperType?.name ?? "",
+      lamination: selectedVariant.printType?.name ?? "",
     };
 
-    setTimeout(() => {
-      navigate("/design-review", {
-        state: {
-          product,
-          variant: selectedVariant,
-          quantity: quantityNumber,       // ✅ dynamic based on selected quantity
-          priceId: selectedPriceObj.id,   // ✅ dynamic price ID
-          selected_options: selectedOptions,
-          designFile: file,
-          preview: URL.createObjectURL(file),
-          basePrice: selectedPriceObj.price,
-          totalPrice: selectedPriceObj.price
-        }
-      });
-    }, 300);
+    navigate("/design-review", {
+      state: {
+        product,
+        variant: selectedVariant,
+        quantity: quantityNumber,
+        priceId: selectedPriceObj.id,
+        selected_options: selectedOptions,
+
+        // 🔥 NEW STRUCTURE
+        frontDesign: frontFile,
+        backDesign: selectedSides === "2" ? backFile : null,
+
+        frontPreview: frontPreview,
+        backPreview: backPreview,
+
+        basePrice: selectedPriceObj.price,
+        totalPrice: selectedPriceObj.price,
+        sides: selectedSides,
+      }
+    });
   };
 
   const sidesOptions = [
@@ -840,13 +871,36 @@ export function ProductDetailPage() {
               {/* Variant Selection */}
               {/* Upload Design Card */}
               <UploadDesignCard
-                uploadedFile={uploadedFile}
-                uploadedPreview={uploadedPreview}
-                uploadError={uploadError}
-                onUpload={handleUploadAndRedirect}
-                onRemove={removeFile}
+                sides={selectedSides}
+                frontFile={frontFile}
+                backFile={backFile}
+                frontPreview={frontPreview}
+                backPreview={backPreview}
+                onUploadFront={handleFrontUpload}
+                onUploadBack={handleBackUpload}
+                onRemoveFront={() => {
+                  setFrontFile(null);
+                  setFrontPreview(null);
+                }}
+                onRemoveBack={() => {
+                  setBackFile(null);
+                  setBackPreview(null);
+                }}
               />
-
+              <div className="mt-8 flex justify-end">
+                <Button
+                  onClick={handleUploadAndRedirect}
+                  disabled={
+                    !selectedVariant ||
+                    !selectedQuantity ||
+                    !frontFile ||
+                    (selectedSides === "2" && !backFile)
+                  }
+                  className="bg-[#D73D32] hover:bg-[#b83228] px-8 py-3 text-white rounded-xl"
+                >
+                  Continue to Design Review
+                </Button>
+              </div>
             </div>
 
             {/* RIGHT SIDE ORDER SUMMARY */}

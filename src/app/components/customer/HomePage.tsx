@@ -14,7 +14,6 @@ export function HomePage() {
     { id: 5, name: "Posters", image: "promotional poster", price: "₹349" },
     { id: 6, name: "Custom Prints", image: "custom printing", price: "₹999" },
   ];
-
   const steps = [
     {
       icon: Printer,

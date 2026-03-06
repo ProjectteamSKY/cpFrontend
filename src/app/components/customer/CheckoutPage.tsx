@@ -37,72 +37,87 @@ export function CheckoutPage() {
     if (!userId) return;
 
     try {
-      // 1️⃣ Fetch user cart
+      // 1️⃣ Single API call - get cart items with proper structure
       const res = await axios.get(`${API_BASE}/cartitems/cart-items/user/${userId}`, { withCredentials: true });
 
-      if (!Array.isArray(res.data) || res.data.length === 0) {
+      // ✅ Fix: Extract from correct nested structure
+      const rawItems = res.data.data || []; // This is your actual cart items array
+
+      if (rawItems.length === 0) {
         setCartItems([]);
         setLoadingCart(false);
         return;
       }
 
-      // 2️⃣ Extract cart ID
-      const cartId = res.data[0].cart_id;
-      // 3️⃣ Fetch items in the cart
-      const itemsRes = await axios.get(`${API_BASE}/cartitems/cart-items/user/${userId}`, { withCredentials: true });
-      const items = Array.isArray(itemsRes.data) ? itemsRes.data : itemsRes.data.items || [];
-
-      // 4️⃣ Enrich items with product, variant, and files
+      // 2️⃣ Enrich items ONCE with product/variant data
       const enrichedItems = await Promise.all(
-        items.map(async (item: any) => {
-          // Find the files from the original user-cart response
-          const originalItem = res.data.find((i: any) => i.id === item.id);
-          const files = (originalItem?.files || []).map((f: any) => ({
-            ...f,
-            front_side_url: f.front_side_url ? MEDIA_BASE + f.front_side_url.replace(/^\/?/, "") : null,
-            back_side_url: f.back_side_url ? MEDIA_BASE + f.back_side_url.replace(/^\/?/, "") : null,
-          }));
+        rawItems.map(async (item: any) => {
+          try {
+            const productRes = await axios.get(`${API_BASE}/product/${item.product_id}`);
+            const variantRes = await axios.get(`${API_BASE}/product_variant/${item.variant_id}`);
 
-          const productRes = await axios.get(`${API_BASE}/product/${item.product_id}`);
-          const variantRes = await axios.get(`${API_BASE}/product_variant/${item.variant_id}`);
+            // ✅ Handle both response structures safely
+            const product = productRes.data.data || productRes.data;
+            const variant = variantRes.data.data || variantRes.data;
 
-          const product = productRes.data;
-          const variant = variantRes.data;
+            // ✅ Fix images parsing - check if already array
+            let productImage = null;
+            if (product.images) {
+              const images = Array.isArray(product.images)
+                ? product.images
+                : JSON.parse(product.images || "[]");
+              const defaultImg = images.find((img: any) => img.is_default);
+              if (defaultImg) {
+                productImage = MEDIA_BASE + defaultImg.url.replace(/^\/?/, "");
+              }
+            }
 
-          let productImage = null;
-          if (product.images) {
-            const images = JSON.parse(product.images || "[]");
-            const defaultImg = images.find((img: any) => img.is_default);
-            if (defaultImg) productImage = MEDIA_BASE + defaultImg.url.replace(/^\/?/, "");
-          } else if (product.image_url) {
-            productImage = MEDIA_BASE + product.image_url.replace(/^\/?/, "");
+            // ✅ Use cart item files directly with proper MEDIA_BASE
+            const files = (item.files || []).map((f: any) => ({
+              ...f,
+              front_side_url: f.front_side_url ? MEDIA_BASE + f.front_side_url.replace(/^\/?/, "") : null,
+              back_side_url: f.back_side_url ? MEDIA_BASE + f.back_side_url.replace(/^\/?/, "") : null,
+            }));
+
+            return {
+              ...item,
+              product_name: product.name || "Unknown Product",
+              product_image: productImage,
+              size_name: variant.size_name,
+              paper_type_name: variant.paper_type_name,
+              print_type_name: variant.print_type_name,
+              cut_type_name: variant.cut_type_name,
+              orientation: variant.orientation,
+              selected_options: item.selected_options ? JSON.parse(item.selected_options) : {},
+              files,
+            };
+          } catch (itemErr) {
+            console.error(`Failed to enrich item ${item.id}:`, itemErr);
+            return {
+              ...item,
+              product_name: "Product Unavailable",
+              product_image: null,
+              size_name: "N/A",
+              paper_type_name: "N/A",
+              print_type_name: "N/A",
+              cut_type_name: "N/A",
+              orientation: "N/A",
+              files: item.files || [],
+              selected_options: item.selected_options ? JSON.parse(item.selected_options) : {},
+            };
           }
-
-          console.log("files for item", item.id, files);
-
-          return {
-            ...item,
-            cart_id: item.cart_id || null,
-            product_name: product.name,
-            product_image: productImage,
-            size_name: variant.size_name,
-            paper_type_name: variant.paper_type_name,
-            print_type_name: variant.print_type_name,
-            cut_type_name: variant.cut_type_name,
-            orientation: variant.orientation,
-            selected_options: item.selected_options ? JSON.parse(item.selected_options) : {},
-            files,
-          };
         })
       );
 
       setCartItems(enrichedItems);
     } catch (err) {
       console.error("Failed to fetch cart items", err);
+      setCartItems([]);
     } finally {
       setLoadingCart(false);
     }
   };
+
 
   useEffect(() => {
     fetchCartItems();

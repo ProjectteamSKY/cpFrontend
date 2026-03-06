@@ -12,8 +12,9 @@ const STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
   packed: ["shipment"],
   shipment: ["delivery"],
   delivery: [],
+  cancelled: [],
+  refunded: [],
 };
-
 /* =========================
    Get All Orders (Tracking)
 ========================= */

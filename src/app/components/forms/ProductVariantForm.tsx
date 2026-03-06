@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import {
@@ -7,11 +7,11 @@ import {
   ProductVariantFormData,
 } from "../../types/productVariant";
 
-import { getAllProducts } from "../../service/productApiService";
-import { getAllSizes } from "../../service/sizeApiService";
-import { getAllPaperTypes } from "../../service/paperTypeApiService";
-import { getAllPrintTypes } from "../../service/printTypeApiService";
-import { getAllCutTypes } from "../../service/cutTypeApiService";
+import { getAllProducts, getAllProductsActive } from "../../service/productApiService";
+import { getAllSizes, getAllSizesActive } from "../../service/sizeApiService";
+import { getAllPaperTypes, getAllPaperTypesActive } from "../../service/paperTypeApiService";
+import { getAllPrintTypes, getAllPrintTypesActive } from "../../service/printTypeApiService";
+import { getAllCutTypes, getAllCutTypesActive } from "../../service/cutTypeApiService";
 
 interface Props {
   defaultValues?: ProductVariant | null;
@@ -31,37 +31,54 @@ export function ProductVariantForm({
   const [cutTypes, setCutTypes] = useState<any[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
 
-  /* =========================
-     Load Dropdown Data
-  ========================= */
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProductVariantFormData>({
+    defaultValues: {
+      product_id: "",
+      size_id: "",
+      paper_type_id: "",
+      print_type_id: "",
+      cut_type_id: "",
+      sides: 1,
+      orientation: "Portrait",
+      two_side_cut: false,
+      four_side_cut: false,
+      is_active: true,
+    },
+  });
+
+  /* Load dropdown data */
   useEffect(() => {
     const loadData = async () => {
-      const [products, sizes, papers, prints, cuts] = await Promise.all([
-        getAllProducts(),
-        getAllSizes(),
-        getAllPaperTypes(),
-        getAllPrintTypes(),
-        getAllCutTypes(),
-      ]);
+      const [productsData, sizesData, papers, prints, cuts] =
+        await Promise.all([
+          getAllProductsActive(),
+          getAllSizesActive(),
+          getAllPaperTypesActive(),
+          getAllPrintTypesActive(),
+          getAllCutTypesActive(),
+        ]);
 
-      setProducts(products);
-      setSizes(sizes);
+      setProducts(productsData);
+      setSizes(sizesData);
       setPaperTypes(papers);
       setPrintTypes(prints);
       setCutTypes(cuts);
-
       setLoadingOptions(false);
     };
 
     loadData();
   }, []);
 
-  /* =========================
-     React Hook Form
-  ========================= */
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProductVariantFormData>({
-    values: defaultValues
-      ? {
+  /* Reset when editing */
+  useEffect(() => {
+    if (!loadingOptions && defaultValues) {
+      reset({
         product_id: defaultValues.product_id ?? "",
         size_id: defaultValues.size_id ?? "",
         paper_type_id: defaultValues.paper_type_id ?? "",
@@ -71,28 +88,20 @@ export function ProductVariantForm({
         orientation: defaultValues.orientation ?? "Portrait",
         two_side_cut: !!defaultValues.two_side_cut,
         four_side_cut: !!defaultValues.four_side_cut,
-        is_active: defaultValues.is_active ?? true, // ✅ add this
-      }
-      : {
-        product_id: "",
-        size_id: "",
-        paper_type_id: "",
-        print_type_id: "",
-        cut_type_id: "",
-        sides: 1,
-        orientation: "Portrait",
-        two_side_cut: false,
-        four_side_cut: false,
-        is_active: true, // ✅ add this
-      },
-  });
+        is_active: !!defaultValues.is_active,
+      });
+    }
+  }, [defaultValues, loadingOptions, reset]);
 
   if (loadingOptions) {
     return <p className="text-center py-4">Loading...</p>;
   }
 
   return (
-    <form onSubmit={handleSubmit((data: ProductVariantFormData) => onSubmit(data))} className="space-y-4">
+    <form
+      onSubmit={handleSubmit((data) => onSubmit(data))}
+      className="space-y-4"
+    >
       {/* Product */}
       <div>
         <Label>Product *</Label>
@@ -101,14 +110,16 @@ export function ProductVariantForm({
           className="w-full border rounded px-3 py-2"
         >
           <option value="">Select Product</option>
-          {products.map((p) => (
+          {products.map((p: any) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
         {errors.product_id && (
-          <p className="text-red-500 text-sm">{errors.product_id.message}</p>
+          <p className="text-red-500 text-sm">
+            {errors.product_id.message}
+          </p>
         )}
       </div>
 
@@ -120,14 +131,16 @@ export function ProductVariantForm({
           className="w-full border rounded px-3 py-2"
         >
           <option value="">Select Size</option>
-          {sizes.map((s) => (
+          {sizes.map((s: any) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>
           ))}
         </select>
         {errors.size_id && (
-          <p className="text-red-500 text-sm">{errors.size_id.message}</p>
+          <p className="text-red-500 text-sm">
+            {errors.size_id.message}
+          </p>
         )}
       </div>
 
@@ -139,7 +152,7 @@ export function ProductVariantForm({
           className="w-full border rounded px-3 py-2"
         >
           <option value="">Select Paper Type</option>
-          {paperTypes.map((p) => (
+          {paperTypes.map((p: any) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
@@ -155,7 +168,7 @@ export function ProductVariantForm({
           className="w-full border rounded px-3 py-2"
         >
           <option value="">Select Print Type</option>
-          {printTypes.map((p) => (
+          {printTypes.map((p: any) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
@@ -171,7 +184,7 @@ export function ProductVariantForm({
           className="w-full border rounded px-3 py-2"
         >
           <option value="">Select Cut Type</option>
-          {cutTypes.map((c) => (
+          {cutTypes.map((c: any) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -179,32 +192,41 @@ export function ProductVariantForm({
         </select>
       </div>
 
-      {/* Sides */}
+      {/* ✅ SIDES - FIXED WITH CONTROLLER */}
       <div>
         <Label>Sides *</Label>
-        <div className="flex gap-6 mt-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              value="1" // use string "1"
-              {...register("sides", { required: true })}
-              checked={String(defaultValues?.sides ?? 1) === "1"} // sets default correctly
-            />
-            Single Side
-          </label>
+        <Controller
+          control={control}
+          name="sides"
+          rules={{ required: "Please select sides" }}
+          render={({ field }) => (
+            <div className="flex gap-6 mt-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  value="1"
+                  checked={field.value === 1}
+                  onChange={() => field.onChange(1)}
+                />
+                Single Side
+              </label>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              value="2" // use string "2"
-              {...register("sides", { required: true })}
-              checked={String(defaultValues?.sides ?? 1) === "2"} // sets default correctly
-            />
-            Double Side
-          </label>
-        </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  value="2"
+                  checked={field.value === 2}
+                  onChange={() => field.onChange(2)}
+                />
+                Double Side
+              </label>
+            </div>
+          )}
+        />
         {errors.sides && (
-          <p className="text-red-500 text-sm">Please select sides</p>
+          <p className="text-red-500 text-sm">
+            {errors.sides.message}
+          </p>
         )}
       </div>
 
