@@ -358,6 +358,9 @@ export function DesignReviewPage() {
   // =========================================================
   // 🛒 ADD TO CART
   // =========================================================
+  // =========================================================
+  // 🛒 ADD TO CART
+  // =========================================================
   const handleAddToCart = async () => {
     const userId =
       sessionStorage.getItem("user_id") ||
@@ -375,26 +378,42 @@ export function DesignReviewPage() {
       const cartId = await getCartId(userId);
 
       const quantityNumber = Number(
-        selectedQuantity || variant.prices[0].min_qty
+        selectedQuantity || variant.prices?.[0]?.min_qty || 1
       );
 
       const formData = new FormData();
-      formData.append("cart_id", cartId);
+
+      formData.append("cart_id", String(cartId));
       formData.append("product_id", String(product.id));
       formData.append("variant_id", String(variant.id));
+
+      // 🔹 quantity
       formData.append("quantity", String(quantityNumber));
-      formData.append("price_id", String(priceId));
+
+      // 🔹 IMPORTANT (backend expects this)
       formData.append(
-        "selected_options",
-        JSON.stringify(selected_options)
+        "product_variant_price_id",
+        String(priceId)
       );
 
-      // 🔥 Append Front File
+      // 🔹 customize quantity (same as selected qty usually)
+      formData.append(
+        "customize_qty",
+        String(quantityNumber)
+      );
+
+      // 🔹 selected options
+      formData.append(
+        "selected_options",
+        JSON.stringify(selected_options || {})
+      );
+
+      // 🔹 Front Design
       if (frontDesign) {
         formData.append("front_file", frontDesign);
       }
 
-      // 🔥 Append Back File (if double side)
+      // 🔹 Back Design (double side)
       if (sides === "2" && backDesign) {
         formData.append("back_file", backDesign);
       }
@@ -405,6 +424,7 @@ export function DesignReviewPage() {
         {
           headers: {
             "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -429,16 +449,20 @@ export function DesignReviewPage() {
   // 💰 PRICE CALCULATION
   // =========================================================
   const quantityNumber = Number(
-    selectedQuantity || variant.prices[0].min_qty
+    selectedQuantity || variant?.prices?.[0]?.min_qty || 1
   );
 
   const price =
-    variant.prices.find((p: any) => String(p.id) === String(priceId))
-      ?.price || 0;
+    variant?.prices?.find(
+      (p: any) => String(p.id) === String(priceId)
+    )?.price || 0;
 
   const subtotal = price * quantityNumber;
+
   const gst = subtotal * 0.18;
+
   const deliveryCharge = 100;
+
   const total = subtotal + gst + deliveryCharge;
 
   // =========================================================
@@ -453,7 +477,7 @@ export function DesignReviewPage() {
         <div className="lg:col-span-2">
           <Card className="p-6">
             <div className="flex gap-6">
-              
+
               {/* FRONT PREVIEW */}
               <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
                 {frontPreview ? (

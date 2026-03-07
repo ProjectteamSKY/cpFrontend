@@ -14,7 +14,7 @@ export interface ProductImage {
 class ProductListApiService {
   private api: AxiosInstance;
 
-  constructor(baseURL: string = "http://54.206.3.97/api") {  
+  constructor(baseURL: string = "http://127.0.0.1:8000/api") {  
     this.api = axios.create({
       baseURL,
       headers: {

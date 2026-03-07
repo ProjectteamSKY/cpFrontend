@@ -4,7 +4,7 @@
 // import { Button } from "../ui/button";
 // import axios from "axios";
 
-// const API_BASE = "http://54.206.3.97/api";
+// const API_BASE = "http://127.0.0.1:8000/api";
 
 // export function OrderHistoryPage() {
 //   const navigate = useNavigate();
@@ -61,7 +61,7 @@
 // import { Button } from "../ui/button";
 // import axios from "axios";
 
-// const API_BASE = "http://54.206.3.97/api";
+// const API_BASE = "http://127.0.0.1:8000/api";
 
 // const getStatusColor = (status: string) => {
 //   switch (status) {
@@ -187,13 +187,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "http://127.0.0.1:8000/api";
 
-
-
-
-// Order History Page with Enhanced UI
 export function OrderHistoryPage() {
   const navigate = useNavigate();
   const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
@@ -205,10 +200,9 @@ export function OrderHistoryPage() {
     const fetchOrders = async () => {
       if (!userId) return;
       try {
-        const res = await axios.get(`${API_BASE}/orders_routes/list/${userId}`, {
-          withCredentials: true
-        });
-        setOrders(res.data.orders || []);
+        // ✅ FIXED: API returns orders directly, no .orders property
+        const res = await axios.get(`${API_BASE}/orders_routes/list/${userId}`);
+        setOrders(res.data); // ← Direct array, not res.data.orders
       } catch (err) {
         console.error("Failed to fetch orders", err);
       } finally {
@@ -218,22 +212,27 @@ export function OrderHistoryPage() {
     fetchOrders();
   }, [userId]);
 
+  // ✅ FIXED: Match your actual status flow
   const filteredOrders = filter === "all" 
     ? orders 
     : orders.filter(order => order.status === filter);
 
-  const statusCounts = orders.reduce((acc, order) => {
+  const statusCounts = orders.reduce((acc: any, order: any) => {
     acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
   }, {});
 
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'delivered': return CheckCircle;
-      case 'shipped': return Truck;
-      case 'processing': return Clock;
-      default: return Package;
-    }
+  // ✅ FIXED: Match your actual status flow: pending → process → printing → packed → shipment → delivery
+  const getStatusConfig = (status: string) => {
+    const config = {
+      pending: { icon: ShoppingBag, color: "bg-yellow-100 text-yellow-700", label: "Pending" },
+      process: { icon: Clock, color: "bg-blue-100 text-blue-700", label: "Processing" },
+      printing: { icon: Printer, color: "bg-indigo-100 text-indigo-700", label: "Printing" },
+      packed: { icon: Package, color: "bg-green-100 text-green-700", label: "Packed" },
+      shipment: { icon: Truck, color: "bg-purple-100 text-purple-700", label: "Shipped" },
+      delivery: { icon: CheckCircle, color: "bg-emerald-100 text-emerald-700", label: "Out for Delivery" }
+    };
+    return config[status as keyof typeof config] || config.pending;
   };
 
   if (loading) {
@@ -259,28 +258,29 @@ export function OrderHistoryPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
+        {/* Stats Cards - Updated with your actual statuses */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {['all', 'pending', 'processing', 'delivered'].map((status) => (
-            <motion.button
-              key={status}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setFilter(status)}
-              className={`p-4 rounded-xl text-left transition-all ${
-                filter === status
-                  ? 'bg-[#D73D32] text-white shadow-lg'
-                  : 'bg-white text-gray-700 hover:shadow-md'
-              }`}
-            >
-              <p className="text-sm font-medium mb-1 capitalize">
-                {status === 'all' ? 'All Orders' : status}
-              </p>
-              <p className="text-2xl font-bold">
-                {status === 'all' ? orders.length : statusCounts[status] || 0}
-              </p>
-            </motion.button>
-          ))}
+          {['all', 'pending', 'printing', 'shipment'].map((status) => {
+            const count = status === 'all' ? orders.length : statusCounts[status] || 0;
+            return (
+              <motion.button
+                key={status}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setFilter(status)}
+                className={`p-4 rounded-xl text-left transition-all ${
+                  filter === status
+                    ? 'bg-[#D73D32] text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:shadow-md'
+                }`}
+              >
+                <p className="text-sm font-medium mb-1 capitalize">
+                  {status === 'all' ? 'All Orders' : status}
+                </p>
+                <p className="text-2xl font-bold">{count}</p>
+              </motion.button>
+            );
+          })}
         </div>
 
         {/* Orders List */}
@@ -303,8 +303,9 @@ export function OrderHistoryPage() {
         ) : (
           <div className="space-y-4">
             <AnimatePresence>
-              {filteredOrders.map((order, index) => {
-                const StatusIcon = getStatusIcon(order.status);
+              {filteredOrders.map((order: any, index: number) => {
+                const statusConfig = getStatusConfig(order.status);
+                const StatusIcon = statusConfig.icon;
                 
                 return (
                   <motion.div
@@ -312,7 +313,7 @@ export function OrderHistoryPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{ delay: index * 0.05 }}
                   >
                     <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 rounded-xl border border-gray-100 group">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -323,14 +324,10 @@ export function OrderHistoryPage() {
                           <div>
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-gray-900">
-                                Order #{order.id.slice(0, 8)}
+                                Order #{order.id.slice(-8)}
                               </h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                                order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                'bg-blue-100 text-blue-700'
-                              }`}>
-                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                                {statusConfig.label}
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-4 text-sm text-gray-600">
@@ -339,7 +336,7 @@ export function OrderHistoryPage() {
                                 {new Date(order.created_at).toLocaleDateString()}
                               </span>
                               <span className="font-medium text-gray-900">
-                                ₹{order.total_amount}
+                                ₹{order.total_amount.toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -355,7 +352,7 @@ export function OrderHistoryPage() {
                       </div>
 
                       {/* Progress Preview */}
-                      {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                      {order.status !== 'delivery' && (
                         <div className="mt-4 pt-4 border-t border-gray-100">
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
