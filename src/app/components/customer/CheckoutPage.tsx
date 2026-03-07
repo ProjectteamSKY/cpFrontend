@@ -1,4 +1,4 @@
-import { useState, useEffect, Key } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { CreditCard, Building2, Smartphone, CheckCircle } from "lucide-react";
 import { Button } from "../ui/button";
@@ -8,17 +8,20 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import axios from "axios";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+  const userId =
+    sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
 
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [showSuccess, setShowSuccess] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
 
   const [address, setAddress] = useState({
     street: "",
@@ -32,51 +35,62 @@ export function CheckoutPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loadingCart, setLoadingCart] = useState(true);
 
-  // ====== FETCH USER ACTIVE CART AND ITEMS ======
+  // ================= FETCH CART =================
   const fetchCartItems = async () => {
     if (!userId) return;
 
     try {
-      // 1️⃣ Single API call - get cart items with proper structure
-      const res = await axios.get(`${API_BASE}/cartitems/cart-items/user/${userId}`, { withCredentials: true });
+      const res = await axios.get(
+        `${API_BASE}/cartitems/cart-items/user/${userId}`,
+        { withCredentials: true }
+      );
 
-      // ✅ Fix: Extract from correct nested structure
-      const rawItems = res.data.data || []; // This is your actual cart items array
+      const rawItems = res.data.data || [];
 
-      if (rawItems.length === 0) {
+      if (!rawItems.length) {
         setCartItems([]);
         setLoadingCart(false);
         return;
       }
 
-      // 2️⃣ Enrich items ONCE with product/variant data
       const enrichedItems = await Promise.all(
         rawItems.map(async (item: any) => {
           try {
-            const productRes = await axios.get(`${API_BASE}/product/${item.product_id}`);
-            const variantRes = await axios.get(`${API_BASE}/product_variant/${item.variant_id}`);
+            const [productRes, variantRes, weightRes] = await Promise.all([
+              axios.get(`${API_BASE}/product/${item.product_id}`),
+              axios.get(`${API_BASE}/product_variant/${item.variant_id}`),
+              axios.get(
+                `${API_BASE}/product_variant_price/variant/${item.variant_id}/price-weight/${item.product_variant_price_id}`
+              ),
+            ]);
 
-            // ✅ Handle both response structures safely
             const product = productRes.data.data || productRes.data;
             const variant = variantRes.data.data || variantRes.data;
+            const weightData = weightRes.data.data || weightRes.data;
 
-            // ✅ Fix images parsing - check if already array
             let productImage = null;
+
             if (product.images) {
               const images = Array.isArray(product.images)
                 ? product.images
                 : JSON.parse(product.images || "[]");
+
               const defaultImg = images.find((img: any) => img.is_default);
+
               if (defaultImg) {
-                productImage = MEDIA_BASE + defaultImg.url.replace(/^\/?/, "");
+                productImage =
+                  MEDIA_BASE + defaultImg.url.replace(/^\/?/, "");
               }
             }
 
-            // ✅ Use cart item files directly with proper MEDIA_BASE
             const files = (item.files || []).map((f: any) => ({
               ...f,
-              front_side_url: f.front_side_url ? MEDIA_BASE + f.front_side_url.replace(/^\/?/, "") : null,
-              back_side_url: f.back_side_url ? MEDIA_BASE + f.back_side_url.replace(/^\/?/, "") : null,
+              front_side_url: f.front_side_url
+                ? MEDIA_BASE + f.front_side_url.replace(/^\/?/, "")
+                : null,
+              back_side_url: f.back_side_url
+                ? MEDIA_BASE + f.back_side_url.replace(/^\/?/, "")
+                : null,
             }));
 
             return {
@@ -88,28 +102,24 @@ export function CheckoutPage() {
               print_type_name: variant.print_type_name,
               cut_type_name: variant.cut_type_name,
               orientation: variant.orientation,
-              selected_options: item.selected_options ? JSON.parse(item.selected_options) : {},
+              selected_options: item.selected_options
+                ? JSON.parse(item.selected_options)
+                : {},
               files,
+              weight_grams: Number(weightData.total_weight_grams),
             };
-          } catch (itemErr) {
-            console.error(`Failed to enrich item ${item.id}:`, itemErr);
-            return {
-              ...item,
-              product_name: "Product Unavailable",
-              product_image: null,
-              size_name: "N/A",
-              paper_type_name: "N/A",
-              print_type_name: "N/A",
-              cut_type_name: "N/A",
-              orientation: "N/A",
-              files: item.files || [],
-              selected_options: item.selected_options ? JSON.parse(item.selected_options) : {},
-            };
+          } catch (err) {
+            console.error("Failed to enrich item", err);
+            return { ...item, weight_grams: 0 };
           }
         })
       );
 
       setCartItems(enrichedItems);
+
+      // ✅ Call shipping API once
+      fetchDeliveryCharge(enrichedItems);
+
     } catch (err) {
       console.error("Failed to fetch cart items", err);
       setCartItems([]);
@@ -118,32 +128,85 @@ export function CheckoutPage() {
     }
   };
 
-
   useEffect(() => {
     fetchCartItems();
   }, []);
 
-  // ====== CALCULATIONS ======
-  const subtotal = cartItems.reduce((sum, item) => sum + Number(item.total_price), 0);
+  // ================= TOTAL WEIGHT =================
+  // const totalWeight = cartItems.reduce(
+  //   (sum, item) => sum + (item.weight_grams || 0),
+  //   0
+  // );
+
+  // console.log("totalWeight", totalWeight);
+  // ================= DELIVERY API =================
+  const fetchDeliveryCharge = async (items: any[]) => {
+    try {
+
+      const totalWeight = items.reduce(
+        (sum, item) => sum + (item.weight_grams || 0),
+        0
+      );
+
+      const weightKg = totalWeight / 1000;
+
+      const declaredValue = items.reduce(
+        (sum, i) => sum + Number(i.total_price),
+        0
+      );
+
+      const res = await axios.get(`${API_BASE}/shipping/serviceavailability`, {
+        params: {
+          pickup_postcode: "600001",
+          delivery_postcode: "624601",
+          weight: weightKg,
+          cod: 0,
+          declared_value: declaredValue,
+        },
+      });
+
+      console.log("Delivery API Response:", res.data);
+
+      const courier = res.data.best_courier;
+
+      if (courier) {
+        const charge = Number(courier.total_cost || courier.rate || 0);
+        setDeliveryCharge(charge);
+      } else {
+        setDeliveryCharge(0);
+      }
+
+    } catch (err) {
+      console.error("Delivery charge fetch failed", err);
+      setDeliveryCharge(0);
+    }
+  };
+
+
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + Number(item.total_price),
+    0
+  );
+
   const gst = subtotal * 0.18;
-  const deliveryCharge = subtotal > 5000 ? 0 : 100;
   const total = subtotal + gst + deliveryCharge;
 
-  // ====== PLACE ORDER ======
+  // ================= PLACE ORDER =================
   const handlePlaceOrder = async () => {
     if (!userId) {
       alert("User not logged in!");
       return;
     }
 
-    if (cartItems.length === 0) {
-      alert("Cart is empty!");
+    if (!cartItems.length) {
+      alert("Cart empty!");
       return;
     }
 
     setPlacingOrder(true);
 
     try {
+      // 1️⃣ Save Address
       const addressRes = await axios.post(
         `${API_BASE}/user_addresses/create`,
         {
@@ -160,30 +223,41 @@ export function CheckoutPage() {
 
       const addressId = addressRes.data.id;
 
+      // 2️⃣ Prepare cart_items payload
+      const cartItemsPayload = cartItems.map((item) => ({
+        cart_item_id: item.id,
+        product_variant_price_id: item.product_variant_price_id,
+        customize_qty: item.customize_qty || 0,
+      }));
+
+      // 3️⃣ Checkout API
       const checkoutRes = await axios.post(
         `${API_BASE}/orders_routes/checkout`,
         {
           user_id: userId,
           cart_id: cartItems[0].cart_id,
-          cart_item_ids: cartItems.map((item) => item.id),
           address_id: addressId,
-          payment_method: paymentMethod,
+          cart_items: cartItemsPayload,
+          payment_method: paymentMethod, // optional if backend uses it
         },
         { withCredentials: true }
       );
 
       const newOrderId = checkoutRes.data.order_id;
+
       setOrderId(newOrderId);
       setShowSuccess(true);
 
       setTimeout(() => navigate(`/viewOrder/${newOrderId}`), 2000);
     } catch (err: any) {
       console.error("Checkout failed", err.response?.data || err.message);
-      alert("Failed to place order. Try again.");
+      alert("Checkout failed");
     } finally {
       setPlacingOrder(false);
     }
   };
+
+
 
   if (loadingCart) return <div className="p-10">Loading cart...</div>;
 

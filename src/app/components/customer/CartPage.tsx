@@ -5,8 +5,8 @@ import { Trash2, ArrowRight, ShoppingBag } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 export function CartPage() {
   const location = useLocation();
@@ -109,6 +109,7 @@ export function CartPage() {
           user_id: userId,
           product_id: newItem.product.id,
           variant_id: newItem.variant.id,
+          price_id: newItem.price.id,
           quantity: newItem.quantityId,
         },
         { withCredentials: true }
