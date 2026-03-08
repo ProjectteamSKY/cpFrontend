@@ -109,6 +109,7 @@ export function CartPage() {
           user_id: userId,
           product_id: newItem.product.id,
           variant_id: newItem.variant.id,
+          price_id: newItem.price.id,
           quantity: newItem.quantityId,
         },
         { withCredentials: true }
