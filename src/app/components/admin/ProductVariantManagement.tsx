@@ -11,6 +11,8 @@ import {
 } from "../ui/dialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 import {
   getAllProductVariants,
@@ -33,8 +35,12 @@ export function ProductVariantManagement() {
     useState<ProductVariant | null>(null);
 
   const fetchVariants = async () => {
-    const data = await getAllProductVariants();
-    setVariants(data);
+    try {
+      const data = await getAllProductVariants();
+      setVariants(data);
+    } catch (error) {
+      toast.error("Failed to fetch variants");
+    }
   };
 
   useEffect(() => {
@@ -42,22 +48,33 @@ export function ProductVariantManagement() {
   }, []);
 
   const handleSave = async (data: ProductVariantFormData) => {
-    if (editingVariant) {
-      await updateProductVariant(editingVariant.id, data);
-    } else {
-      await createProductVariant(data);
-    }
+    try {
+      if (editingVariant) {
+        await updateProductVariant(editingVariant.id, data);
+        toast.success("Variant updated successfully!");
+      } else {
+        await createProductVariant(data);
+        toast.success("Variant created successfully!");
+      }
 
-    setShowAddDialog(false);
-    setShowEditDialog(false);
-    setEditingVariant(null);
-    fetchVariants();
+      setShowAddDialog(false);
+      setShowEditDialog(false);
+      setEditingVariant(null);
+      fetchVariants();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save variant");
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this variant?")) return;
-    await deleteProductVariant(id);
-    fetchVariants();
+    try {
+      await deleteProductVariant(id);
+      toast.success("Variant deleted successfully!");
+      fetchVariants();
+    } catch (error: any) {
+      toast.error("Failed to delete variant");
+    }
   };
 
   const columns: ColumnDef<ProductVariant>[] = [
@@ -175,6 +192,8 @@ export function ProductVariantManagement() {
           />
         </DialogContent>
       </Dialog>
+
+      <Toaster />
     </div>
   );
 }

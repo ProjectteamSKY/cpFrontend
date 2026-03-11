@@ -43,27 +43,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Gradient Accent */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D73D32] via-[#B83227] to-[#D73D32] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      
-      {/* Badges */}
-      {/* <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-        {product.popular && (
-          <Badge className="bg-gradient-to-r from-[#1A1A1A] to-[#3A3A3A] text-white border-0 shadow-lg backdrop-blur-sm">
-            🔥 Popular
-          </Badge>
-        )}
-        {product.new && (
-          <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-0 shadow-lg">
-            ✨ New
-          </Badge>
-        )}
-        {product.discount && product.discount > 0 && (
-          <Badge className="bg-gradient-to-r from-[#D73D32] to-[#B83227] text-white border-0 shadow-lg font-bold">
-            {product.discount}% OFF
-          </Badge>
-        )}
-      </div> */}
-
-      {/* Action Buttons */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
         <TooltipProvider>
           <Tooltip>
@@ -85,23 +64,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-
-        {/* <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                className="bg-white/95 hover:bg-white backdrop-blur-sm shadow-xl rounded-full w-11 h-11 border-0 hover:scale-110 transition-transform"
-                onClick={(e) => onQuickView(product, e)}
-              >
-                <Eye className="w-5 h-5 text-gray-600" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="font-medium">Quick view</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider> */}
 
         <TooltipProvider>
           <Tooltip>
@@ -144,24 +106,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <ZoomIn className="w-6 h-6 text-[#D73D32]" />
               </div>
             </div>
-            
-            {/* Related Images Indicator */}
-            {/* {allImages.length > 1 && (
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 px-3">
-                {allImages.slice(0, 5).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => onImageClick(product, idx, e)}
-                    className="w-2 h-2 rounded-full bg-white/80 hover:bg-white shadow-lg transition-all hover:scale-125"
-                  />
-                ))}
-                {allImages.length > 5 && (
-                  <span className="text-xs text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full font-medium">
-                    +{allImages.length - 5}
-                  </span>
-                )}
-              </div>
-            )} */}
           </>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
@@ -194,48 +138,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {product.description}
         </p>
 
-        {/* Rating */}
-        {/* {product.rating && (
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-4 h-4 ${
-                    i < Math.floor(Number(product.rating))
-                      ? 'text-yellow-400 fill-yellow-400'
-                      : 'text-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-sm font-semibold text-gray-700">
-              {product.rating}
-            </span>
-            <span className="text-xs text-gray-500">
-              ({product.review_count} reviews)
-            </span>
-          </div>
-        )} */}
 
         {/* Price & CTA */}
-        <div className="flex items-end justify-between gap-4">
-          {/* <div className="flex-1">
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-2xl font-bold bg-gradient-to-r from-[#D73D32] to-[#B83227] bg-clip-text text-transparent">
-                ₹{product.price || 0}
-              </span>
-              {product.mrp && product.mrp > (product.price || 0) && (
-                <span className="text-sm text-gray-400 line-through">
-                  ₹{product.mrp}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 bg-gray-50 inline-block px-2 py-1 rounded-full">
-              Min. {product.min_order_qty} pcs
-            </p>
-          </div> */}
-          
+        <div className="flex items-end justify-between gap-4">    
           <Button
             className="bg-gradient-to-r from-[#D73D32] to-[#B83227] hover:from-[#B83227] hover:to-[#9A2A1F] text-white rounded-full px-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
             size="sm"

@@ -3,6 +3,10 @@ import { Plus, Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { ColumnDef } from "@tanstack/react-table";
+import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 import {
   getAllPaperTypes,
@@ -15,9 +19,7 @@ import {
 
 import { PaperType } from "../../types/paperType";
 import { PaperTypeForm } from "../forms/PaperTypeForm";
-import { ColumnDef } from "@tanstack/react-table";
-import { CustomTable } from "../common/CustomTable";
-import { SizeManagement } from "./SizeManagement";
+// import { SizeManagement } from "./SizeManagement"; // ✅ Commented out unused import
 
 export function PaperTypeManagement() {
   const [paperTypes, setPaperTypes] = useState<PaperType[]>([]);
@@ -26,8 +28,12 @@ export function PaperTypeManagement() {
   const [editingPaperType, setEditingPaperType] = useState<PaperType | null>(null);
 
   const fetchPaperTypes = async () => {
-    const data = await getAllPaperTypes();
-    setPaperTypes(data);
+    try {
+      const data = await getAllPaperTypes();
+      setPaperTypes(data);
+    } catch (error: any) {
+      toast.error("Failed to fetch paper types");
+    }
   };
 
   useEffect(() => {
@@ -36,15 +42,21 @@ export function PaperTypeManagement() {
 
   /* ---------- Save Handler ---------- */
   const handleSave = async (data: any) => {
-    if (editingPaperType) {
-      await updatePaperType(editingPaperType.id, data);
-    } else {
-      await createPaperType(data);
+    try {
+      if (editingPaperType) {
+        await updatePaperType(editingPaperType.id, data);
+        toast.success("Paper type updated successfully!");
+      } else {
+        await createPaperType(data);
+        toast.success("Paper type created successfully!");
+      }
+      setShowAddDialog(false);
+      setShowEditDialog(false);
+      setEditingPaperType(null);
+      fetchPaperTypes();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save paper type");
     }
-    setShowAddDialog(false);
-    setShowEditDialog(false);
-    setEditingPaperType(null);
-    fetchPaperTypes();
   };
 
   /* ---------- Edit ---------- */
@@ -56,18 +68,29 @@ export function PaperTypeManagement() {
   /* ---------- Delete ---------- */
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this paper type?")) return;
-    await deletePaperType(id);
-    fetchPaperTypes();
+    try {
+      await deletePaperType(id);
+      toast.success("Paper type deleted successfully!");
+      fetchPaperTypes();
+    } catch (error: any) {
+      toast.error("Failed to delete paper type");
+    }
   };
 
   /* ---------- Toggle ---------- */
   const toggleStatus = async (pt: PaperType) => {
-    if (pt.is_active) {
-      await deactivatePaperType(pt.id);
-    } else {
-      await activatePaperType(pt.id);
+    try {
+      if (pt.is_active) {
+        await deactivatePaperType(pt.id);
+        toast.success("Paper type deactivated successfully!");
+      } else {
+        await activatePaperType(pt.id);
+        toast.success("Paper type activated successfully!");
+      }
+      fetchPaperTypes();
+    } catch (error: any) {
+      toast.error("Failed to update status");
     }
-    fetchPaperTypes();
   };
 
   const columns: ColumnDef<PaperType>[] = [
@@ -135,7 +158,7 @@ export function PaperTypeManagement() {
         {/* Add Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A11A]/90 text-white">
+            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Paper Type
             </Button>
@@ -180,6 +203,7 @@ export function PaperTypeManagement() {
         </DialogContent>
       </Dialog>
 
+      <Toaster />
     </div>
   );
 }

@@ -34,6 +34,13 @@ export function RootLayout() {
               >
                 Products
               </Link>
+
+               <Link
+                to="/WishlistPage"
+                className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname === '/Wishlist' ? 'text-[#D73D32]' : ''}`}
+              >
+                Wishlist
+              </Link>
               
               <Link
                 to="/orderhistory"

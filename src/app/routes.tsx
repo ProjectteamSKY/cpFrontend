@@ -28,6 +28,8 @@ import { ProductDiscountManagement } from "./components/admin/ProductDiscountMan
 import { ProductSetupManagement } from "./components/admin/ProductSetupManagement";
 import { DesignReviewPage } from "./components/customer/DesignReviewPage";
 import { LoginPage } from "./components/Auth/LoginPage";
+import AddressPage from "./components/customer/UserAddressPage";
+import { WishlistPage } from "./components/customer/WishlistPage";
 
 
 
@@ -44,10 +46,14 @@ export const router = createBrowserRouter([
       { path: "/design-review", Component: DesignReviewPage },
       { path: "cart", Component: CartPage },
       { path: "checkout", Component: CheckoutPage },
-      { path: "orderhistory", Component: OrderHistoryPage},
-      { path: "vieworder/:orderId", Component: ViewOrderPage},
+      { path: "orderhistory", Component: OrderHistoryPage },
+      { path: "vieworder/:orderId", Component: ViewOrderPage },
+      { path: "useraddress", Component: AddressPage },
+      { path: "/WishlistPage", Component:  WishlistPage},
 
-      
+
+
+
       { path: "login", Component: LoginPage },
     ],
   },
@@ -71,7 +77,7 @@ export const router = createBrowserRouter([
       { path: "ProductSetup", Component: ProductSetupManagement },
       { path: "Order", Component: OrderManagement },
 
-      
+
 
       // { path: "orders", Component: OrderManagement },
       // { path: "file-review", Component: FileReviewPanel },

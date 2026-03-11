@@ -120,6 +120,8 @@ import { useEffect, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Card } from "../ui/card";
 import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 import {
   getAllOrders,
   updateOrderStatus,
@@ -147,8 +149,8 @@ export function OrderManagement() {
     try {
       const data = await getAllOrders();
       setOrders(data);
-    } catch (error) {
-      console.error("Failed to fetch orders", error);
+    } catch (error: any) {
+      toast.error("Failed to fetch orders");
     }
   };
 
@@ -165,8 +167,13 @@ export function OrderManagement() {
       return;
     }
 
-    await updateOrderStatus(order.id, order.status, newStatus);
-    fetchOrders();
+    try {
+      await updateOrderStatus(order.id, order.status, newStatus);
+      toast.success("Order status updated successfully!");
+      fetchOrders();
+    } catch (error: any) {
+      toast.error("Failed to update order status");
+    }
   };
 
   // 🚚 Shipment Flow
@@ -179,9 +186,8 @@ export function OrderManagement() {
       const courierData = await getAvailableCouriers(order.id);
 
       setCouriers(courierData);
-    } catch (error) {
-      alert("Failed to fetch couriers");
-      console.error(error);
+    } catch (error: any) {
+      toast.error("Failed to fetch couriers");
     } finally {
       setLoadingCouriers(false);
     }
@@ -194,11 +200,11 @@ export function OrderManagement() {
     try {
       await generateAWB(selectedOrder.id, courierId);
       await updateOrderStatus(selectedOrder.id, selectedOrder.status, "shipment");
+      toast.success("Shipment created successfully!");
       setSelectedOrder(null);
       fetchOrders();
-    } catch (error) {
-      alert("AWB generation failed");
-      console.error(error);
+    } catch (error: any) {
+      toast.error("AWB generation failed");
     }
   };
 
@@ -207,12 +213,11 @@ export function OrderManagement() {
     if (!confirm("Are you sure you want to cancel this order?")) return;
 
     try {
-      await cancelOrder(orderId); // backend call
-      alert("Order cancelled successfully");
+      await cancelOrder(orderId);
+      toast.success("Order cancelled successfully!");
       fetchOrders();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to cancel order");
+    } catch (error: any) {
+      toast.error("Failed to cancel order");
     }
   };
 
@@ -221,12 +226,11 @@ export function OrderManagement() {
     if (!confirm("Do you want to refund this order?")) return;
 
     try {
-      await refundOrder(orderId); // backend call
-      alert("Order refunded successfully");
+      await refundOrder(orderId);
+      toast.success("Order refunded successfully!");
       fetchOrders();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to refund order");
+    } catch (error: any) {
+      toast.error("Failed to refund order");
     }
   };
 
@@ -259,9 +263,6 @@ export function OrderManagement() {
         const shipment = row.original.shipment;
         const labelUrl = shipment?.label_url;
         
-        row.original
-        // const labelUrl = shipment?.label_url;
-
         // Case 1: Shipment created but label not downloaded
         if (row.original.status === "shipment" && !labelUrl) {
           return (
@@ -370,12 +371,17 @@ export function OrderManagement() {
               </div>
             )}
 
-            <button onClick={() => setSelectedOrder(null)} className="mt-4 text-sm text-gray-500">
+            <button 
+              onClick={() => setSelectedOrder(null)} 
+              className="mt-4 text-sm text-gray-500 hover:text-gray-700"
+            >
               Close
             </button>
           </div>
         </div>
       )}
+
+      <Toaster />
     </div>
   );
 }

@@ -281,6 +281,8 @@ import { useLocation, Link, useNavigate } from "react-router-dom";
 import { FileCheck, ShoppingBag } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
+import { toast } from "react-toastify";
+import { Toaster } from "../../components/ui/toaster";
 import api from "../../service/api";
 
 export function DesignReviewPage() {
@@ -295,6 +297,7 @@ export function DesignReviewPage() {
   // 🚫 Safety Check
   // =========================================================
   if (!state || !state.frontDesign) {
+    toast("No design data found");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>No design data found</p>
@@ -358,15 +361,13 @@ export function DesignReviewPage() {
   // =========================================================
   // 🛒 ADD TO CART
   // =========================================================
-  // =========================================================
-  // 🛒 ADD TO CART
-  // =========================================================
   const handleAddToCart = async () => {
     const userId =
       sessionStorage.getItem("user_id") ||
       localStorage.getItem("user_id");
 
     if (!userId) {
+       toast.success("Please login to add to cart");
       navigate("/login");
       return;
     }
@@ -374,6 +375,8 @@ export function DesignReviewPage() {
     try {
       setLoading(true);
       setError("");
+
+       toast.success("Adding to cart...");
 
       const cartId = await getCartId(userId);
 
@@ -429,17 +432,20 @@ export function DesignReviewPage() {
         }
       );
 
+       toast.success("Item added to cart successfully!");
       navigate("/cart");
     } catch (err: any) {
       console.error(err);
 
-      setError(
+      const errorMessage =
         err?.response?.data?.detail
           ? typeof err.response.data.detail === "string"
             ? err.response.data.detail
             : JSON.stringify(err.response.data.detail, null, 2)
-          : err?.message || "Failed to add item to cart"
-      );
+          : err?.message || "Failed to add item to cart";
+
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -458,11 +464,8 @@ export function DesignReviewPage() {
     )?.price || 0;
 
   const subtotal = price * quantityNumber;
-
   const gst = subtotal * 0.18;
-
   const deliveryCharge = 100;
-
   const total = subtotal + gst + deliveryCharge;
 
   // =========================================================
@@ -477,7 +480,6 @@ export function DesignReviewPage() {
         <div className="lg:col-span-2">
           <Card className="p-6">
             <div className="flex gap-6">
-
               {/* FRONT PREVIEW */}
               <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
                 {frontPreview ? (
@@ -606,6 +608,8 @@ export function DesignReviewPage() {
           </Card>
         </div>
       </div>
+
+      <Toaster />
     </div>
   );
 }

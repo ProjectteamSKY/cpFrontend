@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
+import { toast } from "react-toastify";
 import { getAllCategories } from "../../service/categoryApiService";
 import { getAllSubcategories } from "../../service/subcategoryApiService";
 import { getAllSizes } from "../../service/sizeApiService";
@@ -117,6 +118,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         setCutTypes(Array.isArray(cutTypesData) ? cutTypesData : []);
       } catch (error) {
         console.error("Error fetching dropdown data:", error);
+        toast.error("Failed to load dropdown data");
       } finally {
         setFetchingData(false);
       }
@@ -137,7 +139,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(imagesArray)) {
             const existingMainImages = imagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '',
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id,
@@ -160,7 +162,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(relatedImagesArray)) {
             const existingRelatedImages = relatedImagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '',
+              preview: img.url ? `http://127.0.0.1:8000/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id
@@ -184,6 +186,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         } catch (error) {
           console.error("Error fetching subcategories:", error);
           setSubcategories([]);
+          toast.error("Failed to load subcategories");
         }
       } else {
         setSubcategories([]);
@@ -393,7 +396,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       /* ================= UPDATE OR CREATE ================= */
       if (isEditing && defaultValues?.id) {
         const response = await fetch(
-          `http://54.206.3.97/api/productsetup/update/${defaultValues.id}`,
+          `http://127.0.0.1:8000/api/productsetup/update/${defaultValues.id}`,
           {
             method: "PUT",
             body: formData,
@@ -406,16 +409,16 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
           throw new Error(responseData.detail || "Update failed");
         }
 
-        alert("Product Updated Successfully!");
+        toast.success("Product Updated Successfully!");
         onSubmitSuccess?.();
       } else {
         const response = await axios.post(
-          "http://54.206.3.97/api/productsetup/create",
+          "http://127.0.0.1:8000/api/productsetup/create",
           formData
         );
 
         if (response.data.status === "success") {
-          alert("Product Created Successfully!");
+          toast.success("Product Created Successfully!");
           onSubmitSuccess?.();
         }
       }
@@ -440,7 +443,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         }
       }
 
-      alert(`Error: ${errorMessage}`);
+      toast.error(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
