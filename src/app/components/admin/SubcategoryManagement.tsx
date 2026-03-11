@@ -25,6 +25,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CustomTable } from "../common/CustomTable";
 import { useLocation } from "react-router-dom";
 
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
+
 interface Props {
   categoryId?: string; // optional filter by category
 }
@@ -46,6 +49,7 @@ export function SubcategoryManagement({ categoryId }: Props) {
       setSubcategories(data);
     } catch (error) {
       console.error("Failed to fetch subcategories", error);
+      toast.error("Failed to fetch subcategories");
     }
   };
 
@@ -59,18 +63,19 @@ export function SubcategoryManagement({ categoryId }: Props) {
       if (editingSubcategory) {
         // Edit mode
         await updateSubcategory(editingSubcategory.id, data);
+        toast.success("Subcategory updated successfully!");
         setShowEditDialog(false);
         setEditingSubcategory(null);
       } else {
         // Create mode
         await createSubcategory({ ...data, category_id: id || "" });
+        toast.success("Subcategory created successfully!");
         setShowAddDialog(false);
       }
       fetchSubcategories();
-      alert("Subcategory saved successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Failed to save subcategory.");
+      toast.error(error.message || "Failed to save subcategory.");
     }
   };
 
@@ -85,11 +90,11 @@ export function SubcategoryManagement({ categoryId }: Props) {
     if (!confirm("Are you sure you want to delete this subcategory?")) return;
     try {
       await deleteSubcategory(id);
+      toast.error("Subcategory deleted successfully!");
       fetchSubcategories();
-      alert("Subcategory deleted successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Failed to delete subcategory.");
+      toast.error("Failed to delete subcategory.");
     }
   };
 
@@ -98,13 +103,15 @@ export function SubcategoryManagement({ categoryId }: Props) {
     try {
       if (subcategory.is_active) {
         await deactivateSubcategory(subcategory.id);
+        toast.success("Subcategory deactivated successfully!");
       } else {
         await activateSubcategory(subcategory.id);
+        toast.success("Subcategory activated successfully!");
       }
       fetchSubcategories();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Failed to update status.");
+      toast.error("Failed to update status.");
     }
   };
 
@@ -178,7 +185,7 @@ export function SubcategoryManagement({ categoryId }: Props) {
         {/* Add Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A11A]/90 text-white">
+            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Subcategory
             </Button>
@@ -227,6 +234,8 @@ export function SubcategoryManagement({ categoryId }: Props) {
           />
         </DialogContent>
       </Dialog>
+
+      <Toaster />
     </div>
   );
 }

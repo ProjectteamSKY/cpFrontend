@@ -51,3 +51,104 @@
   padding: 0.125rem 0.5rem;
   border-top-right-radius: 0.25rem;
 }
+
+/* Add to your global.css */
+.toast-premium {
+  background: var(--toast-bg);
+  backdrop-filter: blur(var(--backdrop-blur));
+  border: var(--border-width) var(--border-style) var(--normal-border);
+  border-radius: var(--radius);
+  padding: var(--padding);
+  gap: var(--gap);
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  font-weight: var(--font-weight);
+  line-height: var(--line-height);
+  opacity: var(--opacity);
+  animation: slideIn var(--animation-duration) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-premium[data-type="success"] {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.toast-premium[data-type="error"] {
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--error-text);
+}
+
+.toast-premium[data-type="warning"] {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
+.toast-premium[data-type="info"] {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+  color: var(--info-text);
+}
+
+/* Dark mode overrides */
+.dark .toast-premium {
+  background: var(--toast-bg-dark);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-dark);
+}
+
+.dark .toast-premium[data-type="success"] {
+  background: var(--success-bg-dark);
+  color: var(--success-text-dark);
+}
+
+.dark .toast-premium[data-type="error"] {
+  background: var(--error-bg-dark);
+  color: var(--error-text-dark);
+}
+
+.dark .toast-premium[data-type="warning"] {
+  background: var(--warning-bg-dark);
+  color: var(--warning-text-dark);
+}
+
+.dark .toast-premium[data-type="info"] {
+  background: var(--info-bg-dark);
+  color: var(--info-text-dark);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: var(--opacity);
+  }
+}
+
+/* Optional: Add a subtle progress bar for auto-dismiss */
+.toast-premium::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, currentColor 0%, transparent 100%);
+  opacity: 0.2;
+  border-radius: 0 0 var(--radius) var(--radius);
+  animation: progress 3s linear forwards;
+}
+
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}

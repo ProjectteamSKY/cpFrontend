@@ -3,6 +3,8 @@ import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 import { Product, ProductFormData } from "../../types/product";
 import { ProductForm } from "../forms/ProductForm";
 import { ColumnDef } from "@tanstack/react-table";
@@ -26,8 +28,8 @@ export function ProductManagements() {
     try {
       const data = await getAllProducts();
       setProducts(data);
-    } catch (error) {
-      console.error("Failed to fetch products", error);
+    } catch (error: any) {
+      toast.error("Failed to fetch products");
     }
   };
 
@@ -45,15 +47,17 @@ export function ProductManagements() {
     try {
       if (editingProduct) {
         await updateProduct(editingProduct.id, data);
+        toast.success("Product updated successfully!");
       } else {
         await createProduct(data);
+        toast.success("Product created successfully!");
       }
 
       setMode("list");
       setEditingProduct(null);
       fetchProducts();
-    } catch (error) {
-      console.error("Save failed", error);
+    } catch (error: any) {
+      toast.error(error.message || "Save failed");
     }
   };
 
@@ -69,9 +73,10 @@ export function ProductManagements() {
 
     try {
       await deleteProduct(id);
+      toast.success("Product deleted successfully!");
       fetchProducts();
-    } catch (error) {
-      console.error("Delete failed", error);
+    } catch (error: any) {
+      toast.error("Delete failed");
     }
   };
 
@@ -80,13 +85,15 @@ export function ProductManagements() {
     try {
       if (product.is_active) {
         await deactivateProduct(product.id);
+        toast.success("Product deactivated successfully!");
       } else {
         await activateProduct(product.id);
+        toast.success("Product activated successfully!");
       }
 
       fetchProducts();
     } catch (err: any) {
-      alert(err.message || "Failed to toggle status");
+      toast.error(err.message || "Failed to toggle status");
     }
   };
 
@@ -204,6 +211,8 @@ export function ProductManagements() {
           </div>
         </Card>
       )}
+
+      <Toaster />
     </div>
   );
 }

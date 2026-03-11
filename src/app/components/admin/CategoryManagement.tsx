@@ -27,6 +27,10 @@ import { CustomTable } from "../common/CustomTable";
 import { useNavigate } from "react-router-dom";
 import { getAllSubcategories, getSubcategoriesByCategoryId } from "../../service/subcategoryApiService";
 
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from "../ui/toaster";
+
 export function CategoryManagement() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [showAddDialog, setShowAddDialog] = useState(false);
@@ -62,14 +66,17 @@ export function CategoryManagement() {
             if (editingCategory) {
                 // For update
                 response = await updateCategory(editingCategory.id, data);
+                toast.success("Category updated successfully!");
+
             } else {
                 // For create
                 response = await createCategory(data);
+                toast.success("Category created successfully!");
             }
 
             // If response indicates failure (e.g., name exists)
             if (response && response.success === false) {
-                alert(response.message); // Show the backend message
+                toast.error(response.message); // Show the backend message
                 return; // Stop further execution
             }
 
@@ -81,7 +88,7 @@ export function CategoryManagement() {
 
         } catch (err: any) {
             // Fallback in case of unexpected errors    
-            alert(err.message || "Something went wrong");
+            toast.error(err.message || "Something went wrong");
         }
     };
 
@@ -98,27 +105,47 @@ export function CategoryManagement() {
         if (!confirm("Are you sure you want to delete this category?"))
             return;
 
-        await deleteCategory(id);
-        fetchCategories();
+        try {
+            await deleteCategory(id);
+            toast.error("Category deleted successfully!");
+            fetchCategories();
+        } catch (error) {
+            toast.error("Failed to delete category");
+        }
     };
 
     /* ---------- Toggle ---------- */
 
     const toggleStatus = async (category: Category) => {
-        await toggleCategoryStatus(category.id, !category.is_active); // switches automatically
-        fetchCategories(); // refresh list
+        try {
+            await toggleCategoryStatus(category.id, !category.is_active); // switches automatically
+            toast.success("Category status updated successfully!");
+            fetchCategories(); // refresh list
+        } catch (error) {
+            toast.error("Failed to update category status");
+        }
     };
 
     // activate button
     const activate = async (category: Category) => {
-        await activateCategory(category.id);
-        fetchCategories();
+        try {
+            await activateCategory(category.id);
+            toast.success("Category activated successfully!");
+            fetchCategories();
+        } catch (error) {
+            toast.error("Failed to activate category");
+        }
     };
 
     // deactivate button
     const deactivate = async (category: Category) => {
-        await deactivateCategory(category.id);
-        fetchCategories();
+        try {
+            await deactivateCategory(category.id);
+            toast.success("Category deactivated successfully!");
+            fetchCategories();
+        } catch (error) {
+            toast.error("Failed to deactivate category");
+        }
     };
 
     const handleSubcategory = (category: Category) => {
@@ -179,15 +206,18 @@ export function CategoryManagement() {
                                     if (cat.is_active) {
                                         // currently active → deactivate
                                         await deactivateCategory(cat.id);
+                                        toast.success("Category deactivated successfully!");
+
                                     } else {
                                         // currently inactive → activate
                                         await activateCategory(cat.id);
+                                        toast.success("Category activated successfully!");
                                     }
 
                                     // refresh the categories list
                                     fetchCategories();
                                 } catch (error) {
-                                    console.error("Failed to toggle category status", error);
+                                    toast.error("Failed to update category status");
                                 }
                             }}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${cat.is_active ? "bg-green-500" : "bg-gray-300"
@@ -265,7 +295,7 @@ export function CategoryManagement() {
                 {/* Add Dialog */}
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                     <DialogTrigger asChild>
-                        <Button className="bg-[#1A1A1A] hover:bg-[#1A1A11A]/90 text-white">
+                        <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
                             <Plus className="w-4 h-4 mr-2" />
                             Add Category
                         </Button>
@@ -415,7 +445,9 @@ export function CategoryManagement() {
 
                 </DialogContent>
             </Dialog>
+
+            {/* Toast Container */}
+            <Toaster />
         </div>
     );
 }
-

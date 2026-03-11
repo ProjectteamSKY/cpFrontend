@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Trash2, Plus } from "lucide-react";
-
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 import { ProductSetup, ProductSetupFormData } from "../../types/productSetup";
 import {
   deleteProduct,
@@ -14,7 +15,6 @@ import { CustomTable } from "../common/CustomTable";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
-// Define the API response type
 // Define the API response type
 interface ApiResponse {
   status?: string;
@@ -32,7 +32,6 @@ export function ProductSetupManagement() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /* ---------------- Fetch ---------------- */
   /* ---------------- Fetch ---------------- */
   const fetchProducts = async () => {
     try {
@@ -75,9 +74,12 @@ export function ProductSetupManagement() {
 
       console.log("Processed product data:", productData);
       setProducts(productData);
+      toast.success("Products loaded successfully!");
     } catch (error) {
       console.error("Error fetching products:", error);
-      setError("Failed to fetch products. Please try again.");
+      const errorMessage = "Failed to fetch products. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -93,17 +95,16 @@ export function ProductSetupManagement() {
     try {
       setLoading(true);
       await deleteProduct(id);
-      alert("Product deleted successfully!");
+      toast.success("Product deleted successfully!");
       fetchProducts();
     } catch (error) {
       console.error("Error deleting product:", error);
-      alert("Error deleting product. Please try again.");
+      toast.error("Error deleting product. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ---------------- Edit ---------------- */
   /* ---------------- Edit ---------------- */
   const handleEdit = async (id: string) => {
     try {
@@ -205,7 +206,7 @@ export function ProductSetupManagement() {
       setShowForm(true);
     } catch (error) {
       console.error("Error fetching product details:", error);
-      alert("Error loading product for editing. Please try again.");
+      toast.error("Error loading product for editing. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -217,6 +218,9 @@ export function ProductSetupManagement() {
   };
 
   const handleFormSuccess = () => {
+    toast.success("Product saved successfully!");
+    setShowForm(false);
+    setEditingProduct(null);
     fetchProducts();
   };
 
@@ -281,7 +285,6 @@ export function ProductSetupManagement() {
         return price?.min_qty ?? "N/A";
       },
     },
-
     {
       header: "Price",
       cell: ({ row }) => {
@@ -304,7 +307,7 @@ export function ProductSetupManagement() {
             >
               <Edit className="w-4 h-4" />
             </Button>
-            {/* <Button
+            <Button
               variant="ghost"
               size="icon"
               onClick={() => handleDelete(product.id)}
@@ -312,7 +315,7 @@ export function ProductSetupManagement() {
               disabled={loading}
             >
               <Trash2 className="w-4 h-4" />
-            </Button> */}
+            </Button>
           </div>
         );
       },
@@ -397,6 +400,7 @@ export function ProductSetupManagement() {
           </Card>
         </>
       )}
+      <Toaster />
     </div>
   );
 }

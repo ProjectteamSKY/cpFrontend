@@ -11,6 +11,8 @@ import {
 } from "../ui/dialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 import {
     getAllProductVariantPrices,
@@ -31,28 +33,43 @@ export function ProductVariantPriceManagement() {
     const [editingPrice, setEditingPrice] = useState<ProductVariantPrice | null>(null);
 
     const fetchPrices = async () => {
-        const data = await getAllProductVariantPrices();
-        setPrices(data);
+        try {
+            const data = await getAllProductVariantPrices();
+            setPrices(data);
+        } catch (error) {
+            toast.error("Failed to fetch prices");
+        }
     };
 
     useEffect(() => { fetchPrices(); }, []);
 
     const handleSave = async (data: ProductVariantPriceFormData) => {
-        if (editingPrice) {
-            await updateProductVariantPrice(editingPrice.id, data);
-        } else {
-            await createProductVariantPrice(data);
+        try {
+            if (editingPrice) {
+                await updateProductVariantPrice(editingPrice.id, data);
+                toast.success("Price updated successfully!");
+            } else {
+                await createProductVariantPrice(data);
+                toast.success("Price created successfully!");
+            }
+            setShowAddDialog(false);
+            setShowEditDialog(false);
+            setEditingPrice(null);
+            fetchPrices();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to save price");
         }
-        setShowAddDialog(false);
-        setShowEditDialog(false);
-        setEditingPrice(null);
-        fetchPrices();
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this price?")) return;
-        await deleteProductVariantPrice(id);
-        fetchPrices();
+        try {
+            await deleteProductVariantPrice(id);
+            toast.success("Price deleted successfully!");
+            fetchPrices();
+        } catch (error: any) {
+            toast.error("Failed to delete price");
+        }
     };
 
     const columns: ColumnDef<ProductVariantPrice>[] = [
@@ -69,13 +86,15 @@ export function ProductVariantPriceManagement() {
                     try {
                         if (item.is_active) {
                             await deactivateProductVariantPrice(item.id);
+                            toast.success("Price deactivated successfully!");
                         } else {
                             await activateProductVariantPrice(item.id);
+                            toast.success("Price activated successfully!");
                         }
 
                         await fetchPrices();        
-                    } catch (error) {
-                        console.error("Failed to toggle status", error);
+                    } catch (error: any) {
+                        toast.error("Failed to update status");
                     }
                 };
 
@@ -147,6 +166,8 @@ export function ProductVariantPriceManagement() {
                     />
                 </DialogContent>
             </Dialog>
+
+            <Toaster />
         </div>
     );
 }

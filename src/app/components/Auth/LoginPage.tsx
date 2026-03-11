@@ -5,6 +5,8 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 interface RegisterFormData {
     full_name: string;
@@ -24,6 +26,7 @@ export function LoginPage() {
         handleSubmit,
         getValues,
         formState: { errors },
+        reset
     } = useForm<RegisterFormData>();
 
     // Axios cookies
@@ -33,17 +36,19 @@ export function LoginPage() {
     const handleRegister = async (data: RegisterFormData) => {
         try {
             setLoading(true);
+            toast.success("Creating your account...");
             await axios.post(
-                "http://54.206.3.97/api/users/register",
+                "http://127.0.0.1:8000/api/users/register",
                 new URLSearchParams({
                     full_name: data.full_name,
                     email: data.email,
                     password: data.password,
                 })
             );
+            toast.success("Registration successful! Please check your email for OTP.");
             setStep("verify");
         } catch (err: any) {
-            alert(err.response?.data?.detail || "Registration failed");
+            toast(err.response?.data?.detail || "Registration failed");
         } finally {
             setLoading(false);
         }
@@ -53,35 +58,37 @@ export function LoginPage() {
     const handleVerifyOtp = async (data: RegisterFormData) => {
         try {
             setLoading(true);
+            toast.warning("Verifying OTP...");
             await axios.post(
-                "http://54.206.3.97/api/users/verify-otp",
+                "http://127.0.0.1:8000/api/users/verify-otp",
                 new URLSearchParams({
                     email: getValues("email"),
                     otp: data.otp || "",
                 })
             );
-            alert("Email verified! Please login.");
+            toast.success("Email verified successfully! You can now login.");
             setStep("login");
+            reset();
         } catch (err: any) {
-            alert(err.response?.data?.detail || "Invalid OTP");
+            toast.error(err.response?.data?.detail || "Invalid OTP");
         } finally {
             setLoading(false);
         }
     };
 
     // ================= LOGIN =================
-    // ================== LOGIN ==================
     const handleLogin = async (data: RegisterFormData) => {
         try {
             setLoading(true);
+            toast.loading("Logging you in...");
 
             const response = await axios.post(
-                "http://54.206.3.97/api/users/login",
+                "http://127.0.0.1:8000/api/users/login",
                 new URLSearchParams({
                     email: data.email,
                     password: data.password,
                 }),
-                { withCredentials: true } // send cookies too
+                { withCredentials: true }
             );
 
             // Save tokens in sessionStorage
@@ -97,22 +104,24 @@ export function LoginPage() {
             console.log("Access Token:", accessToken);
             console.log("Refresh Token:", refreshToken);
 
+            toast.success("Login successful! Redirecting...");
             window.location.href = "/";
         } catch (err: any) {
-            alert(err.response?.data?.detail || "Invalid credentials");
+            toast.error(err.response?.data?.detail || "Invalid credentials");
         } finally {
             setLoading(false);
         }
     };
 
-    // ================== GOOGLE LOGIN ==================
-    const handleGoogleLogin = async (credentialResponse: any) => {
+    // ================= GOOGLE LOGIN ==================
+    const handleGoogleLogin = async (credentialResponse: any) => {  
         try {
             setLoading(true);
+            toast("Logging in with Google...");
             const token = credentialResponse.credential;
 
             const response = await axios.post(
-                "http://54.206.3.97/api/users/google-login",
+                "http://127.0.0.1:8000/api/users/google-login",
                 { token },
                 { withCredentials: true }
             );
@@ -128,9 +137,11 @@ export function LoginPage() {
             console.log("user_id:", user_id);
             console.log("Access Token:", accessToken);
             console.log("Refresh Token:", refreshToken);
+            
+            toast.success("Google login successful! Redirecting...");
             // window.location.href = "/";
         } catch (err: any) {
-            alert(err.response?.data?.detail || "Google login failed");
+            toast.error(err.response?.data?.detail || "Google login failed");
         } finally {
             setLoading(false);
         }
@@ -234,9 +245,12 @@ export function LoginPage() {
                     {step === "login" && (
                         <>
                             <p className="text-center text-sm">
-                                Don’t have an account?{" "}
+                                Don't have an account?{" "}
                                 <span
-                                    onClick={() => setStep("register")}
+                                    onClick={() => {
+                                        setStep("register");
+                                        toast("Switching to registration...");
+                                    }}
                                     className="text-[#D73D32] cursor-pointer"
                                 >
                                     Register
@@ -251,11 +265,12 @@ export function LoginPage() {
 
                             <GoogleLogin
                                 onSuccess={handleGoogleLogin}
-                                onError={() => alert("Google login failed")}
+                                onError={() => toast("Google login failed")}
                             />
                         </>
                     )}
                 </div>
+                <Toaster />
             </div>
         </GoogleOAuthProvider>
     );

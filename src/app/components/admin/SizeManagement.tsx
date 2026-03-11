@@ -4,6 +4,8 @@ import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 import { Size, SizeFormData } from "../../types/size";
 import { SizeForm } from "../forms/SizeForm";
@@ -28,8 +30,12 @@ export function SizeManagement() {
   const navigate = useNavigate();
 
   const fetchSizes = async () => {
-    const data = await getAllSizes();
-    setSizes(data);
+    try {
+      const data = await getAllSizes();
+      setSizes(data);
+    } catch (error) {
+      toast.error("Failed to fetch sizes");
+    }
   };
 
   useEffect(() => {
@@ -38,15 +44,21 @@ export function SizeManagement() {
 
   /* ---------- Save Handler ---------- */
   const handleSave = async (data: SizeFormData) => {
-    if (editingSize) {
-      await updateSize(editingSize.id, data);
-    } else {
-      await createSize(data);
+    try {
+      if (editingSize) {
+        await updateSize(editingSize.id, data);
+        toast.success("Size updated successfully!");
+      } else {
+        await createSize(data);
+        toast.success("Size created successfully!");
+      }
+      setShowAddDialog(false);
+      setShowEditDialog(false);
+      setEditingSize(null);
+      fetchSizes();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save size");
     }
-    setShowAddDialog(false);
-    setShowEditDialog(false);
-    setEditingSize(null);
-    fetchSizes();
   };
 
   /* ---------- Edit ---------- */
@@ -58,8 +70,13 @@ export function SizeManagement() {
   /* ---------- Delete ---------- */
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this size?")) return;
-    await deleteSize(id);
-    fetchSizes();
+    try {
+      await deleteSize(id);
+      toast.success("Size deleted successfully!");
+      fetchSizes();
+    } catch (error: any) {
+      toast.error("Failed to delete size");
+    }
   };
 
   /* ---------- Toggle / Activate ---------- */
@@ -69,12 +86,16 @@ export function SizeManagement() {
 
       if (size.is_active) {
         await deactivateSize(size.id);
+        toast.success("Size deactivated successfully!");
       } else {
         await activateSize(size.id);
+        toast.success("Size activated successfully!");
       }
 
       await fetchSizes();
 
+    } catch (error: any) {
+      toast.error("Failed to update status");
     } finally {
       setLoadingId(null);
     }
@@ -139,7 +160,7 @@ export function SizeManagement() {
         {/* Add Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A11A]/90 text-white">
+            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
               <Plus className="w-4 h-4 mr-2" /> Add Size
             </Button>
           </DialogTrigger>
@@ -179,6 +200,8 @@ export function SizeManagement() {
           />
         </DialogContent>
       </Dialog>
+
+      <Toaster />
     </div>
   );
 }
