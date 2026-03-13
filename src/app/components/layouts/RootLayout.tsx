@@ -1,11 +1,15 @@
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { ShoppingCart, User, Search } from "lucide-react";
 import { Button } from "../ui/button";
 
 export function RootLayout() {
   const location = useLocation();
   const cartItemCount = 2; // Mock cart count
+  const navigate = useNavigate();
 
+  const handleClick = () => {
+    navigate("/MyProfile");
+  };
   return (
     <div className="min-h-screen flex flex-col bg-[#EFEFEF]">
       {/* Header */}
@@ -35,20 +39,20 @@ export function RootLayout() {
                 Products
               </Link>
 
-               <Link
+              {/* <Link
                 to="/WishlistPage"
                 className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname === '/Wishlist' ? 'text-[#D73D32]' : ''}`}
               >
                 Wishlist
               </Link>
-              
+
               <Link
                 to="/orderhistory"
                 className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname.includes('/order-tracking') ? 'text-[#D73D32]' : ''}`}
               >
                 orderhistory
-              </Link>
-             
+              </Link> */}
+
             </nav>
 
             {/* Actions */}
@@ -56,9 +60,12 @@ export function RootLayout() {
               <Button variant="ghost" size="icon" className="relative">
                 <Search className="w-5 h-5" />
               </Button>
-              <Button variant="ghost" size="icon">
-                <User className="w-5 h-5" />
-              </Button>
+              {/* <Link > */}
+                <Button variant="ghost" size="icon" onClick={handleClick}>
+                  <User className="w-5 h-5" />
+                </Button>
+              {/* </Link> */}
+
               <Link to="/cart">
                 <Button variant="ghost" size="icon" className="relative">
                   <ShoppingCart className="w-5 h-5" />

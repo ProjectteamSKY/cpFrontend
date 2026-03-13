@@ -30,6 +30,7 @@ import { DesignReviewPage } from "./components/customer/DesignReviewPage";
 import { LoginPage } from "./components/Auth/LoginPage";
 import AddressPage from "./components/customer/UserAddressPage";
 import { WishlistPage } from "./components/customer/WishlistPage";
+import { ProfilePage } from "./components/customer/MyProfile";
 
 
 
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
       { path: "vieworder/:orderId", Component: ViewOrderPage },
       { path: "useraddress", Component: AddressPage },
       { path: "/WishlistPage", Component:  WishlistPage},
+      { path: "/MyProfile", Component:  ProfilePage},
 
 
 
