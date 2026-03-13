@@ -138,10 +138,10 @@ export function AdminDashboard() {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const navigate = useNavigate();
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/orders_routes/summary").then(r => r.json()).then(setSummary);
-    fetch("http://127.0.0.1:8000/api/orders_routes/revenue/monthly").then(r => r.json()).then(setRevenueData);
-    fetch("http://127.0.0.1:8000/api/orders_routes/top-products").then(r => r.json()).then(setTopProducts);
-    fetch("http://127.0.0.1:8000/api/orders_routes/recent-orders").then(r => r.json()).then(setRecentOrders);
+    fetch("http://54.206.3.97/api/orders_routes/summary").then(r => r.json()).then(setSummary);
+    fetch("http://54.206.3.97/api/orders_routes/revenue/monthly").then(r => r.json()).then(setRevenueData);
+    fetch("http://54.206.3.97/api/orders_routes/top-products").then(r => r.json()).then(setTopProducts);
+    fetch("http://54.206.3.97/api/orders_routes/recent-orders").then(r => r.json()).then(setRecentOrders);
   }, []);
 
   const stats = [
