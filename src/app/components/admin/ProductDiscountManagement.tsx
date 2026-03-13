@@ -5,6 +5,8 @@ import { Card } from "../ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 import { ProductDiscount, ProductDiscountFormData } from "../../types/productDiscount";
 import { ProductDiscountForm } from "../forms/ProductDiscountForm";
@@ -24,8 +26,12 @@ export function ProductDiscountManagement() {
     const [editingDiscount, setEditingDiscount] = useState<ProductDiscount | null>(null);
 
     const fetchDiscounts = async () => {
-        const data = await getAllProductDiscounts();
-        setDiscounts(data);
+        try {
+            const data = await getAllProductDiscounts();
+            setDiscounts(data);
+        } catch (error: any) {
+            toast.error("Failed to fetch discounts");
+        }
     };
 
     useEffect(() => {
@@ -43,47 +49,59 @@ export function ProductDiscountManagement() {
     };
 
     const handleSave = async (data: ProductDiscountFormData) => {
-        if (editingDiscount) {
-            await updateProductDiscount(editingDiscount.id, data);
-        } else {
-            await createProductDiscount(data);
-        }
+        try {
+            if (editingDiscount) {
+                await updateProductDiscount(editingDiscount.id, data);
+                toast.success("Discount updated successfully!");
+            } else {
+                await createProductDiscount(data);
+                toast.success("Discount created successfully!");
+            }
 
-        setShowAddDialog(false);
-        setShowEditDialog(false);
-        setEditingDiscount(null);
-        fetchDiscounts();
+            setShowAddDialog(false);
+            setShowEditDialog(false);
+            setEditingDiscount(null);
+            fetchDiscounts();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to save discount");
+        }
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this discount?")) return;
-        await deleteProductDiscount(id);
-        fetchDiscounts();
+        try {
+            await deleteProductDiscount(id);
+            toast.success("Discount deleted successfully!");
+            fetchDiscounts();
+        } catch (error: any) {
+            toast.error("Failed to delete discount");
+        }
     };
 
     const toggleStatus = async (discount: ProductDiscount) => {
-    try {
-        if (discount.is_active) {
-            // If already active → deactivate it
-            await deactivateProductDiscount(discount.id);
-        } else {
-            // If inactive → activate it
-            await activateProductDiscount(discount.id);
-        }
+        try {
+            if (discount.is_active) {
+                // If already active → deactivate it
+                await deactivateProductDiscount(discount.id);
+                toast.success("Discount deactivated successfully!");
+            } else {
+                // If inactive → activate it
+                await activateProductDiscount(discount.id);
+                toast.success("Discount activated successfully!");
+            }
 
-        // Update local state after API success
-        setDiscounts(prev =>
-            prev.map(d =>
-                d.id === discount.id
-                    ? { ...d, is_active: !d.is_active }
-                    : d
-            )
-        );
-    } catch (error) {
-        console.error("Failed to toggle status", error);
-        alert("Failed to toggle status. Try again.");
-    }
-};
+            // Update local state after API success
+            setDiscounts(prev =>
+                prev.map(d =>
+                    d.id === discount.id
+                        ? { ...d, is_active: !d.is_active }
+                        : d
+                )
+            );
+        } catch (error: any) {
+            toast.error("Failed to toggle status. Try again.");
+        }
+    };
 
     const columns: ColumnDef<ProductDiscount>[] = [
         { header: "Product", accessorKey: "product_name" },
@@ -203,6 +221,8 @@ export function ProductDiscountManagement() {
                     />
                 </DialogContent>
             </Dialog>
+
+            <Toaster />
         </div>
     );
 }

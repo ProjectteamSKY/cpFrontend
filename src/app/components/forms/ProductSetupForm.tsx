@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
+import { toast } from "react-toastify";
 import { getAllCategories } from "../../service/categoryApiService";
 import { getAllSubcategories } from "../../service/subcategoryApiService";
 import { getAllSizes } from "../../service/sizeApiService";
@@ -117,6 +118,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         setCutTypes(Array.isArray(cutTypesData) ? cutTypesData : []);
       } catch (error) {
         console.error("Error fetching dropdown data:", error);
+        toast.error("Failed to load dropdown data");
       } finally {
         setFetchingData(false);
       }
@@ -184,6 +186,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         } catch (error) {
           console.error("Error fetching subcategories:", error);
           setSubcategories([]);
+          toast.error("Failed to load subcategories");
         }
       } else {
         setSubcategories([]);
@@ -406,7 +409,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
           throw new Error(responseData.detail || "Update failed");
         }
 
-        alert("Product Updated Successfully!");
+        toast.success("Product Updated Successfully!");
         onSubmitSuccess?.();
       } else {
         const response = await axios.post(
@@ -415,7 +418,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         );
 
         if (response.data.status === "success") {
-          alert("Product Created Successfully!");
+          toast.success("Product Created Successfully!");
           onSubmitSuccess?.();
         }
       }
@@ -440,7 +443,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         }
       }
 
-      alert(`Error: ${errorMessage}`);
+      toast.error(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,8 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import axios from "axios";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 const API_BASE = "http://54.206.3.97/api";
 const MEDIA_BASE = "http://54.206.3.97/";
@@ -37,9 +39,14 @@ export function CheckoutPage() {
 
   // ================= FETCH CART =================
   const fetchCartItems = async () => {
-    if (!userId) return;
+    if (!userId) {
+      toast.success("Please login to continue checkout");
+      setLoadingCart(false);
+      return;
+    }
 
     try {
+      toast.success("Loading cart items...");
       const res = await axios.get(
         `${API_BASE}/cartitems/cart-items/user/${userId}`,
         { withCredentials: true }
@@ -48,6 +55,7 @@ export function CheckoutPage() {
       const rawItems = res.data.data || [];
 
       if (!rawItems.length) {
+        toast.success("Your cart is empty");
         setCartItems([]);
         setLoadingCart(false);
         return;
@@ -119,9 +127,10 @@ export function CheckoutPage() {
 
       // ✅ Call shipping API once
       fetchDeliveryCharge(enrichedItems);
-
+      toast.success("Cart loaded successfully!");
     } catch (err) {
       console.error("Failed to fetch cart items", err);
+      toast.error("Failed to load cart items");
       setCartItems([]);
     } finally {
       setLoadingCart(false);
@@ -132,17 +141,9 @@ export function CheckoutPage() {
     fetchCartItems();
   }, []);
 
-  // ================= TOTAL WEIGHT =================
-  // const totalWeight = cartItems.reduce(
-  //   (sum, item) => sum + (item.weight_grams || 0),
-  //   0
-  // );
-
-  // console.log("totalWeight", totalWeight);
   // ================= DELIVERY API =================
   const fetchDeliveryCharge = async (items: any[]) => {
     try {
-
       const totalWeight = items.reduce(
         (sum, item) => sum + (item.weight_grams || 0),
         0
@@ -175,13 +176,12 @@ export function CheckoutPage() {
       } else {
         setDeliveryCharge(0);
       }
-
     } catch (err) {
       console.error("Delivery charge fetch failed", err);
+      toast.error("Using default delivery charge");
       setDeliveryCharge(0);
     }
   };
-
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + Number(item.total_price),
@@ -194,16 +194,17 @@ export function CheckoutPage() {
   // ================= PLACE ORDER =================
   const handlePlaceOrder = async () => {
     if (!userId) {
-      alert("User not logged in!");
+      toast.warning("User not logged in! Please login again.");
       return;
     }
 
     if (!cartItems.length) {
-      alert("Cart empty!");
+      toast("Cart is empty!");
       return;
     }
 
     setPlacingOrder(true);
+    toast.success("Placing your order...");
 
     try {
       // 1️⃣ Save Address
@@ -238,7 +239,7 @@ export function CheckoutPage() {
           cart_id: cartItems[0].cart_id,
           address_id: addressId,
           cart_items: cartItemsPayload,
-          payment_method: paymentMethod, // optional if backend uses it
+          payment_method: paymentMethod,
         },
         { withCredentials: true }
       );
@@ -247,17 +248,18 @@ export function CheckoutPage() {
 
       setOrderId(newOrderId);
       setShowSuccess(true);
-
-      setTimeout(() => navigate(`/viewOrder/${newOrderId}`), 2000);
+      toast.success(`Order placed successfully! Order ID: ${newOrderId}`);
     } catch (err: any) {
       console.error("Checkout failed", err.response?.data || err.message);
-      alert("Checkout failed");
+      toast.error(
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        "Checkout failed. Please try again."
+      );
     } finally {
       setPlacingOrder(false);
     }
   };
-
-
 
   if (loadingCart) return <div className="p-10">Loading cart...</div>;
 
@@ -282,6 +284,7 @@ export function CheckoutPage() {
             </Button>
           </div>
         </Card>
+        <Toaster />
       </div>
     );
 
@@ -441,6 +444,7 @@ export function CheckoutPage() {
           </Card>
         </div>
       </div>
+      <Toaster />
     </div>
   );
 }

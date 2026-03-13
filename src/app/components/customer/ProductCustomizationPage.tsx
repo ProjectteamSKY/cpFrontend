@@ -31,6 +31,9 @@ import { useDesignUpload } from "../../hooks/useDesignUpload";
 import { UploadDesignCard } from "../../components/product/UploadDesignCard";
 import { AddToCartCard } from "../../components/product/AddToCartCard";
 import { OrderSummaryCard } from "../../components/product/OrderSummaryCard";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
+
 // Define interfaces for the variant structure
 interface Size {
   id: string;
@@ -967,6 +970,9 @@ export function ProductDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Toaster />
+
     </div>
   );
 }

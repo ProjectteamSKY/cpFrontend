@@ -3,6 +3,10 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { ColumnDef } from "@tanstack/react-table";
+import { CustomTable } from "../common/CustomTable";
+import { toast } from "react-toastify";
+import { Toaster } from "../ui/toaster";
 
 import {
   getAllCutTypes,
@@ -15,8 +19,6 @@ import {
 
 import { CutType } from "../../types/cutType";
 import { CutTypeForm } from "../forms/CutTypeForm";
-import { ColumnDef } from "@tanstack/react-table";
-import { CustomTable } from "../common/CustomTable";
 
 export function CutTypeManagement() {
   const [cutTypes, setCutTypes] = useState<CutType[]>([]);
@@ -25,8 +27,12 @@ export function CutTypeManagement() {
   const [editingCutType, setEditingCutType] = useState<CutType | null>(null);
 
   const fetchCutTypes = async () => {
-    const data = await getAllCutTypes();
-    setCutTypes(data);
+    try {
+      const data = await getAllCutTypes();
+      setCutTypes(data);
+    } catch (error: any) {
+      toast.error("Failed to fetch cut types");
+    }
   };
 
   useEffect(() => {
@@ -34,15 +40,21 @@ export function CutTypeManagement() {
   }, []);
 
   const handleSave = async (data: any) => {
-    if (editingCutType) {
-      await updateCutType(editingCutType.id, data);
-    } else {
-      await createCutType(data);
+    try {
+      if (editingCutType) {
+        await updateCutType(editingCutType.id, data);
+        toast.success("Cut type updated successfully!");
+      } else {
+        await createCutType(data);
+        toast.success("Cut type created successfully!");
+      }
+      setShowAddDialog(false);
+      setShowEditDialog(false);
+      setEditingCutType(null);
+      fetchCutTypes();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save cut type");
     }
-    setShowAddDialog(false);
-    setShowEditDialog(false);
-    setEditingCutType(null);
-    fetchCutTypes();
   };
 
   const handleEdit = (ct: CutType) => {
@@ -52,14 +64,28 @@ export function CutTypeManagement() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this cut type?")) return;
-    await deleteCutType(id);
-    fetchCutTypes();
+    try {
+      await deleteCutType(id);
+      toast.success("Cut type deleted successfully!");
+      fetchCutTypes();
+    } catch (error: any) {
+      toast.error("Failed to delete cut type");
+    }
   };
 
   const toggleStatus = async (ct: CutType) => {
-    if (ct.is_active) await deactivateCutType(ct.id);
-    else await activateCutType(ct.id);
-    fetchCutTypes();
+    try {
+      if (ct.is_active) {
+        await deactivateCutType(ct.id);
+        toast.success("Cut type deactivated successfully!");
+      } else {
+        await activateCutType(ct.id);
+        toast.success("Cut type activated successfully!");
+      }
+      fetchCutTypes();
+    } catch (error: any) {
+      toast.error("Failed to update status");
+    }
   };
 
   const columns: ColumnDef<CutType>[] = [
@@ -115,7 +141,7 @@ export function CutTypeManagement() {
         {/* Add Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A11A]/90 text-white">
+            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Cut Type
             </Button>
@@ -159,6 +185,8 @@ export function CutTypeManagement() {
           />
         </DialogContent>
       </Dialog>
+
+      <Toaster />
     </div>
   );
 }
