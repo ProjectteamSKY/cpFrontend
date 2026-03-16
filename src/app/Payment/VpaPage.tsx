@@ -17,7 +17,7 @@ const VpaPage: React.FC = () => {
     try {
       // Send access token as query parameter
       const res = await axios.post(
-        `http://127.0.0.1:8000/api/bank/vpa/create?accesstoken=${ACCESS_TOKEN}`,
+        `http://54.206.3.97/api/bank/vpa/create?accesstoken=${ACCESS_TOKEN}`,
         {}, // empty body
         {
           headers: {
