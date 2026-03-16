@@ -26,8 +26,8 @@ import { Toaster } from "../ui/toaster";
 import { OrderHistoryPage } from "./OrderTrackingPage";
 import { WishlistPage } from "./WishlistPage";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 interface UserProfile {
     id: string;
@@ -240,7 +240,7 @@ export function ProfilePage() {
 
             <div className="noise-overlay"></div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 bg-white">
 
                 {/* Profile Hero Card */}
                 <motion.div

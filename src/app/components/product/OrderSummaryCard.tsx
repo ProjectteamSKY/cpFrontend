@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 interface Props {
   productName: string;
   variant: any;
-  quantityId: string;
+  quantityId?: string;          // ← optional: undefined when custom qty is used
   totalPrice: number;
   uploadedFile: File | null;
   onAddToCart: () => void;
@@ -16,11 +16,11 @@ export const OrderSummaryCard = ({
   quantityId,
   totalPrice,
   uploadedFile,
-  onAddToCart
+  onAddToCart,
 }: Props) => {
 
   const selectedPrice = variant?.prices?.find(
-    (p: any) => String(p.id) === String(quantityId)
+    (p: any) => String(p.id) === String(quantityId ?? "")
   );
 
   return (
@@ -29,12 +29,10 @@ export const OrderSummaryCard = ({
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold">Order Summary</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Review your configuration
-        </p>
+        <p className="text-sm text-gray-500 mt-1">Review your configuration</p>
       </div>
 
-      {/* Product */}
+      {/* Details */}
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-500">Product</span>
@@ -47,7 +45,6 @@ export const OrderSummaryCard = ({
               <span className="text-gray-500">Size</span>
               <span>{variant.size?.name}</span>
             </div>
-
             <div className="flex justify-between">
               <span className="text-gray-500">Paper</span>
               <span>{variant.paperType?.name}</span>
@@ -55,46 +52,45 @@ export const OrderSummaryCard = ({
           </>
         )}
 
-        {selectedPrice && (
+        {selectedPrice ? (
           <div className="flex justify-between">
             <span className="text-gray-500">Quantity</span>
             <span>
-              {selectedPrice.min_qty} - {selectedPrice.max_qty}
+              {selectedPrice.min_qty}
+              {selectedPrice.max_qty && selectedPrice.max_qty !== selectedPrice.min_qty
+                ? `–${selectedPrice.max_qty}`
+                : "+"}{" "}
+              pcs
             </span>
+          </div>
+        ) : totalPrice > 0 && (
+          // Custom quantity — no tier row to show, just show price
+          <div className="flex justify-between">
+            <span className="text-gray-500">Quantity</span>
+            <span className="italic text-gray-400">Custom</span>
           </div>
         )}
       </div>
 
-      {/* Divider */}
+      {/* Total */}
       <div className="border-t pt-4">
-
         <div className="flex justify-between text-lg font-bold">
           <span>Total</span>
-          <span className="text-[#D73D32]">
-            ₹{totalPrice.toFixed(2)}
-          </span>
+          <span className="text-[#D73D32]">₹{totalPrice.toFixed(2)}</span>
         </div>
-
-        <p className="text-xs text-gray-500 mt-1">
-          Inclusive of all taxes
-        </p>
-
+        <p className="text-xs text-gray-500 mt-1">Inclusive of all taxes</p>
       </div>
 
-      {/* Upload Status */}
+      {/* Upload status */}
       <div className="text-sm">
         {uploadedFile ? (
-          <p className="text-green-600 font-medium">
-            ✔ Design Uploaded
-          </p>
+          <p className="text-green-600 font-medium">✔ Design Uploaded</p>
         ) : (
-          <p className="text-red-500">
-            Please upload your design to continue
-          </p>
+          <p className="text-red-500">Please upload your design to continue</p>
         )}
       </div>
 
-      {/* Button */}
+      {/* CTA */}
       <Button
         onClick={onAddToCart}
         disabled={!uploadedFile}

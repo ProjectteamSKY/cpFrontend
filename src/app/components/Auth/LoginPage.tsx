@@ -38,7 +38,7 @@ export function LoginPage() {
             setLoading(true);
             toast.success("Creating your account...");
             await axios.post(
-                "http://54.206.3.97/api/users/register",
+                "http://127.0.0.1:8000/api/users/register",
                 new URLSearchParams({
                     full_name: data.full_name,
                     email: data.email,
@@ -60,7 +60,7 @@ export function LoginPage() {
             setLoading(true);
             toast.warning("Verifying OTP...");
             await axios.post(
-                "http://54.206.3.97/api/users/verify-otp",
+                "http://127.0.0.1:8000/api/users/verify-otp",
                 new URLSearchParams({
                     email: getValues("email"),
                     otp: data.otp || "",
@@ -83,7 +83,7 @@ export function LoginPage() {
             toast.loading("Logging you in...");
 
             const response = await axios.post(
-                "http://54.206.3.97/api/users/login",
+                "http://127.0.0.1:8000/api/users/login",
                 new URLSearchParams({
                     email: data.email,
                     password: data.password,
@@ -121,7 +121,7 @@ export function LoginPage() {
             const token = credentialResponse.credential;
 
             const response = await axios.post(
-                "http://54.206.3.97/api/users/google-login",
+                "http://127.0.0.1:8000/api/users/google-login",
                 { token },
                 { withCredentials: true }
             );
