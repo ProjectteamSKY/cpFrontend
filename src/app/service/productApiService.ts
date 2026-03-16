@@ -59,7 +59,7 @@ export const createProduct = async (data: ProductFormData) => {
   const formData = mapProductToFormData(data);
 
   return await axios.post(
-    "http://54.206.3.97/api/product/create",
+    "http://127.0.0.1:8000/api/product/create",
     formData
   );
 };
@@ -129,7 +129,7 @@ export const deactivateProduct = async (id: string): Promise<void> => {
   await api.put(`/product/${id}/deactivate`);
 };
 
-const API_BASE = "http://54.206.3.97/api/product";
+const API_BASE = "http://127.0.0.1:8000/api/product";
 
 export const getProductById = async (id: string): Promise<Product> => {
   const res = await axios.get(`${API_BASE}/${id}`);

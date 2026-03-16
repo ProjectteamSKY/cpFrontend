@@ -16,4 +16,4 @@ export const SORT_OPTIONS = [
 
 export const PRODUCTS_PER_PAGE = 12;
 
-export const API_BASE_URL = "http://54.206.3.97";
+export const API_BASE_URL = "http://127.0.0.1:8000";

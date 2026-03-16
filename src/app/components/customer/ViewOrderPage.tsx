@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE  = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE  = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 const ORDER_STEPS = [
   { key: "pending",  label: "Order Placed", icon: ShoppingBag, accent: "#f59e0b" },

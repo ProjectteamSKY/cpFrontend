@@ -11,7 +11,7 @@ export function RootLayout() {
     navigate("/MyProfile");
   };
   return (
-    <div className="min-h-screen flex flex-col bg-[#EFEFEF]">
+    <div className="min-h-screen flex flex-col bg-white">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-[1440px] mx-auto px-8 py-4">

@@ -2,7 +2,7 @@
 import axios from "axios";
 import { Wishlist, WishlistCreatePayload } from "../types/wishlist";
 
-const API_BASE = "http://54.206.3.97/api/wishlist_routes"; // adjust your base path
+const API_BASE = "http://127.0.0.1:8000/api/wishlist_routes"; // adjust your base path
 // -----------------
 // CREATE
 // -----------------
