@@ -31,6 +31,7 @@ import { LoginPage } from "./components/Auth/LoginPage";
 import AddressPage from "./components/customer/UserAddressPage";
 import { WishlistPage } from "./components/customer/WishlistPage";
 import { ProfilePage } from "./components/customer/MyProfile";
+import VpaPage from "./Payment/VpaPage";
 
 
 
@@ -50,8 +51,9 @@ export const router = createBrowserRouter([
       { path: "orderhistory", Component: OrderHistoryPage },
       { path: "vieworder/:orderId", Component: ViewOrderPage },
       { path: "useraddress", Component: AddressPage },
-      { path: "/WishlistPage", Component:  WishlistPage},
-      { path: "/MyProfile", Component:  ProfilePage},
+      { path: "/WishlistPage", Component: WishlistPage },
+      { path: "/MyProfile", Component: ProfilePage },
+      { path: "/VpaPage", Component: VpaPage },
 
 
 

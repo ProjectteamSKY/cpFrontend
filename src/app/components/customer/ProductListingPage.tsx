@@ -257,7 +257,7 @@ export function ProductListingPage() {
           padding: "40px 24px",
         }}
       >
-        <ProductHeader />
+        {/* <ProductHeader /> */}
 
         {/* ── Decorative rule ── */}
         {/* <div
