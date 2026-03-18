@@ -4,8 +4,8 @@ import {
   Star, ChevronRight, Search, ShoppingCart, User, Heart,
   Zap, BadgeCheck, Clock, Layers, Phone
 } from "lucide-react";
-import headerImg from "../../../media/header2.png";
 import { useProducts } from "../../hooks/useProduct";
+import { useEffect, useState, useRef } from "react";
 
 function getValidImage(product: any): string | null {
   let images = product.images;
@@ -21,6 +21,198 @@ function getValidImage(product: any): string | null {
 }
 
 const BASE = "http://localhost:8000";
+
+// ── BANNER CAROUSEL (Hero replacement — full-width text-overlay) ─────────────
+interface Discount {
+  id: string;
+  product_id: string;
+  description: string;
+  discount: string;
+  start_date: string;
+  end_date: string;
+  is_active: number;
+  title: string;
+  banner_image_url: string;
+  cta_text: string;
+}
+
+// ── BANNER CAROUSEL (8/4 split — image right, text left) ─────────────────────
+function BannerCarousel() {
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [current, setCurrent] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [animating, setAnimating] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch(`${BASE}/api/product_discount/active/last5`)
+      .then(r => r.json())
+      .then(data => { setDiscounts(data.discounts || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const startInterval = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => goNext(), 5500);
+  };
+
+  useEffect(() => {
+    if (discounts.length > 1) startInterval();
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [discounts.length, current]);
+
+  const goTo = (idx: number) => {
+    if (animating || idx === current) return;
+    setAnimating(true);
+    setTimeout(() => { setCurrent(idx); setAnimating(false); }, 380);
+    startInterval();
+  };
+  const goNext = () => {
+    setAnimating(true);
+    setTimeout(() => { setCurrent(prev => (prev + 1) % discounts.length); setAnimating(false); }, 380);
+  };
+  const goPrev = () => {
+    setAnimating(true);
+    setTimeout(() => { setCurrent(prev => (prev - 1 + discounts.length) % discounts.length); setAnimating(false); }, 380);
+  };
+
+  /* ── SKELETON ── */
+  if (loading) {
+    return (
+      <div className="pgc-root pgc-skeleton">
+        <div className="pgc-skeleton-panel" />
+        <div className="pgc-skeleton-img" />
+      </div>
+    );
+  }
+
+  /* ── FALLBACK (no discounts) ── */
+  if (!discounts.length) {
+    return (
+      <div className="pgc-root pgc-fallback">
+        {/* Text panel — 4 cols */}
+        <div className="pgc-panel">
+          <div className="pgc-eyebrow">Trusted by 50,000+ Businesses</div>
+          <h1 className="pgc-h1">
+            Professional<br />
+            Prints.<br />
+            <span className="pgc-h1-accent">Delivered Fast.</span>
+          </h1>
+          <p className="pgc-desc">
+            Business cards, banners, flyers, ID cards & more. Upload your design or use our free templates — printed and shipped in 24–48 hrs.
+          </p>
+          <div className="pgc-ctas">
+            <Link to="/products"><button className="pg-cta-red">Shop Products <ArrowRight size={14} /></button></Link>
+            <Link to="/products"><button className="pg-cta-outline-dark">Browse Templates</button></Link>
+          </div>
+          <div className="pgc-trust-row">
+            <div className="pgc-trust-item"><BadgeCheck size={13} /> Quality Guaranteed</div>
+            <div className="pgc-trust-item"><Truck size={13} /> Pan India</div>
+            <div className="pgc-trust-item"><Clock size={13} /> 24-hr Turnaround</div>
+          </div>
+          {/* Counter */}
+          <div className="pgc-badge">
+            <span className="pgc-badge-val">3,200+</span>
+            <span className="pgc-badge-label">orders this month</span>
+          </div>
+        </div>
+
+        {/* Image panel — 8 cols */}
+        <div className="pgc-img-panel pgc-fallback-img-panel">
+          <div className="pgc-img-overlay" />
+          <div className="pgc-fallback-pattern" />
+        </div>
+      </div>
+    );
+  }
+
+  const d = discounts[current];
+
+  return (
+    <div className="pgc-root">
+      {/* ── LEFT: Text panel (4 cols) ── */}
+      <div className={`pgc-panel${animating ? " pgc-panel--out" : " pgc-panel--in"}`}>
+        <div className="pgc-discount-pill">{d.discount} OFF</div>
+        <h2 className="pgc-title">{d.title}</h2>
+        <p className="pgc-desc">{d.description}</p>
+
+        <div className="pgc-ctas">
+          <button
+            className="pg-cta-red"
+            onClick={() => navigate(`/product/${d.product_id}`)}
+          >
+            {d.cta_text} <ArrowRight size={14} />
+          </button>
+          <Link to="/products">
+            <button className="pg-cta-outline-dark">All Products</button>
+          </Link>
+        </div>
+
+        <div className="pgc-trust-row">
+          <div className="pgc-trust-item"><BadgeCheck size={13} /> Quality</div>
+          <div className="pgc-trust-item"><Truck size={13} /> Pan India</div>
+          <div className="pgc-trust-item"><Clock size={13} /> 24-hr</div>
+        </div>
+
+        {/* Slide navigation — bottom of panel */}
+        {discounts.length > 1 && (
+          <div className="pgc-nav">
+            <button className="pgc-arrow" onClick={goPrev} aria-label="Previous">
+              <ChevronRight size={16} style={{ transform: "rotate(180deg)" }} />
+            </button>
+            <div className="pgc-dots">
+              {discounts.map((_, i) => (
+                <button
+                  key={i}
+                  className={`pgc-dot${i === current ? " active" : ""}`}
+                  onClick={() => goTo(i)}
+                  aria-label={`Slide ${i + 1}`}
+                />
+              ))}
+            </div>
+            <button className="pgc-arrow" onClick={goNext} aria-label="Next">
+              <ChevronRight size={16} />
+            </button>
+            <span className="pgc-counter">
+              <b>{String(current + 1).padStart(2, "0")}</b>
+              <span> / {String(discounts.length).padStart(2, "0")}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Stats badge */}
+        <div className="pgc-badge">
+          <span className="pgc-badge-val">3,200+</span>
+          <span className="pgc-badge-label">orders this month ✓</span>
+        </div>
+      </div>
+
+      {/* ── RIGHT: Image panel (8 cols) ── */}
+      <div className="pgc-img-panel">
+        <div
+          className={`pgc-img-wrap${animating ? " pgc-img--out" : " pgc-img--in"}`}
+        >
+          <img
+            src={`${BASE}/${d.banner_image_url}`}
+            alt={d.title}
+            className="pgc-img"
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        </div>
+        {/* Subtle left-edge blend into white panel */}
+        <div className="pgc-img-fade-left" />
+
+        {/* Progress bar along bottom of image panel */}
+        {discounts.length > 1 && (
+          <div className="pgc-progress-bar">
+            <div key={current} className="pgc-progress-fill" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -160,29 +352,137 @@ export function HomePage() {
         /* ── CONTENT WRAP ── */
         .pg-wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
 
-        /* ── HERO ── */
-        .pg-hero {
-          background: #fff;
+        /* ══════════════════════════════════════════
+           HERO CAROUSEL — Full-width text overlay
+        ══════════════════════════════════════════ */
+        .pg-hero-carousel {
+          position: relative;
+          width: 100%;
+          height: 520px;
+          overflow: hidden;
+          background: #1c1c1c;
           margin-bottom: 16px;
         }
-        .pg-hero-inner {
-          max-width: 1280px;
-          margin: 0 auto;
-          padding: 0 24px;
-          display: grid;
-          grid-template-columns: 1fr 480px;
-          gap: 0;
-          min-height: 480px;
+        @media(max-width: 768px) {
+          .pg-hero-carousel { height: 420px; }
         }
-        @media(max-width:900px){ .pg-hero-inner{ grid-template-columns:1fr; min-height:auto; } }
+        @media(max-width: 480px) {
+          .pg-hero-carousel { height: 360px; }
+        }
 
-        .pg-hero-text {
+        /* Background image layer */
+        .pg-carousel-bg {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+        }
+        .pg-carousel-bg-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center top;
+          display: block;
+        }
+        .pg-carousel-bg--in {
+          opacity: 1;
+          transition: opacity .5s ease;
+        }
+        .pg-carousel-bg--out {
+          opacity: 0;
+          transition: opacity .4s ease;
+        }
+
+        /* Gradient overlay for text readability */
+        .pg-carousel-overlay {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          background:
+            linear-gradient(
+              to right,
+              rgba(5,5,5,0.96) 0%,
+              rgba(5,5,5,0.90) 35%,
+              rgba(5,5,5,0.55) 60%,
+              rgba(5,5,5,0.10) 100%
+            );
+        }
+
+        /* Text content overlay */
+        .pg-carousel-overlay-content {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
           display: flex;
           flex-direction: column;
           justify-content: center;
-          padding: 56px 48px 56px 0;
+          padding: 48px 64px;
+          max-width: 600px;
         }
-        @media(max-width:900px){ .pg-hero-text{ padding: 40px 0; } }
+        @media(max-width: 768px) {
+          .pg-carousel-overlay-content { padding: 32px 24px; max-width: 100%; }
+        }
+
+        .pg-carousel-content--in {
+          opacity: 1;
+          transform: translateY(0);
+          transition: opacity .45s ease .1s, transform .45s ease .1s;
+        }
+        .pg-carousel-content--out {
+          opacity: 0;
+          transform: translateY(14px);
+          transition: opacity .3s ease, transform .3s ease;
+        }
+
+        .pg-carousel-discount-pill {
+          display: inline-flex;
+          align-items: center;
+          background: #c0392b;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: .12em;
+          text-transform: uppercase;
+          padding: 5px 14px;
+          border-radius: 20px;
+          width: fit-content;
+          margin-bottom: 18px;
+        }
+
+        .pg-carousel-hero-title {
+          font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+          font-weight: 800;
+          color: #fff;
+          line-height: 1.12;
+          letter-spacing: -0.03em;
+          margin-bottom: 12px;
+          text-shadow: 0 2px 24px rgba(0,0,0,0.95), 0 1px 4px rgba(0,0,0,1);
+        }
+
+        .pg-carousel-hero-desc {
+          font-size: 14px;
+          color: rgba(255,255,255,.92);
+          line-height: 1.68;
+          margin-bottom: 26px;
+          max-width: 420px;
+          text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+        }
+        @media(max-width: 480px) {
+          .pg-carousel-hero-desc { font-size: 13px; }
+        }
+
+        .pg-carousel-hero-ctas {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 28px;
+        }
+
+        /* Fallback hero */
+        .pg-hero-fallback { background: linear-gradient(120deg, #111 0%, #1c1c1c 100%); }
+        .pg-hero-fallback-overlay {
+          position: absolute; inset: 0; z-index: 1;
+          background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(192,57,43,.2) 0%, transparent 60%);
+        }
 
         .pg-hero-kicker {
           display: inline-flex;
@@ -192,35 +492,42 @@ export function HomePage() {
           font-weight: 700;
           letter-spacing: .1em;
           text-transform: uppercase;
-          color: #c0392b;
+          color: #fbbf24;
           margin-bottom: 16px;
+          position: relative;
+          z-index: 2;
         }
         .pg-hero-kicker::before {
           content: '';
           width: 28px; height: 2px;
-          background: #c0392b;
+          background: #fbbf24;
           display: block;
         }
 
         .pg-hero-h1 {
-          font-size: clamp(2.2rem, 4vw, 3.6rem);
+          font-size: clamp(2rem, 4vw, 3.2rem);
           font-weight: 800;
           line-height: 1.1;
           letter-spacing: -0.025em;
-          color: #111;
+          color: #fff;
           margin-bottom: 16px;
+          text-shadow: 0 2px 12px rgba(0,0,0,.3);
+          position: relative; z-index: 2;
         }
         .pg-hero-h1 span { color: #c0392b; }
 
         .pg-hero-sub {
-          font-size: 16px;
-          color: #666;
+          font-size: 15px;
+          color: rgba(255,255,255,.65);
           line-height: 1.7;
           max-width: 440px;
-          margin-bottom: 32px;
+          margin-bottom: 28px;
+          position: relative; z-index: 2;
         }
 
-        .pg-hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 40px; }
+        .pg-hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; position: relative; z-index: 2; }
+
+        /* CTAs */
         .pg-cta-red {
           display: inline-flex; align-items: center; gap: 8px;
           background: #c0392b; color: #fff;
@@ -228,47 +535,161 @@ export function HomePage() {
           padding: 13px 26px; border-radius: 8px;
           border: none; cursor: pointer; text-decoration: none;
           transition: background .15s, transform .15s;
+          font-family: inherit;
         }
         .pg-cta-red:hover { background: #a93226; transform: translateY(-1px); }
-        .pg-cta-outline {
+
+        .pg-cta-outline-light {
           display: inline-flex; align-items: center; gap: 8px;
-          background: transparent; color: #1c1c1c;
+          background: rgba(255,255,255,.12); color: #fff;
           font-size: 14px; font-weight: 600;
           padding: 13px 24px; border-radius: 8px;
-          border: 1.5px solid #ddd; cursor: pointer; text-decoration: none;
-          transition: border-color .15s;
+          border: 1.5px solid rgba(255,255,255,.3); cursor: pointer; text-decoration: none;
+          transition: background .15s, border-color .15s;
+          font-family: inherit; backdrop-filter: blur(4px);
         }
-        .pg-cta-outline:hover { border-color: #999; }
+        .pg-cta-outline-light:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.5); }
 
+        /* Trust row */
         .pg-hero-trust {
-          display: flex; gap: 20px; flex-wrap: wrap;
-          padding-top: 28px;
-          border-top: 1px solid #f0f0f0;
+          display: flex; gap: 16px; flex-wrap: wrap;
+          position: relative; z-index: 2;
         }
         .pg-trust-item {
-          display: flex; align-items: center; gap: 7px;
-          font-size: 12.5px; font-weight: 600; color: #555;
+          display: flex; align-items: center; gap: 6px;
+          font-size: 12px; font-weight: 600; color: #555;
         }
         .pg-trust-item svg { color: #c0392b; }
+        .pg-trust-light { color: rgba(255,255,255,.55) !important; }
+        .pg-trust-light svg { color: rgba(255,255,255,.5) !important; }
 
-        .pg-hero-img {
-          position: relative;
-          overflow: hidden;
-          background: #f5f5f5;
-        }
-        @media(max-width:900px){ .pg-hero-img{ height: 280px; } }
-        .pg-hero-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .pg-hero-badge {
-          position: absolute; bottom: 20px; left: 20px;
-          background: rgba(255,255,255,.95);
+        /* Stats badge — bottom right corner */
+        .pg-hero-stat-badge {
+          position: absolute;
+          bottom: 24px;
+          right: 28px;
+          z-index: 3;
+          background: rgba(255,255,255,.96);
           border: 1px solid rgba(0,0,0,.07);
           border-radius: 10px;
-          padding: 12px 16px;
-          box-shadow: 0 4px 20px rgba(0,0,0,.1);
+          padding: 12px 18px;
+          box-shadow: 0 6px 24px rgba(0,0,0,.2);
+          text-align: center;
         }
+        @media(max-width: 480px) { .pg-hero-stat-badge { display: none; } }
         .pg-hero-badge-top { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px; }
-        .pg-hero-badge-val { font-size: 18px; font-weight: 800; color: #111; }
+        .pg-hero-badge-val { font-size: 20px; font-weight: 800; color: #111; }
         .pg-hero-badge-sub { font-size: 11px; color: #c0392b; font-weight: 600; }
+
+        /* Slide counter */
+        .pg-carousel-counter {
+          position: absolute;
+          top: 24px;
+          right: 28px;
+          z-index: 3;
+          font-size: 13px;
+          font-weight: 700;
+          color: rgba(255,255,255,.5);
+        }
+        .pg-carousel-counter-cur {
+          font-size: 22px;
+          font-weight: 800;
+          color: #fff;
+          line-height: 1;
+        }
+
+        /* Arrow controls */
+        .pg-carousel-arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: rgba(255,255,255,.15);
+          border: 1.5px solid rgba(255,255,255,.3);
+          backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 4;
+          transition: background .15s, transform .15s;
+          color: #fff;
+        }
+        .pg-carousel-arrow:hover {
+          background: rgba(255,255,255,.28);
+          transform: translateY(-50%) scale(1.08);
+        }
+        .pg-carousel-arrow--prev { left: 20px; }
+        .pg-carousel-arrow--next { right: 20px; }
+        @media(max-width: 480px) {
+          .pg-carousel-arrow { width: 34px; height: 34px; }
+          .pg-carousel-arrow--prev { left: 10px; }
+          .pg-carousel-arrow--next { right: 10px; }
+        }
+
+        /* Dot indicators */
+        .pg-carousel-dots {
+          position: absolute;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 7px;
+          z-index: 4;
+        }
+        .pg-carousel-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: rgba(255,255,255,.35);
+          border: none;
+          cursor: pointer;
+          transition: background .2s, width .25s;
+          padding: 0;
+        }
+        .pg-carousel-dot.active {
+          background: #fff;
+          width: 24px;
+          border-radius: 4px;
+        }
+
+        /* Progress bar */
+        .pg-carousel-progress-bar {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 3px;
+          background: rgba(255,255,255,.15);
+          z-index: 4;
+        }
+        .pg-carousel-progress-fill {
+          height: 100%;
+          background: #c0392b;
+          animation: pg-progress 5s linear forwards;
+        }
+        @keyframes pg-progress {
+          from { width: 0%; }
+          to   { width: 100%; }
+        }
+
+        /* Skeleton */
+        .pg-carousel-skeleton {
+          background: #2a2a2a;
+        }
+        .pg-carousel-skeleton-inner {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+          background-size: 200% 100%;
+          animation: pg-shimmer 1.4s infinite;
+        }
+        @keyframes pg-shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
 
         /* ── SERVICE BAND ── */
         .pg-band {
@@ -312,61 +733,6 @@ export function HomePage() {
           transition: background .15s;
         }
         .pg-sh-link:hover { background: #fff5f5; }
-
-        /* ── HERO BANNERS ── */
-        .pg-banners {
-          display: grid;
-          grid-template-columns: 1.6fr 1fr;
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-        @media(max-width:700px){ .pg-banners{ grid-template-columns:1fr; } }
-
-        .pg-banner {
-          border-radius: 12px;
-          overflow: hidden;
-          position: relative;
-          cursor: pointer;
-          transition: transform .18s;
-        }
-        .pg-banner:hover { transform: translateY(-2px); }
-        .pg-banner-big {
-          min-height: 220px;
-          background: linear-gradient(130deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-          display: flex; align-items: flex-end; padding: 28px 32px;
-        }
-        .pg-banner-sm {
-          min-height: 100px;
-          display: flex; align-items: flex-end; padding: 22px 24px;
-        }
-        .pg-banner-sm-1 { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); }
-        .pg-banner-sm-2 { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); }
-        .pg-banner-col { display: flex; flex-direction: column; gap: 10px; }
-
-        .pg-banner-kicker { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 6px; }
-        .pg-banner-title { font-size: 1.5rem; font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 4px; }
-        .pg-banner-big .pg-banner-title { font-size: 2rem; }
-        .pg-banner-desc { font-size: 13px; color: rgba(255,255,255,.6); margin-bottom: 14px; }
-        .pg-banner-cta {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: rgba(255,255,255,.15);
-          border: 1px solid rgba(255,255,255,.25);
-          color: #fff; font-size: 12.5px; font-weight: 700;
-          padding: 8px 16px; border-radius: 6px; width: fit-content;
-          transition: background .15s;
-        }
-        .pg-banner:hover .pg-banner-cta { background: rgba(255,255,255,.25); }
-        .pg-banner-deco {
-          position: absolute; right: -10px; top: -10px;
-          font-size: 110px; opacity: .06; pointer-events: none;
-          line-height: 1;
-        }
-        .pg-banner-chip {
-          position: absolute; top: 14px; right: 14px;
-          background: #fbbf24; color: #111;
-          font-size: 11px; font-weight: 800;
-          padding: 3px 10px; border-radius: 20px;
-        }
 
         /* ── CATEGORIES ── */
         .pg-cats {
@@ -466,6 +832,7 @@ export function HomePage() {
           padding: 7px 13px; border-radius: 6px;
           border: none; cursor: pointer;
           transition: background .15s;
+          font-family: inherit;
         }
         .pg-card-order:hover { background: #a93226; }
 
@@ -586,6 +953,7 @@ export function HomePage() {
           background: #c0392b; color: #fff; font-size: 14px; font-weight: 700;
           border: none; cursor: pointer; white-space: nowrap;
           transition: background .15s;
+          font-family: inherit;
         }
         .pg-nl-btn:hover { background: #a93226; }
 
@@ -621,6 +989,245 @@ export function HomePage() {
           background: #f5f5f5; border: 1px solid #e5e5e5; border-radius: 4px;
           padding: 3px 8px; font-size: 11px; font-weight: 700; color: #555;
         }
+
+        /* ═══════════════════════════════════════════════════
+   BANNER CAROUSEL — 4-col text | 8-col image split
+═══════════════════════════════════════════════════ */
+
+/* Outline button for light background */
+.pg-cta-outline-dark {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; color: #1c1c1c;
+  font-size: 14px; font-weight: 600;
+  padding: 13px 22px; border-radius: 8px;
+  border: 1.5px solid #d0d0d0; cursor: pointer;
+  transition: background .15s, border-color .15s;
+  font-family: inherit;
+}
+.pg-cta-outline-dark:hover { background: #f5f5f5; border-color: #bbb; }
+
+/* Root: 12-column grid, fixed height */
+.pgc-root {
+  display: grid;
+  grid-template-columns: 4fr 8fr;   /* 4 text : 8 image */
+  height: 500px;
+  background: #fff;
+  overflow: hidden;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #efefef;
+}
+@media (max-width: 900px) {
+  .pgc-root { grid-template-columns: 1fr; height: auto; }
+}
+
+/* ── TEXT PANEL ── */
+.pgc-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 44px 40px 40px 40px;
+  background: #fff;
+  position: relative;
+  z-index: 2;
+}
+@media (max-width: 900px) {
+  .pgc-panel { padding: 36px 24px 28px; order: 2; }
+}
+
+.pgc-panel--in {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity .42s ease .08s, transform .42s ease .08s;
+}
+.pgc-panel--out {
+  opacity: 0;
+  transform: translateX(-12px);
+  transition: opacity .28s ease, transform .28s ease;
+}
+
+.pgc-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: #c0392b;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pgc-eyebrow::before {
+  content: ''; width: 22px; height: 2px; background: #c0392b; display: block;
+}
+
+.pgc-discount-pill {
+  display: inline-flex; align-items: center;
+  background: #fef2f2; color: #c0392b;
+  border: 1px solid #fcc; border-radius: 20px;
+  font-size: 11px; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; padding: 5px 14px;
+  width: fit-content; margin-bottom: 16px;
+}
+
+.pgc-h1 {
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  font-weight: 800; line-height: 1.08;
+  letter-spacing: -0.03em; color: #111;
+  margin-bottom: 14px;
+}
+.pgc-h1-accent { color: #c0392b; }
+
+.pgc-title {
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+  font-weight: 800; line-height: 1.1;
+  letter-spacing: -0.03em; color: #111;
+  margin-bottom: 12px;
+}
+
+.pgc-desc {
+  font-size: 13.5px; color: #666;
+  line-height: 1.7; margin-bottom: 24px;
+  max-width: 340px;
+}
+@media (max-width: 900px) { .pgc-desc { max-width: 100%; } }
+
+.pgc-ctas {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.pgc-trust-row {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.pgc-trust-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600; color: #888;
+}
+.pgc-trust-item svg { color: #c0392b; }
+
+/* Navigation controls inside panel */
+.pgc-nav {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: auto; padding-top: 8px;
+}
+.pgc-arrow {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #f5f5f5; border: 1px solid #e5e5e5;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #555;
+  transition: background .15s, color .15s;
+}
+.pgc-arrow:hover { background: #fef2f2; border-color: #fcc; color: #c0392b; }
+
+.pgc-dots { display: flex; gap: 5px; }
+.pgc-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #ddd; border: none; cursor: pointer;
+  transition: background .2s, width .25s;
+  padding: 0;
+}
+.pgc-dot.active { background: #c0392b; width: 20px; border-radius: 4px; }
+
+.pgc-counter {
+  font-size: 12px; color: #bbb; margin-left: 4px; white-space: nowrap;
+}
+.pgc-counter b { color: #111; font-size: 14px; }
+
+/* Stats badge */
+.pgc-badge {
+  display: flex; flex-direction: column;
+  margin-top: 20px; padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.pgc-badge-val {
+  font-size: 22px; font-weight: 800; color: #111; line-height: 1;
+}
+.pgc-badge-label { font-size: 11.5px; color: #c0392b; font-weight: 600; margin-top: 3px; }
+
+/* ── IMAGE PANEL ── */
+.pgc-img-panel {
+  position: relative;
+  overflow: hidden;
+  background: #f4f4f4;
+}
+@media (max-width: 900px) {
+  .pgc-img-panel { height: 260px; order: 1; }
+}
+
+.pgc-img-wrap {
+  position: absolute; inset: 0;
+}
+.pgc-img--in {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.pgc-img--out {
+  opacity: 0;
+  transform: scale(1.03);
+  transition: opacity .3s ease, transform .3s ease;
+}
+
+.pgc-img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+  display: block;
+}
+
+/* Left-edge white fade blending into the text panel */
+.pgc-img-fade-left {
+  position: absolute;
+  top: 0; left: 0;
+  width: 80px; height: 100%;
+  background: linear-gradient(to right, #fff 0%, transparent 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .pgc-img-fade-left { display: none; }
+}
+
+/* Progress bar at bottom of image panel */
+.pgc-progress-bar {
+  position: absolute; bottom: 0; left: 0;
+  width: 100%; height: 3px;
+  background: rgba(0,0,0,.08); z-index: 2;
+}
+.pgc-progress-fill {
+  height: 100%; background: #c0392b;
+  animation: pgc-progress 5.5s linear forwards;
+}
+@keyframes pgc-progress {
+  from { width: 0%; } to { width: 100%; }
+}
+
+/* Fallback */
+.pgc-fallback-img-panel {
+  background: linear-gradient(135deg, #f7f7f7 0%, #efefef 100%);
+}
+.pgc-fallback-pattern {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, #e0e0e0 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: .5;
+}
+.pgc-img-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to right, #fff 0%, transparent 30%);
+}
+
+/* Skeleton */
+.pgc-skeleton { background: #f5f5f5; }
+.pgc-skeleton-panel {
+  background: linear-gradient(90deg, #ebebeb 25%, #f5f5f5 50%, #ebebeb 75%);
+  background-size: 200% 100%;
+  animation: pgc-shimmer 1.4s infinite;
+}
+.pgc-skeleton-img {
+  background: linear-gradient(90deg, #e0e0e0 25%, #ebebeb 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: pgc-shimmer 1.4s infinite .2s;
+}
+@keyframes pgc-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
       `}</style>
 
       <div className="pg">
@@ -648,57 +1255,25 @@ export function HomePage() {
           </div>
           <div className="pg-nav-cats">
             <div className="pg-nav-cats-inner">
-              {["All Products","Business Cards","Banners & Signage","Flyers & Brochures",
-                "Stickers & Labels","ID Cards","Posters","Wedding Cards","Packaging","Bulk Orders"].map((c, i) => (
-                <Link to="/products" key={c} className={`pg-nav-cat${i === 0 ? " active" : ""}`}>{c}</Link>
-              ))}
+              {["All Products", "Business Cards", "Banners & Signage", "Flyers & Brochures",
+                "Stickers & Labels", "ID Cards", "Posters", "Wedding Cards", "Packaging", "Bulk Orders"].map((c, i) => (
+                  <Link to="/products" key={c} className={`pg-nav-cat${i === 0 ? " active" : ""}`}>{c}</Link>
+                ))}
             </div>
           </div>
         </nav>
 
-        {/* ── HERO ── */}
-        <div className="pg-hero">
-          <div className="pg-hero-inner">
-            <div className="pg-hero-text">
-              <div className="pg-hero-kicker">Trusted by 50,000+ Businesses</div>
-              <h1 className="pg-hero-h1">
-                Professional Prints<br />
-                Delivered <span>Fast</span><br />
-                Across India
-              </h1>
-              <p className="pg-hero-sub">
-                Business cards, banners, flyers, ID cards & more. Upload your design or use our free templates — printed and shipped in 24–48 hrs.
-              </p>
-              <div className="pg-hero-ctas">
-                <Link to="/products"><button className="pg-cta-red">Shop Products <ArrowRight size={15} /></button></Link>
-                <Link to="/products"><button className="pg-cta-outline">Browse Templates</button></Link>
-              </div>
-              <div className="pg-hero-trust">
-                <div className="pg-trust-item"><BadgeCheck size={14} /> Quality Guaranteed</div>
-                <div className="pg-trust-item"><Truck size={14} /> Pan India Delivery</div>
-                <div className="pg-trust-item"><Clock size={14} /> 24-hr Turnaround</div>
-                <div className="pg-trust-item"><RefreshCcw size={14} /> Easy Reorders</div>
-              </div>
-            </div>
-            <div className="pg-hero-img">
-              <img src={headerImg} alt="Citizen Prints" />
-              <div className="pg-hero-badge">
-                <div className="pg-hero-badge-top">This month</div>
-                <div className="pg-hero-badge-val">3,200+</div>
-                <div className="pg-hero-badge-sub">orders delivered ✓</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* ── HERO: BANNER CAROUSEL (full-width text-overlay) ── */}
+        <BannerCarousel />
 
         {/* ── SERVICE BAND ── */}
         <div className="pg-band">
           <div className="pg-band-inner">
             {[
-              { icon: <Truck size={18} />,        title: "Free Delivery",     sub: "On orders above ₹999" },
-              { icon: <ShieldCheck size={18} />,  title: "100% Quality",      sub: "Satisfaction guaranteed" },
-              { icon: <Zap size={18} />,          title: "Express Printing",  sub: "Ready in 24 hours" },
-              { icon: <Headphones size={18} />,   title: "Expert Support",    sub: "Mon–Sat, 9am–6pm" },
+              { icon: <Truck size={18} />, title: "Free Delivery", sub: "On orders above ₹999" },
+              { icon: <ShieldCheck size={18} />, title: "100% Quality", sub: "Satisfaction guaranteed" },
+              { icon: <Zap size={18} />, title: "Express Printing", sub: "Ready in 24 hours" },
+              { icon: <Headphones size={18} />, title: "Expert Support", sub: "Mon–Sat, 9am–6pm" },
             ].map(s => (
               <div className="pg-band-item" key={s.title}>
                 <div className="pg-band-icon">{s.icon}</div>
@@ -712,38 +1287,6 @@ export function HomePage() {
         </div>
 
         <div className="pg-wrap">
-
-          {/* ── PROMO BANNERS ── */}
-          <div className="pg-banners">
-            <div className="pg-banner pg-banner-big" onClick={() => navigate("/products")}>
-              <div className="pg-banner-deco">🪪</div>
-              <div className="pg-banner-chip">BESTSELLER</div>
-              <div>
-                <div className="pg-banner-kicker">Most Ordered Product</div>
-                <div className="pg-banner-title">Business Cards from ₹199<br />for 100 pcs</div>
-                <div className="pg-banner-desc">Premium matte, glossy, soft-touch & more finishes</div>
-                <div className="pg-banner-cta">Order Now <ChevronRight size={13} /></div>
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div className="pg-banner pg-banner-sm pg-banner-sm-1" onClick={() => navigate("/products")}>
-                <div className="pg-banner-deco">🎌</div>
-                <div>
-                  <div className="pg-banner-kicker">New Arrivals</div>
-                  <div className="pg-banner-title" style={{ fontSize: "1.1rem" }}>Flex Banners from ₹299</div>
-                  <div className="pg-banner-cta" style={{ marginTop: 10 }}>Shop Now <ChevronRight size={12} /></div>
-                </div>
-              </div>
-              <div className="pg-banner pg-banner-sm pg-banner-sm-2" onClick={() => navigate("/products")}>
-                <div className="pg-banner-deco">💌</div>
-                <div>
-                  <div className="pg-banner-kicker">Season Special</div>
-                  <div className="pg-banner-title" style={{ fontSize: "1.1rem" }}>Wedding Cards & Invites</div>
-                  <div className="pg-banner-cta" style={{ marginTop: 10 }}>Explore <ChevronRight size={12} /></div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* ── CATEGORIES ── */}
           <div style={{ marginBottom: 16 }}>
@@ -759,13 +1302,13 @@ export function HomePage() {
             <div className="pg-cats">
               {[
                 { label: "Business Cards", emoji: "🪪" },
-                { label: "Banners",        emoji: "🎌" },
-                { label: "Brochures",      emoji: "📄" },
-                { label: "Flyers",         emoji: "📋" },
-                { label: "ID Cards",       emoji: "💳" },
-                { label: "Stickers",       emoji: "🏷️" },
-                { label: "Posters",        emoji: "🖼️" },
-                { label: "Wedding Cards",  emoji: "💌" },
+                { label: "Banners", emoji: "🎌" },
+                { label: "Brochures", emoji: "📄" },
+                { label: "Flyers", emoji: "📋" },
+                { label: "ID Cards", emoji: "💳" },
+                { label: "Stickers", emoji: "🏷️" },
+                { label: "Posters", emoji: "🖼️" },
+                { label: "Wedding Cards", emoji: "💌" },
               ].map(c => (
                 <Link to="/products" key={c.label} className="pg-cat">
                   <span className="pg-cat-emoji">{c.emoji}</span>
@@ -795,12 +1338,12 @@ export function HomePage() {
               <div className="pg-grid">
                 {featured.map((p: any, i: number) => {
                   const img = getValidImage(p)!;
-                  const tags = ["best","sale","hot","new","best","sale","hot","new"];
-                  const tagLabels: Record<string, string> = { best:"BESTSELLER", sale:"SALE", hot:"HOT", new:"NEW" };
-                  const ratings = [5,5,4,5,5,4,5,4];
-                  const prices = [199,299,249,399,179,349,219,279];
-                  const orig   = [299,449,349,549,249,499,299,399];
-                  const reviews = [124,89,67,203,55,91,143,38];
+                  const tags = ["best", "sale", "hot", "new", "best", "sale", "hot", "new"];
+                  const tagLabels: Record<string, string> = { best: "BESTSELLER", sale: "SALE", hot: "HOT", new: "NEW" };
+                  const ratings = [5, 5, 4, 5, 5, 4, 5, 4];
+                  const prices = [199, 299, 249, 399, 179, 349, 219, 279];
+                  const orig = [299, 449, 349, 549, 249, 499, 299, 399];
+                  const reviews = [124, 89, 67, 203, 55, 91, 143, 38];
                   const tag = tags[i % tags.length];
                   return (
                     <div key={p.id} className="pg-card" onClick={() => navigate(`/product/${p.id}`)}>
@@ -817,13 +1360,13 @@ export function HomePage() {
                         <div className="pg-card-name">{p.name}</div>
                         <div className="pg-card-desc">{p.description}</div>
                         <div className="pg-card-stars">
-                          {[1,2,3,4,5].map(s => <span key={s} className={`pg-star${s > ratings[i%ratings.length] ? " off" : ""}`}>★</span>)}
-                          <span className="pg-card-rc">({reviews[i%reviews.length]})</span>
+                          {[1, 2, 3, 4, 5].map(s => <span key={s} className={`pg-star${s > ratings[i % ratings.length] ? " off" : ""}`}>★</span>)}
+                          <span className="pg-card-rc">({reviews[i % reviews.length]})</span>
                         </div>
                         <div className="pg-card-foot">
                           <div>
-                            <span className="pg-price">₹{prices[i%prices.length]}</span>
-                            <span className="pg-price-orig">₹{orig[i%orig.length]}</span>
+                            <span className="pg-price">₹{prices[i % prices.length]}</span>
+                            <span className="pg-price-orig">₹{orig[i % orig.length]}</span>
                           </div>
                           <button className="pg-card-order" onClick={e => { e.stopPropagation(); navigate(`/product/${p.id}`); }}>
                             Order <ArrowRight size={11} />
@@ -847,9 +1390,9 @@ export function HomePage() {
             </div>
             <div className="pg-offers">
               {[
-                { ico:"🎯", title:"Bulk Order Savings",  desc:"Order 500+ pieces of any product and save up to 40%. Perfect for offices and events.",    pill:"Up to 40% OFF" },
-                { ico:"⚡", title:"Express 24-hr Prints", desc:"Need it fast? Select express printing and get your order ready the next business day.",  pill:"Same Day Available" },
-                { ico:"🎨", title:"Free Design Support", desc:"Our in-house designers help you create print-ready artwork — completely free of charge.", pill:"Worth ₹499 — FREE" },
+                { ico: "🎯", title: "Bulk Order Savings", desc: "Order 500+ pieces of any product and save up to 40%. Perfect for offices and events.", pill: "Up to 40% OFF" },
+                { ico: "⚡", title: "Express 24-hr Prints", desc: "Need it fast? Select express printing and get your order ready the next business day.", pill: "Same Day Available" },
+                { ico: "🎨", title: "Free Design Support", desc: "Our in-house designers help you create print-ready artwork — completely free of charge.", pill: "Worth ₹499 — FREE" },
               ].map(o => (
                 <div className="pg-offer" key={o.title}>
                   <div className="pg-offer-ico">{o.ico}</div>
@@ -873,10 +1416,10 @@ export function HomePage() {
             </div>
             <div className="pg-how-grid">
               {[
-                { n:"1", t:"Choose Product", d:"Browse 100+ print products and pick what you need." },
-                { n:"2", t:"Upload Artwork",  d:"Upload your design or customise one of our free templates." },
-                { n:"3", t:"We Print It",     d:"Our machines print with precision on premium materials." },
-                { n:"4", t:"Fast Delivery",   d:"Packed and shipped to your door in 24–48 hours." },
+                { n: "1", t: "Choose Product", d: "Browse 100+ print products and pick what you need." },
+                { n: "2", t: "Upload Artwork", d: "Upload your design or customise one of our free templates." },
+                { n: "3", t: "We Print It", d: "Our machines print with precision on premium materials." },
+                { n: "4", t: "Fast Delivery", d: "Packed and shipped to your door in 24–48 hours." },
               ].map(s => (
                 <div className="pg-how-step" key={s.n}>
                   <div className="pg-how-num">{s.n}</div>
@@ -954,14 +1497,14 @@ export function HomePage() {
             </div>
             <div className="pg-testi">
               {[
-                { stars:5, text:"Ordered 500 business cards for our team. Print quality is outstanding, delivered in 2 days. Will definitely reorder!", name:"Ramesh K.", role:"Operations Manager, Dindigul" },
-                { stars:5, text:"Used them for our event banners. Colors were vibrant and sharp. The free design help saved us so much time!", name:"Priya S.", role:"Event Coordinator, Madurai" },
-                { stars:4, text:"Great quality flyers at very competitive rates. Express delivery worked perfectly for our last-minute campaign.", name:"Arjun M.", role:"Marketing Head, Coimbatore" },
+                { stars: 5, text: "Ordered 500 business cards for our team. Print quality is outstanding, delivered in 2 days. Will definitely reorder!", name: "Ramesh K.", role: "Operations Manager, Dindigul" },
+                { stars: 5, text: "Used them for our event banners. Colors were vibrant and sharp. The free design help saved us so much time!", name: "Priya S.", role: "Event Coordinator, Madurai" },
+                { stars: 4, text: "Great quality flyers at very competitive rates. Express delivery worked perfectly for our last-minute campaign.", name: "Arjun M.", role: "Marketing Head, Coimbatore" },
               ].map(t => (
                 <div className="pg-testi-card" key={t.name}>
                   <div className="pg-testi-top">
                     <div className="pg-testi-stars">
-                      {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize:13, color: s<=t.stars?"#fbbf24":"#e5e5e5" }}>★</span>)}
+                      {[1, 2, 3, 4, 5].map(s => <span key={s} style={{ fontSize: 13, color: s <= t.stars ? "#fbbf24" : "#e5e5e5" }}>★</span>)}
                     </div>
                     <div className="pg-testi-verified"><BadgeCheck size={11} /> Verified Purchase</div>
                   </div>
@@ -995,27 +1538,27 @@ export function HomePage() {
               <div className="pg-foot-about">Your trusted print partner across India. Premium quality, fast delivery, unbeatable prices — since 2015.</div>
               <div className="pg-foot-contact">
                 <div className="pg-foot-contact-row"><Phone size={13} /> +91 98765 43210</div>
-                <div className="pg-foot-contact-row"><Layers size={13} /> hello@citizen prints.in</div>
+                <div className="pg-foot-contact-row"><Layers size={13} /> hello@citizenprints.in</div>
               </div>
             </div>
             <div>
               <div className="pg-foot-heading">Products</div>
               <div className="pg-foot-links">
-                {["Business Cards","Brochures","Banners","Flyers","Posters","ID Cards","Stickers"].map(l =>
+                {["Business Cards", "Brochures", "Banners", "Flyers", "Posters", "ID Cards", "Stickers"].map(l =>
                   <Link to="/products" key={l} className="pg-foot-link">{l}</Link>)}
               </div>
             </div>
             <div>
               <div className="pg-foot-heading">Company</div>
               <div className="pg-foot-links">
-                {["About Us","Bulk Orders","Design Services","Blog","Careers","Affiliates"].map(l =>
+                {["About Us", "Bulk Orders", "Design Services", "Blog", "Careers", "Affiliates"].map(l =>
                   <a key={l} href="#" className="pg-foot-link">{l}</a>)}
               </div>
             </div>
             <div>
               <div className="pg-foot-heading">Support</div>
               <div className="pg-foot-links">
-                {["Track Order","FAQ","Shipping Info","Return Policy","Contact Us","WhatsApp Chat"].map(l =>
+                {["Track Order", "FAQ", "Shipping Info", "Return Policy", "Contact Us", "WhatsApp Chat"].map(l =>
                   <a key={l} href="#" className="pg-foot-link">{l}</a>)}
               </div>
             </div>
@@ -1024,7 +1567,7 @@ export function HomePage() {
             <div className="pg-footer-bottom" style={{ maxWidth: 1280, margin: "0 auto" }}>
               <span className="pg-footer-bottom-text">© 2025 Citizen Prints. All rights reserved. Made with ❤️ in Tamil Nadu</span>
               <div className="pg-pay-icons">
-                {["UPI","GPay","Paytm","Visa","MC"].map(p => <span key={p} className="pg-pay-icon">{p}</span>)}
+                {["UPI", "GPay", "Paytm", "Visa", "MC"].map(p => <span key={p} className="pg-pay-icon">{p}</span>)}
               </div>
             </div>
           </div>

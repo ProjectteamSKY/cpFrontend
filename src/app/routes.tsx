@@ -32,6 +32,8 @@ import AddressPage from "./components/customer/UserAddressPage";
 import { WishlistPage } from "./components/customer/WishlistPage";
 import { ProfilePage } from "./components/customer/MyProfile";
 import VpaPage from "./Payment/VpaPage";
+import ReviewsPage from "./components/customer/ReviewPage";
+import ProductReviews from "./components/customer/ReviewPage";
 
 
 
@@ -54,6 +56,8 @@ export const router = createBrowserRouter([
       { path: "/WishlistPage", Component: WishlistPage },
       { path: "/MyProfile", Component: ProfilePage },
       { path: "/VpaPage", Component: VpaPage },
+      { path: "/ReviewsPage", Component: ProductReviews },
+
 
 
 
