@@ -55,7 +55,12 @@ export function PaperTypeManagement() {
       setEditingPaperType(null);
       fetchPaperTypes();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save paper type");
+      const message =
+        error?.response?.data?.detail || // ✅ FastAPI / backend error
+        error?.message ||                // fallback
+        "Failed to save paper type";
+
+      toast.error(message);
     }
   };
 
@@ -113,14 +118,12 @@ export function PaperTypeManagement() {
             <button
               type="button"
               onClick={() => toggleStatus(pt)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                pt.is_active ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${pt.is_active ? "bg-green-500" : "bg-gray-300"
+                }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                  pt.is_active ? "translate-x-6" : "translate-x-1"
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${pt.is_active ? "translate-x-6" : "translate-x-1"
+                  }`}
               />
             </button>
             <span className="text-sm">{pt.is_active ? "Active" : "Inactive"}</span>
