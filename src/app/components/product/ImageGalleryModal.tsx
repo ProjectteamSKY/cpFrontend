@@ -1,114 +1,83 @@
 import React from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { Dialog, DialogContent } from "../ui/dialog";
-import { Button } from "../ui/button";
-import { Product } from "../../types/productlist";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { getImageUrl } from "../../utils/productutils";
 
-interface ImageGalleryModalProps {
-  product: Product | null;
-  isOpen: boolean;
-  initialImageIndex: number;
+interface Props {
+  images: any[];
+  selectedIndex: number;
+  productName: string;
   onClose: () => void;
-  onIndexChange: (index: number) => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onSelect: (idx: number) => void;
 }
 
-export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
-  product,
-  isOpen,
-  initialImageIndex,
+export function ImageGalleryModal({
+  images,
+  selectedIndex,
+  productName,
   onClose,
-  onIndexChange
-}) => {
-  if (!product) return null;
-
-  const images = Array.isArray(product.images) ? product.images : [];
-
+  onPrev,
+  onNext,
+  onSelect,
+}: Props) {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl h-[90vh] p-0 bg-black/95 rounded-3xl overflow-hidden">
-        <div className="relative w-full h-full flex flex-col">
-          {/* Header */}
-          <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-white font-bold text-2xl">{product.name}</h3>
-                <p className="text-white/70 text-sm mt-1">
-                  Image {initialImageIndex + 1} of {images.length}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="text-white hover:bg-white/10 rounded-full"
-              >
-                <X className="w-6 h-6" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Main Image */}
-          <div className="flex-1 flex items-center justify-center p-20">
-            <img
-              src={getImageUrl(images[initialImageIndex])}
-              alt={`${product.name} - Image ${initialImageIndex + 1}`}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'https://via.placeholder.com/800x600?text=No+Image';
-              }}
-            />
-          </div>
-
-          {/* Navigation Arrows */}
-          {images.length > 1 && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onIndexChange(initialImageIndex > 0 ? initialImageIndex - 1 : images.length - 1)}
-                className="absolute left-6 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full w-14 h-14 shadow-xl"
-              >
-                <ChevronLeft className="w-8 h-8" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onIndexChange(initialImageIndex < images.length - 1 ? initialImageIndex + 1 : 0)}
-                className="absolute right-6 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full w-14 h-14 shadow-xl"
-              >
-                <ChevronRight className="w-8 h-8" />
-              </Button>
-            </>
-          )}
-
-          {/* Thumbnails */}
-          {images.length > 1 && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-              <div className="flex gap-3 overflow-x-auto pb-2 justify-center scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent">
-                {images.map((image: any, idx: number) => (
-                  <button
-                    key={idx}
-                    onClick={() => onIndexChange(idx)}
-                    className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-3 transition-all transform hover:scale-110 ${
-                      initialImageIndex === idx 
-                        ? 'border-white shadow-2xl ring-4 ring-white/50' 
-                        : 'border-white/30 hover:border-white/70'
-                    }`}
-                  >
-                    <img
-                      src={getImageUrl(image)}
-                      alt={`Thumbnail ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+    <div className="fixed inset-0 z-50 bg-neutral-950/98 flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-5 shrink-0 border-b border-white/5">
+        <div>
+          <p className="text-white font-bold text-sm tracking-wide">{productName}</p>
+          <p className="text-white/30 text-xs font-medium mt-0.5">
+            {selectedIndex + 1} / {images.length}
+          </p>
         </div>
-      </DialogContent>
-    </Dialog>
+        <button
+          onClick={onClose}
+          className="text-white/50 hover:text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-all"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Image */}
+      <div className="flex-1 flex items-center justify-center px-20 relative overflow-hidden py-6">
+        <img
+          src={getImageUrl(images[selectedIndex]?.url || images[selectedIndex])}
+          alt={productName}
+          className="max-w-full max-h-full object-contain rounded-2xl"
+        />
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={onPrev}
+              className="absolute left-5 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all hover:scale-110"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onNext}
+              className="absolute right-5 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all hover:scale-110"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Dot strip */}
+      {images.length > 1 && (
+        <div className="flex justify-center gap-2 py-5 shrink-0 border-t border-white/5">
+          {images.map((_: any, idx: number) => (
+            <button
+              key={idx}
+              onClick={() => onSelect(idx)}
+              className={`rounded-full transition-all duration-300 ${
+                idx === selectedIndex ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/20 hover:bg-white/40"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
-};
+}

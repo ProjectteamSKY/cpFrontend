@@ -1,11 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
-
 import { PaperTypeFormData, PaperType } from "../../types/paperType";
 import { paperTypeValidation } from "../../validation/paperTypeValidation";
 
@@ -34,7 +29,7 @@ export function PaperTypeForm({ defaultValues, onSubmit, onCancel }: Props) {
     if (defaultValues) {
       setValue("name", defaultValues.name ?? "");
       setValue("description", defaultValues.description ?? "");
-      setValue("is_active", defaultValues.is_active ?? true);
+      setValue("is_active", true);
     } else {
       reset({
         name: "",
@@ -45,55 +40,102 @@ export function PaperTypeForm({ defaultValues, onSubmit, onCancel }: Props) {
   }, [defaultValues, setValue, reset]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="w-full space-y-6"
+    >
+      {/* Hidden Active */}
+      <input type="hidden" {...register("is_active")} value="true" />
+
+      {/* Header */}
+  
+
       {/* Name */}
-      <div>
-        <Label>Paper Type Name *</Label>
-        <Input
+      <div className="flex flex-col p-3">
+        <label className="text-sm font-medium text-gray-800 mb-2">
+          Paper Type Name <span className="text-red-500">*</span>
+        </label>
+
+        <input
           {...register("name", paperTypeValidation.name)}
-          placeholder="Enter paper type name"
-          className="mt-1"
+          placeholder="e.g. Glossy, Matte"
+          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
+          ${
+            errors.name
+              ? "border-red-500 ring-1 ring-red-200"
+              : "border-gray-300 focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32]"
+          }`}
         />
+
         {errors.name && (
-          <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+          <p className="mt-1 text-xs text-red-500">
+            {errors.name.message}
+          </p>
         )}
       </div>
 
       {/* Description */}
-      <div>
-        <Label>Description</Label>
-        <Textarea
+      <div className="flex flex-col">
+        <label className="text-sm font-medium text-gray-800 mb-2">
+          Description
+        </label>
+
+        <textarea
           {...register("description")}
-          placeholder="Enter description"
+          placeholder="Short description about paper type"
           rows={4}
-          className="mt-1"
+          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none resize-none focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32] transition"
         />
+
         {errors.description && (
-          <p className="text-red-500 text-sm mt-1">
+          <p className="mt-1 text-xs text-red-500">
             {errors.description.message}
           </p>
         )}
       </div>
 
-      {/* Active */}
-      <div className="flex items-center gap-2">
-        <Input type="checkbox" {...register("is_active")} className="w-4 h-4" />
-        <Label>Active</Label>
-      </div>
-
       {/* Buttons */}
-      <div className="flex gap-3 pt-4">
-        <Button
+      <div className="flex gap-3 pt-2">
+        <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 bg-[#D73D32] hover:bg-[#D73D32]/90 text-white"
+          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#D73D32] text-white py-2.5 text-sm font-semibold shadow-md hover:shadow-lg hover:bg-[#c53028] transition disabled:opacity-60"
         >
-          {isSubmitting ? "Saving..." : "Save"}
-        </Button>
+          {isSubmitting ? (
+            <>
+              <svg
+                className="w-4 h-4 animate-spin"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="white"
+                  strokeWidth="4"
+                  fill="none"
+                  opacity="0.3"
+                />
+                <path
+                  d="M4 12a8 8 0 018-8"
+                  stroke="white"
+                  strokeWidth="4"
+                />
+              </svg>
+              Saving...
+            </>
+          ) : (
+            "Save"
+          )}
+        </button>
 
-        <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+        >
           Cancel
-        </Button>
+        </button>
       </div>
     </form>
   );

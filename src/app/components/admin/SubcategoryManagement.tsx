@@ -27,6 +27,7 @@ import { useLocation } from "react-router-dom";
 
 import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   categoryId?: string; // optional filter by category
@@ -56,6 +57,7 @@ export function SubcategoryManagement({ categoryId }: Props) {
   useEffect(() => {
     fetchSubcategories();
   }, [id]);
+  const navigate = useNavigate();
 
   /* ---------- Save Handler ---------- */
   const handleSave = async (data: SubcategoryFormData) => {
@@ -138,14 +140,12 @@ export function SubcategoryManagement({ categoryId }: Props) {
             <button
               type="button"
               onClick={() => toggleStatus(sub)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                sub.is_active ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${sub.is_active ? "bg-green-500" : "bg-gray-300"
+                }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                  sub.is_active ? "translate-x-6" : "translate-x-1"
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${sub.is_active ? "translate-x-6" : "translate-x-1"
+                  }`}
               />
             </button>
             <span className="text-sm">{sub.is_active ? "Active" : "Inactive"}</span>
@@ -212,7 +212,9 @@ export function SubcategoryManagement({ categoryId }: Props) {
         </div>
 
         <div className="overflow-x-auto">
-          <CustomTable data={subcategories} columns={columns} />
+          <CustomTable data={subcategories} columns={columns} subtitle="All registered accounts"
+            onBack={() => navigate("/admin/Category")}
+            backLabel="Return" />
         </div>
       </Card>
 
