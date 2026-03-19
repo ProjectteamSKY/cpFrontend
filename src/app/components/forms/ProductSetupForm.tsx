@@ -802,7 +802,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
               </div>
 
               {/* Prices - NO MAX QTY */}
-              <div className="mt-4">
+              {/* <div className="mt-4">
                 <div className="flex justify-between items-center mb-2">
                   <Label className="font-medium">Price Ranges <span className="text-red-500">*</span></Label>
                   <Button
@@ -858,6 +858,97 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
                     )}
                   </div>
                 ))}
+              </div> */}
+
+              {/* Prices - WITH TOTAL PRICE */}
+              <div className="mt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <Label className="font-medium">
+                    Price Ranges <span className="text-red-500">*</span>
+                  </Label>
+                  <Button
+                    type="button"
+                    onClick={() => addPriceRange(variantIndex)}
+                    className="bg-green-500 hover:bg-green-600 text-sm"
+                    size="sm"
+                  >
+                    Add Price Range
+                  </Button>
+                </div>
+
+                {prices.map((price, priceIndex) => {
+                  const minQty =
+                    watch(`variants.${variantIndex}.prices.${priceIndex}.min_qty`) || 0;
+
+                  const unitPrice =
+                    watch(`variants.${variantIndex}.prices.${priceIndex}.price`) || 0;
+
+                  const totalPrice = Number(minQty) * Number(unitPrice);
+
+                  return (
+                    <div
+                      key={priceIndex}
+                      className="grid grid-cols-3 gap-3 mt-2 items-center relative"
+                    >
+                      {/* Min Qty */}
+                      <div>
+                        <input
+                          type="number"
+                          {...register(
+                            `variants.${variantIndex}.prices.${priceIndex}.min_qty`,
+                            {
+                              required: "Min quantity required",
+                              min: {
+                                value: 1,
+                                message: "Min quantity must be at least 1",
+                              },
+                            }
+                          )}
+                          placeholder="Min Qty"
+                          className="border p-2 rounded w-full"
+                        />
+                      </div>
+
+                      {/* Price */}
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register(
+                            `variants.${variantIndex}.prices.${priceIndex}.price`,
+                            {
+                              required: "Price required",
+                              min: {
+                                value: 0,
+                                message: "Price must be ≥ 0",
+                              },
+                            }
+                          )}
+                          placeholder="Price"
+                          className="border p-2 rounded w-full"
+                        />
+
+                        {prices.length > 1 && (
+                          <Button
+                            type="button"
+                            onClick={() =>
+                              removePriceRange(variantIndex, priceIndex)
+                            }
+                            className="bg-red-500 hover:bg-red-600 text-sm px-2"
+                            size="sm"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* ✅ Total Price Display */}
+                      <div className="border p-2 rounded bg-gray-100 text-center font-semibold">
+                        ₹ {totalPrice.toFixed(2)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

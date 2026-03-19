@@ -426,13 +426,13 @@ export function ProductListingPage() {
         }}
       />
 
-      <ImageGalleryModal
+      {/* <ImageGalleryModal
         product={galleryProduct}
         isOpen={showImageGallery}
         initialImageIndex={galleryImageIndex}
         onClose={() => setShowImageGallery(false)}
         onIndexChange={setGalleryImageIndex}
-      />
+      /> */}
     </div>
   );
 }

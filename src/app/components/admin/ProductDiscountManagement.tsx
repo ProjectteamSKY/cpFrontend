@@ -2,227 +2,244 @@ import { useEffect, useState } from "react";
 import { Edit, Trash2, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { CustomTable } from "../common/CustomTable";
 import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
 
-import { ProductDiscount, ProductDiscountFormData } from "../../types/productDiscount";
+import { ProductDiscount } from "../../types/productDiscount";
 import { ProductDiscountForm } from "../forms/ProductDiscountForm";
 import {
-    getAllProductDiscounts,
-    createProductDiscount,
-    updateProductDiscount,
-    deleteProductDiscount,
-    activateProductDiscount,
-    deactivateProductDiscount
+  getAllProductDiscounts,
+  createProductDiscount,
+  updateProductDiscount,
+  deleteProductDiscount,
+  activateProductDiscount,
+  deactivateProductDiscount,
 } from "../../service/productDiscountApiService";
 
 export function ProductDiscountManagement() {
-    const [discounts, setDiscounts] = useState<ProductDiscount[]>([]);
-    const [showAddDialog, setShowAddDialog] = useState(false);
-    const [showEditDialog, setShowEditDialog] = useState(false);
-    const [editingDiscount, setEditingDiscount] = useState<ProductDiscount | null>(null);
+  const [discounts, setDiscounts] = useState<ProductDiscount[]>([]);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingDiscount, setEditingDiscount] =
+    useState<ProductDiscount | null>(null);
 
-    const fetchDiscounts = async () => {
-        try {
-            const data = await getAllProductDiscounts();
-            setDiscounts(data);
-        } catch (error: any) {
-            toast.error("Failed to fetch discounts");
-        }
-    };
+  const fetchDiscounts = async () => {
+    try {
+      const data = await getAllProductDiscounts();
+      setDiscounts(data);
+    } catch (error: any) {
+      toast.error("Failed to fetch discounts");
+    }
+  };
 
-    useEffect(() => {
-        fetchDiscounts();
-    }, []);
+  useEffect(() => {
+    fetchDiscounts();
+  }, []);
 
-    // ✅ Professional Date Formatter
-    const formatDate = (date?: string) => {
-        if (!date) return "-";
-        return new Date(date).toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-        });
-    };
+  // ✅ Date Formatter
+  const formatDate = (date?: string) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
-    const handleSave = async (data: ProductDiscountFormData) => {
-        try {
-            if (editingDiscount) {
-                await updateProductDiscount(editingDiscount.id, data);
-                toast.success("Discount updated successfully!");
-            } else {
-                await createProductDiscount(data);
-                toast.success("Discount created successfully!");
-            }
+  // ✅ FIXED: Now receives FormData
+  const handleSave = async (formData: FormData) => {
+    try {
+      if (editingDiscount) {
+        await updateProductDiscount(editingDiscount.id, formData);
+        toast.success("Discount updated successfully!");
+      } else {
+        await createProductDiscount(formData);
+        toast.success("Discount created successfully!");
+      }
 
-            setShowAddDialog(false);
-            setShowEditDialog(false);
-            setEditingDiscount(null);
-            fetchDiscounts();
-        } catch (error: any) {
-            toast.error(error.message || "Failed to save discount");
-        }
-    };
+      setShowAddDialog(false);
+      setShowEditDialog(false);
+      setEditingDiscount(null);
+      fetchDiscounts();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to save discount");
+    }
+  };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Delete this discount?")) return;
-        try {
-            await deleteProductDiscount(id);
-            toast.success("Discount deleted successfully!");
-            fetchDiscounts();
-        } catch (error: any) {
-            toast.error("Failed to delete discount");
-        }
-    };
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this discount?")) return;
 
-    const toggleStatus = async (discount: ProductDiscount) => {
-        try {
-            if (discount.is_active) {
-                // If already active → deactivate it
-                await deactivateProductDiscount(discount.id);
-                toast.success("Discount deactivated successfully!");
-            } else {
-                // If inactive → activate it
-                await activateProductDiscount(discount.id);
-                toast.success("Discount activated successfully!");
-            }
+    try {
+      await deleteProductDiscount(id);
+      toast.success("Discount deleted successfully!");
+      fetchDiscounts();
+    } catch (error: any) {
+      toast.error("Failed to delete discount");
+    }
+  };
 
-            // Update local state after API success
-            setDiscounts(prev =>
-                prev.map(d =>
-                    d.id === discount.id
-                        ? { ...d, is_active: !d.is_active }
-                        : d
-                )
-            );
-        } catch (error: any) {
-            toast.error("Failed to toggle status. Try again.");
-        }
-    };
+  const toggleStatus = async (discount: ProductDiscount) => {
+    try {
+      if (discount.is_active) {
+        await deactivateProductDiscount(discount.id);
+        toast.success("Discount deactivated successfully!");
+      } else {
+        await activateProductDiscount(discount.id);
+        toast.success("Discount activated successfully!");
+      }
 
-    const columns: ColumnDef<ProductDiscount>[] = [
-        { header: "Product", accessorKey: "product_name" },
-        { header: "Description", accessorKey: "description" },
-        { header: "Discount", accessorKey: "discount" },
+      setDiscounts((prev) =>
+        prev.map((d) =>
+          d.id === discount.id
+            ? { ...d, is_active: !d.is_active }
+            : d
+        )
+      );
+    } catch (error: any) {
+      toast.error("Failed to toggle status. Try again.");
+    }
+  };
 
-        // ✅ Updated Start Date Column
-        {
-            header: "Start Date",
-            cell: ({ row }) => formatDate(row.original.start_date),
-        },
+  const columns: ColumnDef<ProductDiscount>[] = [
+    { header: "Product", accessorKey: "product_name" },
 
-        // ✅ Updated End Date Column
-        {
-            header: "End Date",
-            cell: ({ row }) => formatDate(row.original.end_date),
-        },
+    // ✅ NEW FIELD
+    { header: "Title", accessorKey: "title" },
 
-        {
-            header: "Status",
-            cell: ({ row }) => {
-                const discount = row.original;
-                return (
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={() => toggleStatus(discount)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                                discount.is_active ? "bg-green-500" : "bg-gray-300"
-                            }`}
-                        >
-                            <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                                    discount.is_active ? "translate-x-6" : "translate-x-1"
-                                }`}
-                            />
-                        </button>
-                        <span className="text-sm">
-                            {discount.is_active ? "Active" : "Inactive"}
-                        </span>
-                    </div>
-                );
-            },
-        },
+    { header: "Description", accessorKey: "description" },
+    { header: "Discount", accessorKey: "discount" },
 
-        {
-            header: "Actions",
-            cell: ({ row }) => (
-                <div className="flex gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                            setEditingDiscount(row.original);
-                            setShowEditDialog(true);
-                        }}
-                    >
-                        <Edit className="w-4 h-4 text-[#D73D32]" />
-                    </Button>
+    {
+      header: "Start Date",
+      cell: ({ row }) => formatDate(row.original.start_date),
+    },
+    {
+      header: "End Date",
+      cell: ({ row }) => formatDate(row.original.end_date),
+    },
 
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(row.original.id)}
-                    >
-                        <Trash2 className="w-4 h-4 text-[#D73D32]" />
-                    </Button>
-                </div>
-            ),
-        },
-    ];
+    // ✅ NEW FIELD
+    { header: "CTA", accessorKey: "cta_text" },
 
-    return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold">Product Discount Management</h1>
+    {
+      header: "Status",
+      cell: ({ row }) => {
+        const discount = row.original;
 
-                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-[#1A1A1A] text-white">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Discount
-                        </Button>
-                    </DialogTrigger>
+        return (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => toggleStatus(discount)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                discount.is_active ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  discount.is_active ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
 
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Add Product Discount</DialogTitle>
-                        </DialogHeader>
+            <span className="text-sm">
+              {discount.is_active ? "Active" : "Inactive"}
+            </span>
+          </div>
+        );
+      },
+    },
 
-                        <ProductDiscountForm
-                            onSubmit={handleSave}
-                            onCancel={() => setShowAddDialog(false)}
-                        />
-                    </DialogContent>
-                </Dialog>
-            </div>
+    {
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setEditingDiscount(row.original);
+              setShowEditDialog(true);
+            }}
+          >
+            <Edit className="w-4 h-4 text-[#D73D32]" />
+          </Button>
 
-            <Card className="bg-white shadow-sm border-0">
-                <CustomTable data={discounts} columns={columns} />
-            </Card>
-
-            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Product Discount</DialogTitle>
-                    </DialogHeader>
-
-                    <ProductDiscountForm
-                        key={editingDiscount?.id || "new"}
-                        defaultValues={editingDiscount}
-                        onSubmit={handleSave}
-                        onCancel={() => {
-                            setShowEditDialog(false);
-                            setEditingDiscount(null);
-                        }}
-                    />
-                </DialogContent>
-            </Dialog>
-
-            <Toaster />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(row.original.id)}
+          >
+            <Trash2 className="w-4 h-4 text-[#D73D32]" />
+          </Button>
         </div>
-    );
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">
+          Product Discount Management
+        </h1>
+
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-[#1A1A1A] text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Discount
+            </Button>
+          </DialogTrigger>
+
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Product Discount</DialogTitle>
+            </DialogHeader>
+
+            <ProductDiscountForm
+              onSubmit={handleSave}
+              onCancel={() => setShowAddDialog(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Table */}
+      <Card className="bg-white shadow-sm border-0">
+        <CustomTable data={discounts} columns={columns} />
+      </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Product Discount</DialogTitle>
+          </DialogHeader>
+
+          <ProductDiscountForm
+            key={editingDiscount?.id || "new"}
+            defaultValues={editingDiscount}
+            onSubmit={handleSave}
+            onCancel={() => {
+              setShowEditDialog(false);
+              setEditingDiscount(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Toaster />
+    </div>
+  );
 }

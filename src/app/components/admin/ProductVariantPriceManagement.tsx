@@ -52,12 +52,20 @@ export function ProductVariantPriceManagement() {
                 await createProductVariantPrice(data);
                 toast.success("Price created successfully!");
             }
+
             setShowAddDialog(false);
             setShowEditDialog(false);
             setEditingPrice(null);
             fetchPrices();
+
         } catch (error: any) {
-            toast.error(error.message || "Failed to save price");
+            // ✅ Proper error handling
+            const message =
+                error?.response?.data?.detail || // FastAPI error
+                error?.message ||
+                "Failed to save price";
+
+            toast.error(message);
         }
     };
 
@@ -92,7 +100,7 @@ export function ProductVariantPriceManagement() {
                             toast.success("Price activated successfully!");
                         }
 
-                        await fetchPrices();        
+                        await fetchPrices();
                     } catch (error: any) {
                         toast.error("Failed to update status");
                     }
