@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { useParams, useNavigate } from "react-router";
 import axios from "axios";
 import { Product, ProductVariant, VariantPrice } from "../types/productlist";
@@ -8,19 +8,26 @@ import { useToast } from "./Usetoast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface Size      {
-  label: unknown; id: string; name: string; dimensions?: string 
+export interface Size {
+  label?: unknown;
+  id: string;
+  name: string;
+  dimensions?: string;
 }
 export interface PaperType {
-  label: unknown; id: string; name: string 
+  label?: unknown;
+  id: string;
+  name: string;
 }
 export interface PrintType {
-  label: unknown; id: string; name: string 
+  label?: unknown;
+  id: string;
+  name: string;
 }
-export interface CutType   { id: string; name: string }
+export interface CutType { id: string; name: string }
 
 export interface VariantOption {
-  originalPrice: ReactNode;
+  originalPrice?: ReactNode;
   id: string;
   variantId: string;
   size: Size;
@@ -124,14 +131,15 @@ export function useProductDetail() {
       const prices = v.prices || [];
       const vals   = prices.map((p: VariantPrice) => p.price);
       return {
-        id:          v.id,
-        variantId:   v.id,
-        size:        { id: v.size_id,      name: v.size_name       || "Standard" },
-        paperType:   { id: v.paper_type_id, name: v.paper_type_name || "Standard" },
-        printType:   { id: v.print_type_id, name: v.print_type_name || "Digital"  },
-        cutType:     { id: v.cut_type_id,   name: v.cut_type_name   || "Straight" },
-        sides:       v.sides       || 1,
-        orientation: v.orientation || "Portrait",
+        id:            v.id,
+        variantId:     v.id,
+        originalPrice: undefined,
+        size:          { id: v.size_id,        name: v.size_name       || "Standard", label: undefined },
+        paperType:     { id: v.paper_type_id,   name: v.paper_type_name || "Standard", label: undefined },
+        printType:     { id: v.print_type_id,   name: v.print_type_name || "Digital",  label: undefined },
+        cutType:       { id: v.cut_type_id,     name: v.cut_type_name   || "Straight" },
+        sides:         v.sides       || 1,
+        orientation:   v.orientation || "Portrait",
         prices,
         minPrice: vals.length ? Math.min(...vals) : 0,
         maxPrice: vals.length ? Math.max(...vals) : 0,
