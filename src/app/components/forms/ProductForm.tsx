@@ -83,7 +83,7 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
 
   const getFullImageUrl = useCallback((imagePath: string) => {
     if (imagePath.startsWith('http')) return imagePath;
-    return `${BASE_URL}/${imagePath}`;
+    return `http://54.206.3.97/${imagePath}`;
   }, []);
 
   /* ================= FETCH CATEGORIES ================= */
