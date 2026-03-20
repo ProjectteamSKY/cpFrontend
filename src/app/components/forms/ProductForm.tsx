@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 
+
+// base url changes 
 const BASE_URL = "http://54.206.3.97";
 
 interface Props {
