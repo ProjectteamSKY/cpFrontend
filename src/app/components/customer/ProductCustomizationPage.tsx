@@ -1408,12 +1408,13 @@ import { SpecsTable } from "../product/SpecsTable";
 import { MobileStickyBar } from "../product/MobileStickyBar";
 import { ImageGalleryModal } from "../product/ImageGalleryModal";
 import { ToastStack } from "../ui/ToasterStack";
-import { useProductDetail } from "../../hooks/useproductdetail";
+import { useProductDetail } from "../../hooks/Useproductdetail";
 
 
 
+// PATH CHAGES
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
+// PATH CHAGES
 export function ProductDetailPage() {
   const ctx = useProductDetail();
 
