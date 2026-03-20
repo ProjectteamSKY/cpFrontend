@@ -1398,7 +1398,7 @@
 import React from "react";
 import { ChevronLeft, AlertCircle } from "lucide-react";
 
-import StepProgress   from "../product/StepProgress";
+import StepProgress from "../product/StepProgress";
 import ReviewsSection from "../product/ReviewsSection";
 import { GalleryPanel } from "../product/Gallerypanel";
 import { ProductHero } from "../product/Productinfo";
@@ -1409,6 +1409,7 @@ import { MobileStickyBar } from "../product/MobileStickyBar";
 import { ImageGalleryModal } from "../product/ImageGalleryModal";
 import { ToastStack } from "../ui/ToasterStack";
 import { useProductDetail } from "../../hooks/Useproductdetail";
+import FAQ from "./Faqsection";
 
 
 
@@ -1486,7 +1487,6 @@ export function ProductDetailPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32 lg:pb-12">
         <StepProgress current={ctx.currentStep} />
-
         {/* ══ ROW 1 — Gallery + Hero ══════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 mb-12">
           <GalleryPanel
@@ -1579,6 +1579,8 @@ export function ProductDetailPage() {
 
         {/* ══ ROW 4 — Reviews ═════════════════════════════════════════ */}
         <ReviewsSection product={ctx.product} />
+        <FAQ categoryId={ctx.product.category_id} productId={ctx.product.id} />
+
       </div>
 
       {/* ── Mobile sticky bar ──────────────────────────────────────── */}
@@ -1616,7 +1618,12 @@ export function ProductDetailPage() {
 
       {/* ── Toasts ────────────────────────────────────────────────── */}
       <ToastStack toasts={ctx.toasts} onDismiss={ctx.dismiss} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+
+      </div>
+
     </div>
+
   );
 }
 
