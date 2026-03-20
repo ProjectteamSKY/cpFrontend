@@ -1414,7 +1414,7 @@ import { useProductDetail } from "../../hooks/Useproductdetail";
 
 // PATH CHAGES
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
+// PATH CHAGES
 export function ProductDetailPage() {
   const ctx = useProductDetail();
 
