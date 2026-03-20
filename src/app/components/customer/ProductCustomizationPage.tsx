@@ -1499,7 +1499,6 @@ export function ProductDetailPage() {
             onZoom={() => ctx.setShowGallery(true)}
             productName={ctx.product.name}
           />
-
           <ProductHero
             product={ctx.product}
             selectedVariant={ctx.selectedVariant}

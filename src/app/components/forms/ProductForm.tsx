@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://54.206.3.97";
 
 interface Props {
   defaultValues?: Product | null;
