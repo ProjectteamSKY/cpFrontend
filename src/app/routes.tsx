@@ -34,6 +34,7 @@ import { ProfilePage } from "./components/customer/MyProfile";
 import VpaPage from "./Payment/VpaPage";
 import ReviewsPage from "./components/customer/ReviewPage";
 import ProductReviews from "./components/customer/ReviewPage";
+import FAQPage, { FAQManagement } from "./components/admin/FaqManagement";
 
 
 
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
 
 
 
+
       { path: "login", Component: LoginPage },
     ],
   },
@@ -84,8 +86,9 @@ export const router = createBrowserRouter([
       { path: "productVarientPrice", Component: ProductVariantPriceManagement },
       { path: "ProductSetup", Component: ProductSetupManagement },
       { path: "Order", Component: OrderManagement },
+      { path: "FAQ", Component: FAQManagement },
 
-
+   
 
       // { path: "orders", Component: OrderManagement },
       // { path: "file-review", Component: FileReviewPanel },
