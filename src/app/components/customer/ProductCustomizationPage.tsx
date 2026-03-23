@@ -1412,7 +1412,6 @@ import { useProductDetail } from "../../hooks/Useproductdetail";
 import FAQ from "./Faqsection";
 
 
-
 // PATH CHAGES
 // ─── Page ─────────────────────────────────────────────────────────────────────
 // PATH CHAGES

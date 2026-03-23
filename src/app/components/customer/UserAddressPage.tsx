@@ -230,7 +230,7 @@ const MISSING_LABELS: Record<string, string> = {
     postal_code: "Pincode",
 };
 
-export default function AddressPage() {
+export default function userAddressPage() {
     const [address, setAddress] = useState<Address | null>(null);
     const [saved, setSaved]     = useState(false);
     const [showJson, setShowJson] = useState(false);
