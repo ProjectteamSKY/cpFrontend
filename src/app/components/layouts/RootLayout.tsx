@@ -1,6 +1,8 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { ShoppingCart, User, Search } from "lucide-react";
 import { Button } from "../ui/button";
+import { PromoBar } from "../home/PromoBar";
+import { Navbar } from "../home/Navbar";
 
 export function RootLayout() {
   const location = useLocation();
@@ -14,71 +16,10 @@ export function RootLayout() {
     <div className="min-h-screen flex flex-col bg-white">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-[1440px] mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-[#D73D32] flex items-center justify-center">
-                <span className="text-white font-bold text-xl">CP</span>
-              </div>
-              <span className="text-2xl font-bold text-[#1A1A1A]">Citizen Prints</span>
-            </Link>
+        <PromoBar />
 
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
-              <Link
-                to="/"
-                className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname === '/' ? 'text-[#D73D32]' : ''}`}
-              >
-                Home
-              </Link>
-              <Link
-                to="/products"
-                className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname === '/products' ? 'text-[#D73D32]' : ''}`}
-              >
-                Products
-              </Link>
-
-              {/* <Link
-                to="/WishlistPage"
-                className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname === '/Wishlist' ? 'text-[#D73D32]' : ''}`}
-              >
-                Wishlist
-              </Link>
-
-              <Link
-                to="/orderhistory"
-                className={`text-[#1A1A1A] hover:text-[#D73D32] transition-colors ${location.pathname.includes('/order-tracking') ? 'text-[#D73D32]' : ''}`}
-              >
-                orderhistory
-              </Link> */}
-
-            </nav>
-
-            {/* Actions */}
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="relative">
-                <Search className="w-5 h-5" />
-              </Button>
-              {/* <Link > */}
-                <Button variant="ghost" size="icon" onClick={handleClick}>
-                  <User className="w-5 h-5" />
-                </Button>
-              {/* </Link> */}
-
-              <Link to="/cart">
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#1A1A1A] text-white text-xs rounded-full flex items-center justify-center">
-                      {cartItemCount}
-                    </span>
-                  )}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
+      {/* ── Navigation ── */}
+      <Navbar />
       </header>
 
       {/* Main Content */}
