@@ -35,6 +35,7 @@ import VpaPage from "./Payment/VpaPage";
 import ReviewsPage from "./components/customer/ReviewPage";
 import ProductReviews from "./components/customer/ReviewPage";
 import FAQPage, { FAQManagement } from "./components/admin/FaqManagement";
+import userAddressPage from "./components/customer/UserAddressPage";
 
 
 
@@ -53,13 +54,17 @@ export const router = createBrowserRouter([
       { path: "checkout", Component: CheckoutPage },
       { path: "orderhistory", Component: OrderHistoryPage },
       { path: "vieworder/:orderId", Component: ViewOrderPage },
-      { path: "useraddress", Component: AddressPage },
+      { path: "useraddress", Component: userAddressPage },
       { path: "/WishlistPage", Component: WishlistPage },
       { path: "/MyProfile", Component: ProfilePage },
       { path: "/VpaPage", Component: VpaPage },
       { path: "/ReviewsPage", Component: ProductReviews },
+            { path: "/ReviewsPage", Component: ProductReviews },
+      { path: "/ReviewsPage", Component: ProductReviews },
 
 
+// <Route path="/address" element={<AddressPage />} />
+// <Route path="/checkout" element={<CheckoutPage />} />
 
 
 
