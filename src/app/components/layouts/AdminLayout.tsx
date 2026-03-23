@@ -648,28 +648,32 @@ const navGroups = [
   {
     label: "Overview",
     items: [
-      { path: "/admin",       icon: LayoutDashboard, label: "Dashboard" },
-      { path: "/admin/Order", icon: ShoppingBag,     label: "Orders"    },
+      { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+      { path: "/admin/Order", icon: ShoppingBag, label: "Orders" },
     ],
   },
   {
     label: "Catalogue",
     items: [
-      { path: "/admin/product",             icon: Package,   label: "Products"       },
-      { path: "/admin/productVarient",      icon: Tag,       label: "Variants"       },
-      { path: "/admin/productVarientPrice", icon: Receipt,   label: "Variant Prices" },
-      { path: "/admin/productSetup",        icon: Settings,  label: "Product Setup"  },
-      { path: "/admin/productDiscount",     icon: BarChart3, label: "Discounts"      },
+      { path: "/admin/product", icon: Package, label: "Products" },
+      { path: "/admin/productVarient", icon: Tag, label: "Variants" },
+      { path: "/admin/productVarientPrice", icon: Receipt, label: "Variant Prices" },
+      { path: "/admin/productSetup", icon: Settings, label: "Product Setup" },
+      { path: "/admin/productDiscount", icon: BarChart3, label: "Discounts" },
+      { path: "/admin/FAQ", icon: BarChart3, label: "FAQ" },
+
+
+
     ],
   },
   {
     label: "Configuration",
     items: [
-      { path: "/admin/Category",  icon: Users,     label: "Categories"  },
+      { path: "/admin/Category", icon: Users, label: "Categories" },
       { path: "/admin/Papertype", icon: FileCheck, label: "Paper Types" },
-      { path: "/admin/Cuttype",   icon: Scissors,  label: "Cut Types"   },
-      { path: "/admin/Printtype", icon: Printer,   label: "Print Types" },
-      { path: "/admin/SizeType",  icon: Maximize2, label: "Sizes"       },
+      { path: "/admin/Cuttype", icon: Scissors, label: "Cut Types" },
+      { path: "/admin/Printtype", icon: Printer, label: "Print Types" },
+      { path: "/admin/SizeType", icon: Maximize2, label: "Sizes" },
     ],
   },
 ];
