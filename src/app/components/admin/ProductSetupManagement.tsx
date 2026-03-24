@@ -74,7 +74,7 @@ export function ProductSetupManagement() {
 
       console.log("Processed product data:", productData);
       setProducts(productData);
-      toast.success("Products loaded successfully!");
+      // toast.success("Products loaded successfully!");
     } catch (error) {
       console.error("Error fetching products:", error);
       const errorMessage = "Failed to fetch products. Please try again.";
@@ -84,7 +84,6 @@ export function ProductSetupManagement() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -289,7 +288,7 @@ export function ProductSetupManagement() {
       header: "Price",
       cell: ({ row }) => {
         const price = row.original.variants?.[0]?.prices?.[0];
-        return price?.price ? `$${price.price}` : "N/A";
+        return price?.price ? `Rs.${price.price}` : "N/A";
       },
     },
     {
