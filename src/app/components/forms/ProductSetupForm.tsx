@@ -241,7 +241,30 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       return newImages;
     });
   };
+  useEffect(() => {
+    const initializeEditData = async () => {
+      if (isEditing && defaultValues?.category_id) {
+        try {
+          // Set category first
+          setValue("category_id", defaultValues.category_id);
 
+          // Fetch subcategories manually
+          const subcats = await getAllSubcategories(defaultValues.category_id);
+          setSubcategories(Array.isArray(subcats) ? subcats : []);
+
+          // Then set subcategory
+          if (defaultValues.subcategory_id) {
+            setValue("subcategory_id", defaultValues.subcategory_id);
+          }
+        } catch (error) {
+          console.error("Error initializing edit data:", error);
+          toast.error("Failed to load subcategories");
+        }
+      }
+    };
+
+    initializeEditData();
+  }, [isEditing, defaultValues, setValue]);
   // Cleanup previews on unmount
   useEffect(() => {
     return () => {
