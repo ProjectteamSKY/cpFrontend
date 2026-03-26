@@ -28,21 +28,13 @@ import { ProductDiscountManagement } from "./components/admin/ProductDiscountMan
 import { ProductSetupManagement } from "./components/admin/ProductSetupManagement";
 import { DesignReviewPage } from "./components/customer/DesignReviewPage";
 import { LoginPage } from "./components/Auth/LoginPage";
-<<<<<<< HEAD
-=======
-import AddressPage from "./components/customer/UserAddressPage";
->>>>>>> 7973c7262458ad93fb9f623dd20b6d18382018bf
 import { WishlistPage } from "./components/customer/WishlistPage";
 import { ProfilePage } from "./components/customer/MyProfile";
 import VpaPage from "./Payment/VpaPage";
 import ReviewsPage from "./components/customer/ReviewPage";
 import ProductReviews from "./components/customer/ReviewPage";
-import FAQPage, { FAQManagement } from "./components/admin/FaqManagement";
-<<<<<<< HEAD
+import  { FAQManagement } from "./components/admin/FaqManagement";
 import { AddressPage } from "./components/customer/AddressPage";
-=======
-import userAddressPage from "./components/customer/UserAddressPage";
->>>>>>> 7973c7262458ad93fb9f623dd20b6d18382018bf
 
 
 
@@ -61,18 +53,12 @@ export const router = createBrowserRouter([
       { path: "checkout", Component: CheckoutPage },
       { path: "orderhistory", Component: OrderHistoryPage },
       { path: "vieworder/:orderId", Component: ViewOrderPage },
-<<<<<<< HEAD
       { path: "address", Component: AddressPage },
-=======
-      { path: "useraddress", Component: userAddressPage },
->>>>>>> 7973c7262458ad93fb9f623dd20b6d18382018bf
       { path: "/WishlistPage", Component: WishlistPage },
       { path: "/MyProfile", Component: ProfilePage },
       { path: "/VpaPage", Component: VpaPage },
       { path: "/ReviewsPage", Component: ProductReviews },
-            { path: "/ReviewsPage", Component: ProductReviews },
-      { path: "/ReviewsPage", Component: ProductReviews },
-
+      
 
 // <Route path="/address" element={<AddressPage />} />
 // <Route path="/checkout" element={<CheckoutPage />} />

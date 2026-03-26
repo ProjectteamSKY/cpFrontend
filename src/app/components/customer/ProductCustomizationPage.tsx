@@ -37,7 +37,6 @@
 // interface ApiResponse { status: string; product: Product }
 
 // // ─── Constants ────────────────────────────────────────────────────────────────
-<<<<<<< HEAD
 
 // const safeParse = (value: any): any[] => {
 //   if (!value) return [];

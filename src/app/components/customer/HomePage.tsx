@@ -1579,6 +1579,7 @@
 // }
 
 // pages/HomePage.tsx
+import { ArrowRight, CheckCircle, Link, Printer, Star, Truck } from "lucide-react";
 import { useProducts } from "../../hooks/useProduct";
 import { BannerCarousel } from "../home/BannerCarousel";
 import { CategoryGrid } from "../home/CategoryGrid";
@@ -1593,6 +1594,8 @@ import { ServiceBand } from "../home/ServiceBand";
 import { SplitBanners } from "../home/SplitBanners";
 import { Testimonials } from "../home/Testimonials";
 import { WhyUs } from "../home/WhyUs";
+import { Card } from "../ui/card";
+import { Button } from "../ui/button";
 
 
 // ── Helper: extract a valid product image URL ──────────────────────────────
