@@ -28,14 +28,13 @@ import { ProductDiscountManagement } from "./components/admin/ProductDiscountMan
 import { ProductSetupManagement } from "./components/admin/ProductSetupManagement";
 import { DesignReviewPage } from "./components/customer/DesignReviewPage";
 import { LoginPage } from "./components/Auth/LoginPage";
-import AddressPage from "./components/customer/UserAddressPage";
 import { WishlistPage } from "./components/customer/WishlistPage";
 import { ProfilePage } from "./components/customer/MyProfile";
 import VpaPage from "./Payment/VpaPage";
 import ReviewsPage from "./components/customer/ReviewPage";
 import ProductReviews from "./components/customer/ReviewPage";
 import FAQPage, { FAQManagement } from "./components/admin/FaqManagement";
-import userAddressPage from "./components/customer/UserAddressPage";
+import { AddressPage } from "./components/customer/AddressPage";
 
 
 
@@ -54,7 +53,7 @@ export const router = createBrowserRouter([
       { path: "checkout", Component: CheckoutPage },
       { path: "orderhistory", Component: OrderHistoryPage },
       { path: "vieworder/:orderId", Component: ViewOrderPage },
-      { path: "useraddress", Component: userAddressPage },
+      { path: "address", Component: AddressPage },
       { path: "/WishlistPage", Component: WishlistPage },
       { path: "/MyProfile", Component: ProfilePage },
       { path: "/VpaPage", Component: VpaPage },

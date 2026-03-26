@@ -328,7 +328,7 @@ export function CartPage() {
                 </div>
               </div>
 
-              <Link to="/checkout">
+              <Link to="/address">
                 <Button className="w-full mt-6">
                   Proceed to Payment
                   <ArrowRight className="ml-2 h-4 w-4" />

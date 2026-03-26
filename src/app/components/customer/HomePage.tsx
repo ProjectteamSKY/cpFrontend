@@ -1665,7 +1665,7 @@ export function HomePage() {
       </div>
 
       {/* ── Footer ── */}
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

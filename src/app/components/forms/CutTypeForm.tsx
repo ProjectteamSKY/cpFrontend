@@ -54,6 +54,8 @@ export function CutTypeForm({ defaultValues, onSubmit, onCancel }: Props) {
           {...register("name", {
             required: "Cut type name is required",
             minLength: { value: 2, message: "Minimum 2 characters" },
+            validate: (value) =>
+              !!value?.trim() || "Name cannot be empty",
           })}
           placeholder="Enter cut type name"
           className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none transition 
@@ -64,18 +66,27 @@ export function CutTypeForm({ defaultValues, onSubmit, onCancel }: Props) {
         )}
       </div>
 
-      {/* Description Field */}
-      <div className="flex flex-col">
-        <label className="text-sm font-medium text-gray-900 mb-2">
-          Description
-        </label>
-        <textarea
-          {...register("description")}
-          placeholder="Enter description"
-          rows={4}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none resize-none focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32] transition"
-        />
-      </div>
+      {/* ✅ Description Field (FIXED) */}
+      <textarea
+        {...register("description", {
+          required: "Description is required",
+          maxLength: {
+            value: 200,
+            message: "Cannot exceed 200 characters",
+          },
+          setValueAs: (value) => value?.trim(), // ✅ IMPORTANT FIX
+          validate: (value) => value !== "" || "Description is required",
+        })}
+        placeholder="Enter description"
+        rows={4}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none resize-none focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32] transition"
+      />
+
+      {errors.description && (
+        <p className="mt-1 text-xs text-red-500">
+          {errors.description.message}
+        </p>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-4 pt-3">

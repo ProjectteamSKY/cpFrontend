@@ -1,90 +1,357 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
-  MapPin,
-  Plus,
-  ArrowLeft,
-  CheckCircle,
-  Trash2,
-  Home,
-  Briefcase,
-  Edit2,
-  X,
-  ChevronRight,
-  Lock,
+  MapPin, Plus, ArrowLeft, CheckCircle, Trash2,
+  Home, Briefcase, Edit2, X, ChevronRight, Lock,
+  Shield, Zap, Package, Star, Phone, Mail, Navigation,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-const API_BASE = "http://54.206.3.97/api";
+const API_BASE = "http://54.206.3.97";
 
 const emptyForm = {
-  first_name: "",
-  last_name: "",
-  street: "",
-  landmark: "",
-  city: "",
-  state: "",
-  country: "India",
-  postal_code: "",
-  phone: "",
-  email: "",
-  address_type: "home", // home | work | other
+  first_name: "", last_name: "", street: "", landmark: "",
+  city: "", state: "", country: "India", postal_code: "",
+  phone: "", email: "", address_type: "home",
 };
 
 const inputClass =
-  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D73D32]/30 focus:border-[#D73D32] transition-all duration-200 bg-gray-50 hover:bg-white";
+  "w-full bg-white border border-[#e2e2e2] rounded-xl px-4 py-3 text-sm text-[#1a1a1a] placeholder-[#bbb] focus:outline-none focus:ring-2 focus:ring-[#D73D32]/20 focus:border-[#D73D32] transition-all duration-200 hover:border-[#c8c8c8] shadow-sm";
 
 const labelClass =
-  "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2";
+  "block text-[10px] font-extrabold text-[#999] uppercase tracking-[0.14em] mb-1.5";
 
+/* ─── Address Modal ───────────────────────────────────────────────────── */
+function AddressModal({
+  open, editingId, form, saving, onChange, onSave, onClose,
+}) {
+  const overlayRef = useRef(null);
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    if (open) window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)" }}
+    >
+      <div
+        className="relative w-full sm:max-w-lg bg-white sm:rounded-2xl rounded-t-3xl overflow-hidden flex flex-col shadow-2xl border border-[#ececec]"
+        style={{ maxHeight: "92dvh" }}
+      >
+        {/* top accent bar */}
+        <div className="h-[3px] w-full bg-[#D73D32]" />
+
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-[#ddd]" />
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0f0f0]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#D73D32]/8 border border-[#D73D32]/20 flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-[#D73D32]" />
+            </div>
+            <div>
+              <h2 className="font-black text-[#1a1a1a] text-sm">
+                {editingId ? "Edit Address" : "New Delivery Address"}
+              </h2>
+              <p className="text-[11px] text-[#aaa]">All starred fields are required</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-[#f5f5f5] hover:bg-[#D73D32]/10 hover:text-[#D73D32] flex items-center justify-center text-[#aaa] transition-all"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4 bg-[#fafafa]">
+          <div>
+            <label className={labelClass}>Address Type</label>
+            <div className="flex gap-2">
+              {["home", "work", "other"].map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => onChange("address_type", type)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold capitalize border-2 transition-all ${
+                    form.address_type === type
+                      ? "border-[#D73D32] bg-[#D73D32]/8 text-[#D73D32]"
+                      : "border-[#e2e2e2] text-[#aaa] hover:border-[#c8c8c8] bg-white"
+                  }`}
+                >
+                  {type === "home" && <Home className="w-3.5 h-3.5" />}
+                  {type === "work" && <Briefcase className="w-3.5 h-3.5" />}
+                  {type === "other" && <MapPin className="w-3.5 h-3.5" />}
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>First Name <span className="text-[#D73D32]">*</span></label>
+              <input type="text" value={form.first_name} onChange={(e) => onChange("first_name", e.target.value)} placeholder="Arjun" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Last Name</label>
+              <input type="text" value={form.last_name} onChange={(e) => onChange("last_name", e.target.value)} placeholder="Sharma" className={inputClass} />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Street Address <span className="text-[#D73D32]">*</span></label>
+            <input type="text" value={form.street} onChange={(e) => onChange("street", e.target.value)} placeholder="Flat 4B, Sunrise Towers, Anna Nagar" className={inputClass} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Landmark <span className="text-[#ccc] font-normal normal-case">(optional)</span></label>
+            <input type="text" value={form.landmark} onChange={(e) => onChange("landmark", e.target.value)} placeholder="Near Metro, Opp. Big Bazaar…" className={inputClass} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>City <span className="text-[#D73D32]">*</span></label>
+              <input type="text" value={form.city} onChange={(e) => onChange("city", e.target.value)} placeholder="Chennai" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>State <span className="text-[#D73D32]">*</span></label>
+              <input type="text" value={form.state} onChange={(e) => onChange("state", e.target.value)} placeholder="Tamil Nadu" className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Pincode <span className="text-[#D73D32]">*</span></label>
+              <input type="text" value={form.postal_code} onChange={(e) => onChange("postal_code", e.target.value)} placeholder="600001" maxLength={6} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Phone <span className="text-[#D73D32]">*</span></label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[#D73D32] font-bold select-none">+91</span>
+                <input type="tel" value={form.phone} onChange={(e) => onChange("phone", e.target.value)} placeholder="9876543210" maxLength={10} className={`${inputClass} pl-12`} />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Email <span className="text-[#D73D32]">*</span></label>
+            <input type="email" value={form.email} onChange={(e) => onChange("email", e.target.value)} placeholder="arjun@example.com" className={inputClass} />
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-t border-[#f0f0f0] flex gap-3 bg-white">
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="flex-1 bg-[#D73D32] hover:bg-[#c23228] disabled:bg-[#f0f0f0] disabled:text-[#ccc] text-white font-black py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#D73D32]/20"
+          >
+            {saving ? (
+              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving…</>
+            ) : editingId ? "Update Address" : "Save Address"}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 py-3 border border-[#e2e2e2] hover:bg-[#f5f5f5] text-[#999] hover:text-[#555] font-semibold rounded-xl text-sm transition-all"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Address Card ────────────────────────────────────────────────────── */
+function AddressCard({ addr, isSelected, onSelect, onEdit, onDelete }) {
+  return (
+    <div
+      onClick={onSelect}
+      className={`relative rounded-2xl border-2 cursor-pointer transition-all duration-200 overflow-hidden group ${
+        isSelected
+          ? "border-[#D73D32] bg-white shadow-md shadow-[#D73D32]/10"
+          : "border-[#e8e8e8] bg-white hover:border-[#d0d0d0] hover:shadow-sm"
+      }`}
+    >
+      {isSelected && (
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#D73D32]" />
+      )}
+
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          {/* Radio dot */}
+          <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+            isSelected ? "border-[#D73D32]" : "border-[#ccc]"
+          }`}>
+            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#D73D32]" />}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="font-black text-[#1a1a1a] text-sm">{addr.first_name} {addr.last_name}</span>
+              {addr.address_type && (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize border ${
+                  isSelected
+                    ? "bg-[#D73D32]/8 text-[#D73D32] border-[#D73D32]/25"
+                    : "bg-[#f5f5f5] text-[#999] border-[#e8e8e8]"
+                }`}>
+                  {addr.address_type === "work" ? <Briefcase className="w-2.5 h-2.5" /> : <Home className="w-2.5 h-2.5" />}
+                  {addr.address_type}
+                </span>
+              )}
+              {(addr.is_default === 1 || addr.is_default === true) && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-[#D73D32]/8 text-[#D73D32] border border-[#D73D32]/25">
+                  <Star className="w-2.5 h-2.5" /> Default
+                </span>
+              )}
+            </div>
+
+            <p className="text-sm text-[#555] leading-snug">
+              {addr.address}{addr.landmark ? `, ${addr.landmark}` : ""}
+            </p>
+            <p className="text-sm text-[#999] mt-0.5">{addr.city}, {addr.state} — {addr.postal_code}</p>
+
+            <div className="flex items-center gap-3 mt-2">
+              <span className="flex items-center gap-1 text-[11px] text-[#aaa]"><Phone className="w-3 h-3 text-[#D73D32]" />{addr.phone}</span>
+              <span className="w-px h-3 bg-[#ddd]" />
+              <span className="flex items-center gap-1 text-[11px] text-[#aaa] truncate"><Mail className="w-3 h-3 text-[#D73D32]" />{addr.email}</span>
+            </div>
+
+            {isSelected && (
+              <div className="mt-3 flex items-center gap-2 bg-[#D73D32]/6 border border-[#D73D32]/20 rounded-xl px-3 py-2">
+                <Zap className="w-3.5 h-3.5 text-[#D73D32] flex-shrink-0" />
+                <p className="text-[11px] text-[#D73D32] font-semibold">Express delivery to this address</p>
+              </div>
+            )}
+          </div>
+
+          {/* Hover actions */}
+          <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="w-7 h-7 rounded-lg bg-[#f5f5f5] hover:bg-[#D73D32]/10 hover:text-[#D73D32] flex items-center justify-center text-[#aaa] transition-all"
+            >
+              <Edit2 className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="w-7 h-7 rounded-lg bg-[#f5f5f5] hover:bg-[#D73D32]/10 hover:text-[#D73D32] flex items-center justify-center text-[#aaa] transition-all"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Right Panel ─────────────────────────────────────────────────────── */
+function PaymentPanel({ selectedAddress, onContinue }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Delivering to */}
+      <div className={`rounded-2xl border-2 transition-all duration-300 ${
+        selectedAddress
+          ? "border-[#D73D32]/35 bg-[#D73D32]/4 shadow-sm shadow-[#D73D32]/8"
+          : "border-dashed border-[#e2e2e2] bg-[#fafafa]"
+      }`}>
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Navigation className={`w-4 h-4 ${selectedAddress ? "text-[#D73D32]" : "text-[#ccc]"}`} />
+            <p className={`text-[10px] font-extrabold uppercase tracking-wider ${selectedAddress ? "text-[#D73D32]" : "text-[#ccc]"}`}>
+              Delivering to
+            </p>
+          </div>
+          {selectedAddress ? (
+            <div>
+              <p className="text-sm font-black text-[#1a1a1a]">{selectedAddress.first_name} {selectedAddress.last_name}</p>
+              <p className="text-xs text-[#888] mt-0.5 leading-snug">
+                {selectedAddress.address}{selectedAddress.landmark ? `, ${selectedAddress.landmark}` : ""}, {selectedAddress.city}, {selectedAddress.state} — {selectedAddress.postal_code}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-[#ccc]">← Select an address to continue</p>
+          )}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <button
+        onClick={onContinue}
+        disabled={!selectedAddress}
+        className="w-full relative overflow-hidden bg-[#D73D32] hover:bg-[#c23228] disabled:bg-[#f0f0f0] disabled:text-[#ccc] disabled:cursor-not-allowed text-white font-black py-4 rounded-2xl text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-[#D73D32]/20 group"
+      >
+        {selectedAddress && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+        )}
+        <span className="relative">Continue to Payment</span>
+        <ChevronRight className="w-4 h-4 relative" />
+      </button>
+
+      {/* Trust row */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { icon: Lock, label: "SSL Encrypted" },
+          { icon: Shield, label: "PCI Compliant" },
+          { icon: CheckCircle, label: "100% Secure" },
+        ].map(({ icon: Icon, label }) => (
+          <div key={label} className="flex flex-col items-center gap-1.5 bg-white border border-[#ececec] rounded-xl py-3 shadow-sm">
+            <Icon className="w-4 h-4 text-[#D73D32]" />
+            <span className="text-[10px] font-bold text-[#aaa] text-center leading-tight">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Page ───────────────────────────────────────────────────────── */
 export function AddressPage() {
   const navigate = useNavigate();
-  const userId =
-    sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+  const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
 
-  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [savedAddresses, setSavedAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
 
-  // ─── Fetch saved addresses ─────────────────────────────────────────────────
   const fetchAddresses = async () => {
-    if (!userId) {
-      toast.error("Please login to continue");
-      setLoadingAddresses(false);
-      return;
-    }
+    if (!userId) { toast.error("Please login to continue"); setLoadingAddresses(false); return; }
     try {
-      const res = await axios.get(
-        `${API_BASE}/user-address/user/${userId}`,
-        { withCredentials: true }
-      );
-      const list = res.data.data || res.data || [];
+      const res = await axios.get(`${API_BASE}/api/user_address/list/${userId}`, { withCredentials: true });
+      const list = res.data.addresses || [];
       setSavedAddresses(list);
-      // auto-select default
-      const def = list.find((a: any) => a.is_default);
+      const def = list.find((a) => a.is_default === 1 || a.is_default === true);
       if (def) setSelectedAddressId(def.id);
       else if (list.length) setSelectedAddressId(list[0].id);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load saved addresses");
       setSavedAddresses([]);
-    } finally {
-      setLoadingAddresses(false);
-    }
+    } finally { setLoadingAddresses(false); }
   };
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
+  useEffect(() => { fetchAddresses(); }, []);
 
-  const handleFormChange = (key: string, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+  const handleFormChange = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const validateForm = () => {
     if (!form.first_name) return "First name is required";
@@ -92,494 +359,202 @@ export function AddressPage() {
     if (!form.city) return "City is required";
     if (!form.state) return "State is required";
     if (!form.postal_code) return "Pincode is required";
-    if (!form.phone) return "Phone number is required";
+    if (!form.phone) return "Phone is required";
     if (!form.email) return "Email is required";
     return null;
   };
 
-  // ─── Save (create or update) ───────────────────────────────────────────────
   const handleSaveAddress = async () => {
     const err = validateForm();
     if (err) { toast.error(err); return; }
-
     setSaving(true);
     try {
       const payload = {
-        user_id: userId,
-        first_name: form.first_name,
-        last_name: form.last_name,
-        address: form.street,
-        landmark: form.landmark,
-        city: form.city,
-        state: form.state,
-        country: form.country,
-        postal_code: form.postal_code,
-        phone: form.phone,
-        email: form.email,
-        address_type: form.address_type,
-        is_default: false,
+        user_id: userId, first_name: form.first_name, last_name: form.last_name,
+        address: form.street, landmark: form.landmark, city: form.city,
+        state: form.state, country: form.country, postal_code: form.postal_code,
+        phone: form.phone, email: form.email, address_type: form.address_type, is_default: false,
       };
-
       if (editingId) {
-        await axios.put(
-          `${API_BASE}/user-address/update/${editingId}`,
-          payload,
-          { withCredentials: true }
-        );
+        await axios.put(`${API_BASE}/api/user_address/update/${editingId}`, payload, { withCredentials: true });
         toast.success("Address updated");
       } else {
-        await axios.post(
-          `${API_BASE}/user-address/create`,
-          payload,
-          { withCredentials: true }
-        );
+        await axios.post(`${API_BASE}/api/user_address/create`, payload);
         toast.success("Address added");
       }
-
-      setShowForm(false);
-      setEditingId(null);
-      setForm({ ...emptyForm });
-      fetchAddresses();
-    } catch (err: any) {
+      closeModal(); fetchAddresses();
+    } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed to save address");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
-  // ─── Delete ────────────────────────────────────────────────────────────────
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE}/user-address/delete/${id}`, {
-        withCredentials: true,
-      });
+      await axios.delete(`${API_BASE}/api/user_address/delete/${id}`);
       toast.success("Address removed");
       if (selectedAddressId === id) setSelectedAddressId(null);
       fetchAddresses();
-    } catch {
-      toast.error("Failed to delete address");
-    }
+    } catch { toast.error("Failed to delete address"); }
   };
 
-  // ─── Edit ──────────────────────────────────────────────────────────────────
-  const handleEdit = (addr: any) => {
+  const openAddModal = () => { setForm({ ...emptyForm }); setEditingId(null); setModalOpen(true); };
+  const openEditModal = (addr) => {
     setForm({
-      first_name: addr.first_name || "",
-      last_name: addr.last_name || "",
-      street: addr.address || "",
-      landmark: addr.landmark || "",
-      city: addr.city || "",
-      state: addr.state || "",
-      country: addr.country || "India",
-      postal_code: addr.postal_code || "",
-      phone: addr.phone || "",
-      email: addr.email || "",
-      address_type: addr.address_type || "home",
+      first_name: addr.first_name || "", last_name: addr.last_name || "",
+      street: addr.address || "", landmark: addr.landmark || "",
+      city: addr.city || "", state: addr.state || "", country: addr.country || "India",
+      postal_code: addr.postal_code || "", phone: addr.phone || "",
+      email: addr.email || "", address_type: addr.address_type || "home",
     });
-    setEditingId(addr.id);
-    setShowForm(true);
+    setEditingId(addr.id); setModalOpen(true);
   };
+  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ ...emptyForm }); };
 
   const handleContinue = () => {
-    if (!selectedAddressId) {
-      toast.error("Please select a delivery address");
-      return;
-    }
+    if (!selectedAddressId) { toast.error("Please select a delivery address"); return; }
     const selected = savedAddresses.find((a) => a.id === selectedAddressId);
-    // Pass selected address via sessionStorage so CheckoutPage can use it
     sessionStorage.setItem("selected_address_id", selectedAddressId);
     sessionStorage.setItem("selected_address", JSON.stringify(selected));
     navigate("/checkout");
   };
 
-  const addressTypeIcon = (type: string) => {
-    if (type === "work") return <Briefcase className="w-3.5 h-3.5" />;
-    return <Home className="w-3.5 h-3.5" />;
-  };
+  const selectedAddress = savedAddresses.find((a) => a.id === selectedAddressId) ?? null;
 
-  // ─── Loading ───────────────────────────────────────────────────────────────
   if (loadingAddresses) {
     return (
-      <div className="min-h-screen bg-[#F7F5F2] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7f7f7] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-[#D73D32] border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-gray-400 tracking-widest uppercase">
-            Loading addresses
-          </p>
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-full border-4 border-[#e8e8e8]" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#D73D32] animate-spin" />
+          </div>
+          <p className="text-xs font-bold text-[#bbb] tracking-[0.18em] uppercase">Loading</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F5F2]">
-      {/* Top bar */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Lock className="w-3.5 h-3.5" />
-            Secure Checkout
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Sora', sans-serif; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #f0f0f0; }
+        ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D73D32; }
+      `}</style>
+
+      <AddressModal
+        open={modalOpen} editingId={editingId} form={form} saving={saving}
+        onChange={handleFormChange} onSave={handleSaveAddress} onClose={closeModal}
+      />
+
+      <div className="min-h-screen bg-[#f7f7f7]">
+        {/* Sticky top nav */}
+        <div className="sticky top-0 z-10 bg-white border-b border-[#ececec] shadow-sm">
+          <div className="w-full px-6 py-3.5 flex items-center justify-between">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-sm font-semibold text-[#aaa] hover:text-[#1a1a1a] transition-colors group"
+            >
+              <div className="w-7 h-7 rounded-lg bg-[#f5f5f5] group-hover:bg-[#D73D32]/10 group-hover:text-[#D73D32] flex items-center justify-center transition-colors">
+                <ArrowLeft className="w-3.5 h-3.5" />
+              </div>
+              Back
+            </button>
+
+            {/* Stepper */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              {["Delivery Address", "Payment", "Review & Place"].map((s, i) => (
+                <div key={s} className="flex items-center gap-1.5">
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    i === 0
+                      ? "bg-[#D73D32] text-white shadow-md shadow-[#D73D32]/25"
+                      : "text-[#bbb]"
+                  }`}>
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
+                      i === 0 ? "bg-white/20" : "bg-[#eee] text-[#bbb]"
+                    }`}>{i + 1}</span>
+                    {s}
+                  </div>
+                  {i < 2 && <ChevronRight className="w-3.5 h-3.5 text-[#ddd]" />}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#D73D32]">
+              <Shield className="w-3.5 h-3.5" />
+              Secure Checkout
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-10">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-            Delivery Address
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Select or add a delivery address
-          </p>
-        </div>
+        {/* ── Two-column body ── */}
+        <div className="w-full px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_440px] gap-8 items-start">
 
-        {/* ── Saved Addresses ──────────────────────────────────────────────── */}
-        {savedAddresses.length > 0 && (
-          <div className="space-y-3 mb-6">
-            {savedAddresses.map((addr) => (
+          {/* LEFT: Address list */}
+          <div>
+            <div className="flex items-end justify-between mb-5">
+              <div>
+                <p className="text-[10px] font-extrabold text-[#D73D32] uppercase tracking-[0.18em] mb-1">Step 1 of 3</p>
+                <h1 className="text-2xl font-black text-[#1a1a1a] tracking-tight">Delivery Address</h1>
+                <p className="text-sm text-[#aaa] mt-0.5 font-medium">
+                  {savedAddresses.length > 0
+                    ? `${savedAddresses.length} saved address${savedAddresses.length !== 1 ? "es" : ""} — pick one`
+                    : "Add your first delivery address"}
+                </p>
+              </div>
+              {savedAddresses.length > 0 && (
+                <button
+                  onClick={openAddModal}
+                  className="flex items-center gap-2 bg-white border-2 border-[#D73D32]/35 hover:border-[#D73D32] hover:bg-[#D73D32]/5 text-[#D73D32] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add New Address
+                </button>
+              )}
+            </div>
+
+            {/* Cards */}
+            {savedAddresses.length > 0 ? (
+              <div className="space-y-3">
+                {savedAddresses.map((addr) => (
+                  <AddressCard
+                    key={addr.id}
+                    addr={addr}
+                    isSelected={selectedAddressId === addr.id}
+                    onSelect={() => setSelectedAddressId(addr.id)}
+                    onEdit={() => openEditModal(addr)}
+                    onDelete={() => handleDelete(addr.id)}
+                  />
+                ))}
+              </div>
+            ) : (
               <div
-                key={addr.id}
-                onClick={() => setSelectedAddressId(addr.id)}
-                className={`relative bg-white rounded-2xl border-2 cursor-pointer transition-all duration-200 overflow-hidden ${
-                  selectedAddressId === addr.id
-                    ? "border-[#D73D32] shadow-md shadow-red-100"
-                    : "border-transparent shadow-sm hover:border-gray-200"
-                }`}
+                onClick={openAddModal}
+                className="border-2 border-dashed border-[#e2e2e2] hover:border-[#D73D32]/40 bg-white hover:bg-[#D73D32]/3 rounded-2xl py-16 flex flex-col items-center gap-4 text-[#ccc] hover:text-[#D73D32] transition-all cursor-pointer group shadow-sm"
               >
-                {/* Selected ribbon */}
-                {selectedAddressId === addr.id && (
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-[#D73D32] rounded-t-2xl" />
-                )}
-
-                <div className="p-5 flex items-start gap-4">
-                  {/* Radio */}
-                  <div
-                    className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                      selectedAddressId === addr.id
-                        ? "border-[#D73D32]"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    {selectedAddressId === addr.id && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#D73D32]" />
-                    )}
-                  </div>
-
-                  {/* Address icon */}
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                      selectedAddressId === addr.id
-                        ? "bg-red-50 text-[#D73D32]"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    <MapPin className="w-5 h-5" />
-                  </div>
-
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="font-bold text-gray-900 text-sm">
-                        {addr.first_name} {addr.last_name}
-                      </p>
-                      {addr.address_type && (
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${
-                            selectedAddressId === addr.id
-                              ? "bg-red-100 text-[#D73D32]"
-                              : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          {addressTypeIcon(addr.address_type)}
-                          {addr.address_type}
-                        </span>
-                      )}
-                      {addr.is_default && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-600">
-                          <CheckCircle className="w-3 h-3" /> Default
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      {addr.address}
-                      {addr.landmark ? `, ${addr.landmark}` : ""}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {addr.city}, {addr.state} — {addr.postal_code}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {addr.phone} · {addr.email}
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleEdit(addr); }}
-                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center text-gray-400 transition-colors"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(addr.id); }}
-                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-500 flex items-center justify-center text-gray-400 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                <div className="w-14 h-14 rounded-2xl bg-[#f8f8f8] group-hover:bg-[#D73D32]/8 flex items-center justify-center transition-colors border border-[#ececec] group-hover:border-[#D73D32]/25">
+                  <MapPin className="w-7 h-7" />
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-sm text-[#bbb] group-hover:text-[#555] transition-colors">No saved addresses</p>
+                  <p className="text-xs text-[#ccc] mt-0.5">Click to add your first delivery address</p>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity text-[#D73D32] bg-[#D73D32]/8 border border-[#D73D32]/25 px-3 py-1.5 rounded-xl">
+                  <Plus className="w-3.5 h-3.5" /> Add Address
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        )}
 
-        {/* ── Add new address button / collapsed trigger ────────────────────── */}
-        {!showForm ? (
-          <button
-            onClick={() => {
-              setForm({ ...emptyForm });
-              setEditingId(null);
-              setShowForm(true);
-            }}
-            className="w-full border-2 border-dashed border-gray-200 hover:border-[#D73D32]/40 hover:bg-red-50/30 rounded-2xl py-5 flex items-center justify-center gap-3 text-gray-500 hover:text-[#D73D32] transition-all duration-200 group mb-6"
-          >
-            <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-red-100 flex items-center justify-center transition-colors">
-              <Plus className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-semibold">Add New Address</span>
-          </button>
-        ) : (
-          /* ── New / Edit Address Form ────────────────────────────────────── */
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-            {/* Form header */}
-            <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-[#D73D32]" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-gray-900 text-base">
-                    {editingId ? "Edit Address" : "New Address"}
-                  </h2>
-                  <p className="text-xs text-gray-400">
-                    Fill in the delivery details
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...emptyForm }); }}
-                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Address type pills */}
-              <div>
-                <label className={labelClass}>Address Type</label>
-                <div className="flex gap-2">
-                  {["home", "work", "other"].map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => handleFormChange("address_type", type)}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold capitalize border-2 transition-all duration-200 ${
-                        form.address_type === type
-                          ? "border-[#D73D32] bg-red-50 text-[#D73D32]"
-                          : "border-gray-200 text-gray-500 hover:border-gray-300"
-                      }`}
-                    >
-                      {type === "home" && <Home className="w-3.5 h-3.5" />}
-                      {type === "work" && <Briefcase className="w-3.5 h-3.5" />}
-                      {type === "other" && <MapPin className="w-3.5 h-3.5" />}
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Name row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>
-                    First Name <span className="text-[#D73D32]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.first_name}
-                    onChange={(e) => handleFormChange("first_name", e.target.value)}
-                    placeholder="John"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Last Name</label>
-                  <input
-                    type="text"
-                    value={form.last_name}
-                    onChange={(e) => handleFormChange("last_name", e.target.value)}
-                    placeholder="Doe"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              {/* Street */}
-              <div>
-                <label className={labelClass}>
-                  Street Address <span className="text-[#D73D32]">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.street}
-                  onChange={(e) => handleFormChange("street", e.target.value)}
-                  placeholder="123 Main Street, Area, District"
-                  className={inputClass}
-                />
-              </div>
-
-              {/* Landmark */}
-              <div>
-                <label className={labelClass}>
-                  Landmark{" "}
-                  <span className="text-gray-300 font-normal normal-case">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.landmark}
-                  onChange={(e) => handleFormChange("landmark", e.target.value)}
-                  placeholder="Near bus stop, opposite park..."
-                  className={inputClass}
-                />
-              </div>
-
-              {/* City & State */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>
-                    City <span className="text-[#D73D32]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.city}
-                    onChange={(e) => handleFormChange("city", e.target.value)}
-                    placeholder="Chennai"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>
-                    State <span className="text-[#D73D32]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.state}
-                    onChange={(e) => handleFormChange("state", e.target.value)}
-                    placeholder="Tamil Nadu"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              {/* Pincode & Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>
-                    Pincode <span className="text-[#D73D32]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.postal_code}
-                    onChange={(e) => handleFormChange("postal_code", e.target.value)}
-                    placeholder="600001"
-                    maxLength={6}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>
-                    Phone <span className="text-[#D73D32]">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={(e) => handleFormChange("phone", e.target.value)}
-                      placeholder="9876543210"
-                      maxLength={10}
-                      className={`${inputClass} pl-12`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className={labelClass}>
-                  Email <span className="text-[#D73D32]">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => handleFormChange("email", e.target.value)}
-                  placeholder="john@example.com"
-                  className={inputClass}
-                />
-              </div>
-
-              {/* Form actions */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleSaveAddress}
-                  disabled={saving}
-                  className="flex-1 bg-[#D73D32] hover:bg-[#C0362B] disabled:bg-gray-300 text-white font-bold py-3 rounded-xl text-sm transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>{editingId ? "Update Address" : "Save Address"}</>
-                  )}
-                </button>
-                <button
-                  onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...emptyForm }); }}
-                  className="px-6 py-3 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 font-semibold rounded-xl text-sm transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+          {/* RIGHT: Sticky payment panel */}
+          <div className="lg:sticky lg:top-24">
+            <PaymentPanel selectedAddress={selectedAddress} onContinue={handleContinue} />
           </div>
-        )}
-
-        {/* ── Continue CTA ─────────────────────────────────────────────────── */}
-        <button
-          onClick={handleContinue}
-          disabled={!selectedAddressId}
-          className="w-full bg-[#1A1A1A] hover:bg-black disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
-        >
-          Continue to Payment
-          <ChevronRight className="w-4 h-4" />
-        </button>
-
-        {!selectedAddressId && savedAddresses.length > 0 && (
-          <p className="text-center text-xs text-gray-400 mt-3">
-            Please select an address above to continue
-          </p>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

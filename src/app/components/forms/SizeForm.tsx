@@ -113,10 +113,13 @@ export function SizeForm({ defaultValues, onSubmit, onCancel }: Props) {
           Unit
         </label>
         <input
-          {...register("unit")}
+          {...register("unit", sizeValidation.unit)}
           placeholder="mm / cm / in"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32] transition"
         />
+        {errors.unit && (
+          <p className="mt-1 text-xs text-red-500">{errors.unit.message}</p>
+        )}
       </div>
 
       {/* Description */}
@@ -125,11 +128,16 @@ export function SizeForm({ defaultValues, onSubmit, onCancel }: Props) {
           Description
         </label>
         <textarea
-          {...register("description")}
+          {...register("description", sizeValidation.description)}
           placeholder="Enter description"
           rows={4}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 outline-none resize-none focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32] transition"
         />
+        {errors.description && (
+          <p className="mt-1 text-xs text-red-500">
+            {errors.description.message}
+          </p>
+        )}
       </div>
 
       {/* Action Buttons */}
