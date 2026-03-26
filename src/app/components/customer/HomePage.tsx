@@ -1628,44 +1628,50 @@ export function HomePage() {
       {/* ── Trust band ── */}
       <ServiceBand />
 
-      {/* ── Main content ── */}
-      <div className="max-w-[1280px] mx-auto px-6">
+      {/* Trust Badges */}
+      <section className="max-w-[1440px] mx-auto px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <Card className="bg-white p-6 text-center border-0 shadow-sm">
+            <CheckCircle className="w-12 h-12 text-[#1A1A1A] mx-auto mb-3" />
+            <div className="text-2xl font-bold text-[#1A1A1A]">10,000+</div>
+            <div className="text-sm text-gray-600">Happy Customers</div>
+          </Card>
+          <Card className="bg-white p-6 text-center border-0 shadow-sm">
+            <Star className="w-12 h-12 text-[#1A1A1A] mx-auto mb-3" />
+            <div className="text-2xl font-bold text-[#1A1A1A]">4.9/5</div>
+            <div className="text-sm text-gray-600">Customer Rating</div>
+          </Card>
+          <Card className="bg-white p-6 text-center border-0 shadow-sm">
+            <Truck className="w-12 h-12 text-[#1A1A1A] mx-auto mb-3" />
+            <div className="text-2xl font-bold text-[#1A1A1A]">24-48hrs</div>
+            <div className="text-sm text-gray-600">Delivery Time</div>
+          </Card>
+          <Card className="bg-white p-6 text-center border-0 shadow-sm">
+            <Printer className="w-12 h-12 text-[#1A1A1A] mx-auto mb-3" />
+            <div className="text-2xl font-bold text-[#1A1A1A]">50,000+</div>
+            <div className="text-sm text-gray-600">Orders Completed</div>
+          </Card>
+        </div>
+      </section>
 
-        {/* Shop by category */}
-        <CategoryGrid />
-
-        {/* Best sellers */}
-        <FeaturedProducts
-          products={filteredProducts}
-          loading={loading}
-          getValidImage={getValidImage}
-        />
-
-        {/* Why us */}
-        <WhyUs />
-
-        {/* How it works */}
-        <HowItWorks />
-
-        {/* New arrivals */}
-        <NewArrivals
-          products={filteredProducts}
-          getValidImage={getValidImage}
-        />
-
-        {/* Split promo banners */}
-        <SplitBanners />
-
-        {/* Testimonials */}
-        <Testimonials />
-
-        {/* Newsletter */}
-        <Newsletter />
-
-      </div>
-
-      {/* ── Footer ── */}
-      {/* <Footer /> */}
+      {/* CTA Section */}
+      <section className="max-w-[1440px] mx-auto px-8">
+        <Card className="bg-gradient-to-r from-[#D73D32] to-[#D73D32]/90 text-white p-12 text-center border-0 shadow-xl">
+          <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+          <p className="text-xl mb-8 text-white/90">
+            Join thousands of satisfied customers and experience premium printing quality
+          </p>
+          <Link to="/products">
+            <Button
+              size="lg"
+              className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-8 py-6 text-lg"
+            >
+              Start Your Order Now
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </Link>
+        </Card>
+      </section>
     </div>
   );
 }

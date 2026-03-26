@@ -8,7 +8,7 @@ import {
 import axios from "axios";
 import { toast } from "react-toastify";
 
-const API_BASE = "http://54.206.3.97";
+const API_BASE = "http://127.0.0.1:8000";
 
 const emptyForm = {
   first_name: "", last_name: "", street: "", landmark: "",

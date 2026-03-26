@@ -54,9 +54,11 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     handleSubmit,
     control,
     watch,
+    setValue,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormData>({
+    // use defaultValues but only for first render
     defaultValues: {
       name: "",
       description: "",
@@ -128,10 +130,11 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
         setIsLoadingSubcategories(false);
       }
     };
+
     fetchSubcategories();
   }, [selectedCategory]);
 
-  /* ================= EDIT MODE ================= */
+  /* ================= EDIT MODE (category only) ================= */
   useEffect(() => {
     if (!defaultValues) return;
 
