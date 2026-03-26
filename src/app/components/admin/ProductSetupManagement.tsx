@@ -74,7 +74,7 @@ export function ProductSetupManagement() {
 
       console.log("Processed product data:", productData);
       setProducts(productData);
-      // toast.success("Products loaded successfully!");
+      toast.success("Products loaded successfully!");
     } catch (error) {
       console.error("Error fetching products:", error);
       const errorMessage = "Failed to fetch products. Please try again.";

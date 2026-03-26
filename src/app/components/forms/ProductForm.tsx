@@ -27,6 +27,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
+import { productValidation } from "../../validation/productValidation";
 
 const BASE_URL = "http://54.206.3.97";
 
@@ -41,13 +42,11 @@ interface Props {
   onCancel: () => void;
 }
 
-// ✅ --- NEW: make this a stable string for keying ---
 function productFormKey(product: Product | null | undefined): string {
   return product?.id ? `edit-${product.id}` : "create";
 }
 
 export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
-  // ✅ --- NEW: use defaultValues.id to create a stable key so form remounts per product ---
   const formKey = productFormKey(defaultValues);
 
   const {
@@ -77,20 +76,14 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
-  const [subcategoriesError, setSubcategoriesError] = useState<string | null>(
-    null
-  );
+  const [subcategoriesError, setSubcategoriesError] = useState<string | null>(null);
 
   const selectedCategory = watch("category_id");
 
   const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
-  const [existingRelatedImages, setExistingRelatedImages] = useState<
-    ProductImage[]
-  >([]);
+  const [existingRelatedImages, setExistingRelatedImages] = useState<ProductImage[]>([]);
   const [imagePreviews, setImagePreviews] = useState<(string | File)[]>([]);
-  const [relatedImagePreviews, setRelatedImagePreviews] = useState<
-    (string | File)[]
-  >([]);
+  const [relatedImagePreviews, setRelatedImagePreviews] = useState<(string | File)[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const getFullImageUrl = useCallback((imagePath: string) => {
@@ -124,14 +117,11 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
         setSubcategories([]);
         return;
       }
-
       setIsLoadingSubcategories(true);
       setSubcategoriesError(null);
-
       try {
         const data = await getAllSubcategories(selectedCategory);
-        const list = data || [];
-        setSubcategories(list);
+        setSubcategories(data || []);
       } catch (error) {
         console.error("Failed to fetch subcategories:", error);
         setSubcategoriesError("Failed to load subcategories.");
@@ -147,8 +137,6 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
   /* ================= EDIT MODE (category only) ================= */
   useEffect(() => {
     if (!defaultValues) return;
-
-    console.log("EDIT DATA:", defaultValues);
 
     reset({
       name: defaultValues.name,
@@ -167,16 +155,10 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     setImagePreviews(
       (defaultValues.images ?? []).map((img) => getFullImageUrl(img.url))
     );
-
     setRelatedImagePreviews(
-      (defaultValues.related_images ?? []).map((img) =>
-        getFullImageUrl(img.url)
-      )
+      (defaultValues.related_images ?? []).map((img) => getFullImageUrl(img.url))
     );
   }, [formKey, defaultValues, reset, getFullImageUrl]);
-
-  /* ================= SET SUBCATEGORY_ID AFTER LOADING ================= */
-
 
   /* ================= IMAGE HANDLERS ================= */
   const handleImageChange = (
@@ -184,22 +166,14 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     fieldOnChange: (files: File[]) => void
   ) => {
     const validFiles: File[] = [];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
+    const maxSize = 5 * 1024 * 1024;
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
 
     setUploadError(null);
 
     Array.from(files).forEach((file) => {
       if (!allowedTypes.includes(file.type)) {
-        setUploadError(
-          `${file.name} is not supported. Use JPG, PNG, WEBP, or GIF.`
-        );
+        setUploadError(`${file.name} is not supported. Use JPG, PNG, WEBP, or GIF.`);
         return;
       }
       if (file.size > maxSize) {
@@ -220,22 +194,14 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     fieldOnChange: (files: File[]) => void
   ) => {
     const validFiles: File[] = [];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
+    const maxSize = 5 * 1024 * 1024;
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
 
     setUploadError(null);
 
     Array.from(files).forEach((file) => {
       if (!allowedTypes.includes(file.type)) {
-        setUploadError(
-          `${file.name} is not supported. Use JPG, PNG, WEBP, or GIF.`
-        );
+        setUploadError(`${file.name} is not supported. Use JPG, PNG, WEBP, or GIF.`);
         return;
       }
       if (file.size > maxSize) {
@@ -255,15 +221,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     const removed = imagePreviews[index];
 
     if (typeof removed === "string") {
-      const urlParts = removed.split("/");
-      const filename = urlParts[urlParts.length - 1];
-
+      const filename = removed.split("/").pop();
       setExistingImages((prev) =>
-        prev.filter((img) => {
-          const imgParts = img.url.split("/");
-          const imgFilename = imgParts[imgParts.length - 1];
-          return imgFilename !== filename;
-        })
+        prev.filter((img) => img.url.split("/").pop() !== filename)
       );
     }
 
@@ -274,15 +234,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     const removed = relatedImagePreviews[index];
 
     if (typeof removed === "string") {
-      const urlParts = removed.split("/");
-      const filename = urlParts[urlParts.length - 1];
-
+      const filename = removed.split("/").pop();
       setExistingRelatedImages((prev) =>
-        prev.filter((img) => {
-          const imgParts = img.url.split("/");
-          const imgFilename = imgParts[imgParts.length - 1];
-          return imgFilename !== filename;
-        })
+        prev.filter((img) => img.url.split("/").pop() !== filename)
       );
     }
 
@@ -292,9 +246,46 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
   /* ================= SUBMIT ================= */
   const submitHandler = async (data: ProductFormData) => {
     setUploadError(null);
+
+    // Validate images manually since they're tracked in state, not form fields
+    const totalImages = imagePreviews.length;
+    const totalRelatedImages = relatedImagePreviews.length;
+
+    if (totalImages === 0) {
+      setUploadError("At least one main image is required.");
+      return;
+    }
+
+    if (totalImages > 5) {
+      setUploadError("Maximum 5 main images allowed.");
+      return;
+    }
+
+    if (totalRelatedImages === 0) {
+      setUploadError("At least one related image is required.");
+      return;
+    }
+
+    if (totalRelatedImages > 5) {
+      setUploadError("Maximum 5 related images allowed.");
+      return;
+    }
+
     try {
-      await onSubmit({
+      const cleanedData = {
         ...data,
+        min_order_qty:
+          data.min_order_qty && !isNaN(data.min_order_qty)
+            ? data.min_order_qty
+            : undefined,
+        max_order_qty:
+          data.max_order_qty && !isNaN(data.max_order_qty)
+            ? data.max_order_qty
+            : undefined,
+      };
+
+      await onSubmit({
+        ...cleanedData,
         existing_image_ids: existingImages.map((img) => img.id),
         existing_related_image_ids: existingRelatedImages.map((img) => img.id),
       });
@@ -309,32 +300,23 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
       {/* Basic Information Card */}
       <Card className="border shadow-sm">
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Basic Information
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* Name — REQUIRED */}
             <div className="space-y-2">
-              <Label
-                htmlFor="name"
-                className="text-sm font-medium text-gray-700"
-              >
-                Product Name{" "}
-                <span className="text-red-500">*</span>
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                Product Name <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="name"
-                {...register("name", {
-                  required: "Product name is required",
-                  minLength: {
-                    value: 3,
-                    message: "Name must be at least 3 characters",
-                  },
-                })}
+                {...register("name", productValidation.name)}
                 placeholder="Enter product name"
-                className={`${errors.name
-                  ? "border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
-                  }`}
+                className={`${
+                  errors.name
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                }`}
               />
               {errors.name && (
                 <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
@@ -344,11 +326,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
               )}
             </div>
 
+            {/* Category — OPTIONAL */}
             <div className="space-y-2">
-              <Label
-                htmlFor="category"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="category" className="text-sm font-medium text-gray-700">
                 Category
               </Label>
               <Controller
@@ -356,22 +336,19 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                 control={control}
                 render={({ field }) => (
                   <Select
-                    key={watch("category_id")}   // 🔥 force re-render
+                    key={watch("category_id")}
                     onValueChange={field.onChange}
                     value={field.value || ""}
                     disabled={isLoadingCategories}
                   >
                     <SelectTrigger
-                      className={`${categoriesError
-                        ? "border-red-500"
-                        : "border-gray-300"
-                        } focus:ring-[#D73D32] focus:border-[#D73D32]`}
+                      className={`${
+                        categoriesError ? "border-red-500" : "border-gray-300"
+                      } focus:ring-[#D73D32] focus:border-[#D73D32]`}
                     >
                       <SelectValue
                         placeholder={
-                          isLoadingCategories
-                            ? "Loading categories..."
-                            : "Select a category"
+                          isLoadingCategories ? "Loading categories..." : "Select a category"
                         }
                       />
                     </SelectTrigger>
@@ -401,11 +378,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
               )}
             </div>
 
+            {/* Subcategory — OPTIONAL */}
             <div className="space-y-2">
-              <Label
-                htmlFor="subcategory"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="subcategory" className="text-sm font-medium text-gray-700">
                 Subcategory
               </Label>
               <Controller
@@ -413,7 +388,7 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                 control={control}
                 render={({ field }) => (
                   <Select
-                    key={watch("subcategory_id")}  // 🔥 force re-render
+                    key={watch("subcategory_id")}
                     onValueChange={field.onChange}
                     value={field.value || ""}
                     disabled={
@@ -423,20 +398,19 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                     }
                   >
                     <SelectTrigger
-                      className={`${subcategoriesError
-                        ? "border-red-500"
-                        : "border-gray-300"
-                        } focus:ring-[#D73D32] focus:border-[#D73D32]`}
+                      className={`${
+                        subcategoriesError ? "border-red-500" : "border-gray-300"
+                      } focus:ring-[#D73D32] focus:border-[#D73D32]`}
                     >
                       <SelectValue
                         placeholder={
                           !selectedCategory
                             ? "Select a category first"
                             : isLoadingSubcategories
-                              ? "Loading subcategories..."
-                              : subcategories.length === 0
-                                ? "No subcategories available"
-                                : "Select a subcategory"
+                            ? "Loading subcategories..."
+                            : subcategories.length === 0
+                            ? "No subcategories available"
+                            : "Select a subcategory"
                         }
                       />
                     </SelectTrigger>
@@ -448,8 +422,7 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                           </SelectItem>
                         ))
                       ) : (
-                        !isLoadingSubcategories &&
-                        selectedCategory && (
+                        !isLoadingSubcategories && selectedCategory && (
                           <div className="px-2 py-4 text-sm text-gray-500 text-center">
                             No subcategories found
                           </div>
@@ -467,20 +440,24 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
               )}
             </div>
 
+            {/* Description — OPTIONAL */}
             <div className="space-y-2 md:col-span-2">
-              <Label
-                htmlFor="description"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
                 Description
               </Label>
               <Textarea
                 id="description"
-                {...register("description")}
+                {...register("description", productValidation.description)}
                 placeholder="Enter product description"
                 rows={4}
                 className="resize-none border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
               />
+              {errors.description && (
+                <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.description.message}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -489,31 +466,24 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
       {/* Order Quantity Card */}
       <Card className="border shadow-sm">
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Order Quantity
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Quantity</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
 
-              <Label
-                htmlFor="min_order_qty"
-                className="text-sm font-medium text-gray-700"
-              >
-                Minimum Order Quantity
+            {/* Min Order Qty — REQUIRED */}
+            <div className="space-y-2">
+              <Label htmlFor="min_order_qty" className="text-sm font-medium text-gray-700">
+                Minimum Order Quantity <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="min_order_qty"
                 type="number"
-                {...register("min_order_qty", {
-                  valueAsNumber: true,
-                  min: { value: 1, message: "Minimum quantity must be at least 1" },
-                  required: "Minimum order quantity is required",
-                })}
+                {...register("min_order_qty", productValidation.min_order_qty)}
                 placeholder="e.g., 100"
-                className={`${errors.min_order_qty
-                  ? "border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
-                  }`}
+                className={`${
+                  errors.min_order_qty
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                }`}
               />
               {errors.min_order_qty && (
                 <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
@@ -523,22 +493,21 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
               )}
             </div>
 
+            {/* Max Order Qty — OPTIONAL */}
             <div className="space-y-2">
-              <Label
-                htmlFor="max_order_qty"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="max_order_qty" className="text-sm font-medium text-gray-700">
                 Maximum Order Quantity
               </Label>
               <Input
                 id="max_order_qty"
                 type="number"
-                {...register("max_order_qty", {
-                  valueAsNumber: true,
-                  min: { value: 1, message: "Maximum quantity must be at least 1" },
-                })}
+                {...register("max_order_qty", productValidation.max_order_qty)}
                 placeholder="Optional"
-                className="border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                className={`${
+                  errors.max_order_qty
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                }`}
               />
               {errors.max_order_qty && (
                 <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
@@ -554,9 +523,7 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
       {/* Images Card */}
       <Card className="border shadow-sm">
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Product Images
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Images</h3>
 
           {uploadError && (
             <Alert variant="destructive" className="mb-4 bg-red-50 border-red-200">
@@ -566,11 +533,11 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
           )}
 
           <div className="space-y-6">
-            {/* Main Images */}
+            {/* Main Images — REQUIRED */}
             <div>
               <Label className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
                 <ImageIcon className="w-4 h-4" />
-                Main Images
+                Main Images <span className="text-red-500">*</span>
                 <Badge variant="secondary" className="ml-2 bg-gray-100 text-gray-700">
                   {imagePreviews.length} {imagePreviews.length === 1 ? "image" : "images"}
                 </Badge>
@@ -590,7 +557,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                         <span className="text-sm font-medium text-gray-600">
                           Click to upload images
                         </span>
-                        <span className="text-xs text-gray-500">PNG, JPG, WEBP, GIF up to 5MB</span>
+                        <span className="text-xs text-gray-500">
+                          PNG, JPG, WEBP, GIF up to 5MB (max 5 images)
+                        </span>
                       </div>
                       <Input
                         id="image-upload"
@@ -641,11 +610,11 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
 
             <Separator className="bg-gray-200" />
 
-            {/* Related Images */}
+            {/* Related Images — REQUIRED */}
             <div>
               <Label className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
                 <ImageIcon className="w-4 h-4" />
-                Related Images
+                Related Images <span className="text-red-500">*</span>
                 <Badge variant="secondary" className="ml-2 bg-gray-100 text-gray-700">
                   {relatedImagePreviews.length}{" "}
                   {relatedImagePreviews.length === 1 ? "image" : "images"}
@@ -668,7 +637,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                         <span className="text-sm font-medium text-gray-600">
                           Click to upload related images
                         </span>
-                        <span className="text-xs text-gray-500">PNG, JPG, WEBP, GIF up to 5MB</span>
+                        <span className="text-xs text-gray-500">
+                          PNG, JPG, WEBP, GIF up to 5MB (max 5 images)
+                        </span>
                       </div>
                       <Input
                         id="related-image-upload"
@@ -732,8 +703,10 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               {defaultValues ? "Updating..." : "Creating..."}
             </>
+          ) : defaultValues ? (
+            "Update Product"
           ) : (
-            defaultValues ? "Update Product" : "Create Product"
+            "Create Product"
           )}
         </Button>
 

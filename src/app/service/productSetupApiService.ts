@@ -49,7 +49,7 @@ export const updateProduct = async (id: string, formData: FormData): Promise<Pro
 
 export const deleteProduct = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${API_BASE_URL}/productsetup/${id}`);
+    await axios.delete(`${API_BASE_URL}/productsetup/delete/${id}`);
   } catch (error) {
     console.error(`Error deleting product ${id}: - productSetupApiService.ts:54`, error);
     throw error;
