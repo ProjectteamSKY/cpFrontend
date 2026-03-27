@@ -17,7 +17,7 @@ export function NewArrivals({ products, getValidImage }: NewArrivalsProps) {
     <div className="mb-4">
       <SectionHeader title="✨ New Arrivals" sub="Just added to our catalogue" />
       <div className="grid grid-cols-4 gap-3 max-md:grid-cols-2">
-        {/* {arrivals.map((p: any, i: number) => (
+        {arrivals.map((p: any, i: number) => (
           <ProductCard
             key={`na-${p.id}`}
             product={p}
@@ -26,7 +26,7 @@ export function NewArrivals({ products, getValidImage }: NewArrivalsProps) {
             price={PRICES[i % PRICES.length]}
             showDesc={false}
           />
-        ))} */}
+        ))}
       </div>
     </div>
   );

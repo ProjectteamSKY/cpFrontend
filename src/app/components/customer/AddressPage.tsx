@@ -8,7 +8,7 @@ import {
 import axios from "axios";
 import { toast } from "react-toastify";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "http://54.206.3.97";
 
 const emptyForm = {
   first_name: "", last_name: "", street: "", landmark: "",
@@ -23,9 +23,7 @@ const labelClass =
   "block text-[10px] font-extrabold text-[#999] uppercase tracking-[0.14em] mb-1.5";
 
 /* ─── Address Modal ───────────────────────────────────────────────────── */
-function AddressModal({
-  open, editingId, form, saving, onChange, onSave, onClose,
-}) {
+function AddressModal({ open, editingId, form, saving, onChange, onSave, onClose }) {
   const overlayRef = useRef(null);
 
   useEffect(() => {
@@ -52,7 +50,6 @@ function AddressModal({
         className="relative w-full sm:max-w-lg bg-white sm:rounded-2xl rounded-t-3xl overflow-hidden flex flex-col shadow-2xl border border-[#ececec]"
         style={{ maxHeight: "92dvh" }}
       >
-        {/* top accent bar */}
         <div className="h-[3px] w-full bg-[#D73D32]" />
 
         <div className="sm:hidden flex justify-center pt-3 pb-1">
@@ -61,7 +58,7 @@ function AddressModal({
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0f0f0]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#D73D32]/8 border border-[#D73D32]/20 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#D73D32]/10 border border-[#D73D32]/20 flex items-center justify-center">
               <MapPin className="w-4 h-4 text-[#D73D32]" />
             </div>
             <div>
@@ -88,11 +85,10 @@ function AddressModal({
                   key={type}
                   type="button"
                   onClick={() => onChange("address_type", type)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold capitalize border-2 transition-all ${
-                    form.address_type === type
-                      ? "border-[#D73D32] bg-[#D73D32]/8 text-[#D73D32]"
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold capitalize border-2 transition-all ${form.address_type === type
+                      ? "border-[#D73D32] bg-[#D73D32]/10 text-[#D73D32]"
                       : "border-[#e2e2e2] text-[#aaa] hover:border-[#c8c8c8] bg-white"
-                  }`}
+                    }`}
                 >
                   {type === "home" && <Home className="w-3.5 h-3.5" />}
                   {type === "work" && <Briefcase className="w-3.5 h-3.5" />}
@@ -182,22 +178,18 @@ function AddressCard({ addr, isSelected, onSelect, onEdit, onDelete }) {
   return (
     <div
       onClick={onSelect}
-      className={`relative rounded-2xl border-2 cursor-pointer transition-all duration-200 overflow-hidden group ${
-        isSelected
+      className={`relative rounded-2xl border-2 cursor-pointer transition-all duration-200 overflow-hidden group ${isSelected
           ? "border-[#D73D32] bg-white shadow-md shadow-[#D73D32]/10"
           : "border-[#e8e8e8] bg-white hover:border-[#d0d0d0] hover:shadow-sm"
-      }`}
+        }`}
     >
       {isSelected && (
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#D73D32]" />
       )}
-
       <div className="p-4">
         <div className="flex items-start gap-3">
-          {/* Radio dot */}
-          <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-            isSelected ? "border-[#D73D32]" : "border-[#ccc]"
-          }`}>
+          <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "border-[#D73D32]" : "border-[#ccc]"
+            }`}>
             {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#D73D32]" />}
           </div>
 
@@ -205,17 +197,16 @@ function AddressCard({ addr, isSelected, onSelect, onEdit, onDelete }) {
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="font-black text-[#1a1a1a] text-sm">{addr.first_name} {addr.last_name}</span>
               {addr.address_type && (
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize border ${
-                  isSelected
-                    ? "bg-[#D73D32]/8 text-[#D73D32] border-[#D73D32]/25"
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize border ${isSelected
+                    ? "bg-[#D73D32]/10 text-[#D73D32] border-[#D73D32]/25"
                     : "bg-[#f5f5f5] text-[#999] border-[#e8e8e8]"
-                }`}>
+                  }`}>
                   {addr.address_type === "work" ? <Briefcase className="w-2.5 h-2.5" /> : <Home className="w-2.5 h-2.5" />}
                   {addr.address_type}
                 </span>
               )}
               {(addr.is_default === 1 || addr.is_default === true) && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-[#D73D32]/8 text-[#D73D32] border border-[#D73D32]/25">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-[#D73D32]/10 text-[#D73D32] border border-[#D73D32]/25">
                   <Star className="w-2.5 h-2.5" /> Default
                 </span>
               )}
@@ -233,21 +224,21 @@ function AddressCard({ addr, isSelected, onSelect, onEdit, onDelete }) {
             </div>
 
             {isSelected && (
-              <div className="mt-3 flex items-center gap-2 bg-[#D73D32]/6 border border-[#D73D32]/20 rounded-xl px-3 py-2">
+              <div className="mt-3 flex items-center gap-2 bg-[#D73D32]/10 border border-[#D73D32]/20 rounded-xl px-3 py-2">
                 <Zap className="w-3.5 h-3.5 text-[#D73D32] flex-shrink-0" />
                 <p className="text-[11px] text-[#D73D32] font-semibold">Express delivery to this address</p>
               </div>
             )}
           </div>
 
-          {/* Hover actions */}
-          <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <div className="flex flex-col gap-1.5 transition-opacity flex-shrink-0">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="w-7 h-7 rounded-lg bg-[#f5f5f5] hover:bg-[#D73D32]/10 hover:text-[#D73D32] flex items-center justify-center text-[#aaa] transition-all"
             >
               <Edit2 className="w-3 h-3" />
             </button>
+
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               className="w-7 h-7 rounded-lg bg-[#f5f5f5] hover:bg-[#D73D32]/10 hover:text-[#D73D32] flex items-center justify-center text-[#aaa] transition-all"
@@ -265,12 +256,10 @@ function AddressCard({ addr, isSelected, onSelect, onEdit, onDelete }) {
 function PaymentPanel({ selectedAddress, onContinue }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* Delivering to */}
-      <div className={`rounded-2xl border-2 transition-all duration-300 ${
-        selectedAddress
-          ? "border-[#D73D32]/35 bg-[#D73D32]/4 shadow-sm shadow-[#D73D32]/8"
+      <div className={`rounded-2xl border-2 transition-all duration-300 ${selectedAddress
+          ? "border-[#D73D32]/35 bg-[#D73D32]/5 shadow-sm"
           : "border-dashed border-[#e2e2e2] bg-[#fafafa]"
-      }`}>
+        }`}>
         <div className="px-5 py-4">
           <div className="flex items-center gap-2 mb-2">
             <Navigation className={`w-4 h-4 ${selectedAddress ? "text-[#D73D32]" : "text-[#ccc]"}`} />
@@ -291,20 +280,15 @@ function PaymentPanel({ selectedAddress, onContinue }) {
         </div>
       </div>
 
-      {/* CTA */}
       <button
         onClick={onContinue}
         disabled={!selectedAddress}
-        className="w-full relative overflow-hidden bg-[#D73D32] hover:bg-[#c23228] disabled:bg-[#f0f0f0] disabled:text-[#ccc] disabled:cursor-not-allowed text-white font-black py-4 rounded-2xl text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-[#D73D32]/20 group"
+        className="w-full bg-[#D73D32] hover:bg-[#c23228] disabled:bg-[#f0f0f0] disabled:text-[#ccc] disabled:cursor-not-allowed text-white font-black py-4 rounded-2xl text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#D73D32]/20"
       >
-        {selectedAddress && (
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-        )}
-        <span className="relative">Continue to Payment</span>
-        <ChevronRight className="w-4 h-4 relative" />
+        <span>Continue to Payment</span>
+        <ChevronRight className="w-4 h-4" />
       </button>
 
-      {/* Trust row */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { icon: Lock, label: "SSL Encrypted" },
@@ -321,8 +305,46 @@ function PaymentPanel({ selectedAddress, onContinue }) {
   );
 }
 
+/* ─── Shared address list UI ──────────────────────────────────────────── */
+function AddressList({ savedAddresses, selectedAddressId, setSelectedAddressId, openAddModal, openEditModal, handleDelete }) {
+  return (
+    <>
+      {savedAddresses.length > 0 ? (
+        <div className="space-y-3">
+          {savedAddresses.map((addr) => (
+            <AddressCard
+              key={addr.id}
+              addr={addr}
+              isSelected={selectedAddressId === addr.id}
+              onSelect={() => setSelectedAddressId(addr.id)}
+              onEdit={() => openEditModal(addr)}
+              onDelete={() => handleDelete(addr.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div
+          onClick={openAddModal}
+          className="border-2 border-dashed border-[#e2e2e2] hover:border-[#D73D32]/40 bg-white hover:bg-[#D73D32]/5 rounded-2xl py-16 flex flex-col items-center gap-4 text-[#ccc] hover:text-[#D73D32] transition-all cursor-pointer group shadow-sm"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-[#f8f8f8] group-hover:bg-[#D73D32]/10 flex items-center justify-center transition-colors border border-[#ececec] group-hover:border-[#D73D32]/25">
+            <MapPin className="w-7 h-7" />
+          </div>
+          <div className="text-center">
+            <p className="font-black text-sm text-[#bbb] group-hover:text-[#555] transition-colors">No saved addresses</p>
+            <p className="text-xs text-[#ccc] mt-0.5">Click to add your first delivery address</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity text-[#D73D32] bg-[#D73D32]/10 border border-[#D73D32]/25 px-3 py-1.5 rounded-xl">
+            <Plus className="w-3.5 h-3.5" /> Add Address
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ─── Main Page ───────────────────────────────────────────────────────── */
-export function AddressPage() {
+export function AddressPage({ isEmbedded = false }: { isEmbedded?: boolean }) {
   const navigate = useNavigate();
   const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
 
@@ -420,11 +442,13 @@ export function AddressPage() {
 
   const selectedAddress = savedAddresses.find((a) => a.id === selectedAddressId) ?? null;
 
+  const sharedProps = { savedAddresses, selectedAddressId, setSelectedAddressId, openAddModal, openEditModal, handleDelete };
+
   if (loadingAddresses) {
     return (
-      <div className="min-h-screen bg-[#f7f7f7] flex items-center justify-center">
+      <div className="min-h-[200px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative w-12 h-12">
+          <div className="relative w-10 h-10">
             <div className="absolute inset-0 rounded-full border-4 border-[#e8e8e8]" />
             <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#D73D32] animate-spin" />
           </div>
@@ -434,6 +458,41 @@ export function AddressPage() {
     );
   }
 
+  /* ── Embedded inside ProfilePage: just the list + add button, no nav/payment ── */
+  if (isEmbedded) {
+    return (
+      <>
+        <AddressModal
+          open={modalOpen} editingId={editingId} form={form} saving={saving}
+          onChange={handleFormChange} onSave={handleSaveAddress} onClose={closeModal}
+        />
+
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-base font-bold text-[#1a1a1a]">Saved Addresses</h2>
+            <p className="text-sm text-[#aaa] mt-0.5">
+              {savedAddresses.length > 0
+                ? `${savedAddresses.length} address${savedAddresses.length !== 1 ? "es" : ""} saved`
+                : "No addresses saved yet"}
+            </p>
+          </div>
+          {savedAddresses.length > 0 && (
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 bg-white border-2 border-[#D73D32]/35 hover:border-[#D73D32] hover:bg-[#D73D32]/5 text-[#D73D32] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add New Address
+            </button>
+          )}
+        </div>
+
+        <AddressList {...sharedProps} />
+      </>
+    );
+  }
+
+  /* ── Standalone full page: original layout with sticky nav + payment panel ── */
   return (
     <>
       <style>{`
@@ -464,18 +523,15 @@ export function AddressPage() {
               Back
             </button>
 
-            {/* Stepper */}
             <div className="hidden sm:flex items-center gap-1.5">
               {["Delivery Address", "Payment", "Review & Place"].map((s, i) => (
                 <div key={s} className="flex items-center gap-1.5">
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                    i === 0
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${i === 0
                       ? "bg-[#D73D32] text-white shadow-md shadow-[#D73D32]/25"
                       : "text-[#bbb]"
-                  }`}>
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
-                      i === 0 ? "bg-white/20" : "bg-[#eee] text-[#bbb]"
-                    }`}>{i + 1}</span>
+                    }`}>
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${i === 0 ? "bg-white/20" : "bg-[#eee] text-[#bbb]"
+                      }`}>{i + 1}</span>
                     {s}
                   </div>
                   {i < 2 && <ChevronRight className="w-3.5 h-3.5 text-[#ddd]" />}
@@ -490,10 +546,9 @@ export function AddressPage() {
           </div>
         </div>
 
-        {/* ── Two-column body ── */}
         <div className="w-full px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_440px] gap-8 items-start">
 
-          {/* LEFT: Address list */}
+          {/* LEFT */}
           <div>
             <div className="flex items-end justify-between mb-5">
               <div>
@@ -516,40 +571,10 @@ export function AddressPage() {
               )}
             </div>
 
-            {/* Cards */}
-            {savedAddresses.length > 0 ? (
-              <div className="space-y-3">
-                {savedAddresses.map((addr) => (
-                  <AddressCard
-                    key={addr.id}
-                    addr={addr}
-                    isSelected={selectedAddressId === addr.id}
-                    onSelect={() => setSelectedAddressId(addr.id)}
-                    onEdit={() => openEditModal(addr)}
-                    onDelete={() => handleDelete(addr.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div
-                onClick={openAddModal}
-                className="border-2 border-dashed border-[#e2e2e2] hover:border-[#D73D32]/40 bg-white hover:bg-[#D73D32]/3 rounded-2xl py-16 flex flex-col items-center gap-4 text-[#ccc] hover:text-[#D73D32] transition-all cursor-pointer group shadow-sm"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-[#f8f8f8] group-hover:bg-[#D73D32]/8 flex items-center justify-center transition-colors border border-[#ececec] group-hover:border-[#D73D32]/25">
-                  <MapPin className="w-7 h-7" />
-                </div>
-                <div className="text-center">
-                  <p className="font-black text-sm text-[#bbb] group-hover:text-[#555] transition-colors">No saved addresses</p>
-                  <p className="text-xs text-[#ccc] mt-0.5">Click to add your first delivery address</p>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity text-[#D73D32] bg-[#D73D32]/8 border border-[#D73D32]/25 px-3 py-1.5 rounded-xl">
-                  <Plus className="w-3.5 h-3.5" /> Add Address
-                </div>
-              </div>
-            )}
+            <AddressList {...sharedProps} />
           </div>
 
-          {/* RIGHT: Sticky payment panel */}
+          {/* RIGHT */}
           <div className="lg:sticky lg:top-24">
             <PaymentPanel selectedAddress={selectedAddress} onContinue={handleContinue} />
           </div>
