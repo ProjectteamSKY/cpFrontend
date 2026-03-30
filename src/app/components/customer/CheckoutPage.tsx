@@ -16,6 +16,10 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
+import gpay from "../../../media/icons8-google-pay-50.svg";
+import paytm from "../../../media/icons8-paytm-50.svg";
+import phonepe from "../../../media/icons8-phone-pe-50.svg";
+
 
 const API_BASE = "http://54.206.3.97/api";
 const MEDIA_BASE = "http://54.206.3.97/";
@@ -32,7 +36,9 @@ export function CheckoutPage() {
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loadingCart, setLoadingCart] = useState(true);
-
+  const [qrData, setQrData] = useState<string | null>(null);
+  const [showQR, setShowQR] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
   // ── Read selected address from sessionStorage (set by AddressPage) ──────────
   const selectedAddressId = sessionStorage.getItem("selected_address_id");
   const selectedAddress = (() => {
@@ -150,6 +156,7 @@ export function CheckoutPage() {
 
   // ================= DELIVERY CHARGE =================
   const fetchDeliveryCharge = async (items: any[]) => {
+    console.log("api calling for delivery charges ");
     try {
       const totalWeight = items.reduce(
         (sum, item) => sum + (item.weight_grams || 0),
@@ -163,7 +170,7 @@ export function CheckoutPage() {
 
       const deliveryPostcode =
         selectedAddress?.postal_code || "624601";
-
+      console.log("deliveryPostcode", deliveryPostcode);
       const res = await axios.get(`${API_BASE}/shipping/serviceavailability`, {
         params: {
           pickup_postcode: "600001",
@@ -190,8 +197,11 @@ export function CheckoutPage() {
     (sum, item) => sum + Number(item.total_price),
     0
   );
-  const gst = subtotal * 0.18;
-  const total = subtotal + gst + deliveryCharge;
+
+  const roundedSubtotal = Math.round(subtotal);
+  const roundedDelivery = Math.round(deliveryCharge);
+  const gst = Math.round(roundedSubtotal * 0.18);
+  const total = Math.round(roundedSubtotal + gst + roundedDelivery);
 
   // ================= PLACE ORDER =================
   const handlePlaceOrder = async () => {
@@ -244,8 +254,8 @@ export function CheckoutPage() {
       console.error("Checkout failed", err.response?.data || err.message);
       toast.error(
         err?.response?.data?.detail ||
-          err?.response?.data?.message ||
-          "Checkout failed. Please try again."
+        err?.response?.data?.message ||
+        "Checkout failed. Please try again."
       );
     } finally {
       setPlacingOrder(false);
@@ -258,6 +268,30 @@ export function CheckoutPage() {
     return <Home className="w-3.5 h-3.5" />;
   };
 
+  const generateQR = async () => {
+    try {
+      setQrLoading(true);
+
+      const res = await axios.post(
+        `${API_BASE}/bank/qr-generate`,
+        {}, // empty body
+        {
+          params: { amount: total.toFixed(2) }, // ✅ amount as query param
+          responseType: "blob", // ✅ treat response as binary image
+        }
+      );
+
+      const imageUrl = URL.createObjectURL(res.data);
+      setQrData(imageUrl);
+      setShowQR(true);
+
+    } catch (err: any) {
+      console.error("QR generation failed", err);
+      toast.error("Failed to generate QR");
+    } finally {
+      setQrLoading(false);
+    }
+  };
   // ================= LOADING =================
   if (loadingCart)
     return (
@@ -270,7 +304,135 @@ export function CheckoutPage() {
         </div>
       </div>
     );
+  if (showQR) {
+    // You can import actual icon files or use CDN URLs
+    const paymentApps = [
+      {
+        name: "Google Pay",
+        icon: gpay,
+        bgColor: "bg-white"
+      },
+      {
+        name: "PhonePe",
+        icon: paytm,
+        bgColor: "bg-white"
+      },
+      {
+        name: "Paytm",
+        icon: phonepe,
+        bgColor: "bg-white"
+      }
+    ];
 
+    return (
+      <div className="flex items-center justify-center p-4 mb-10">
+        <Card className="p-0 overflow-hidden shadow-2xl max-w-md w-full border-0 bg-white/80 backdrop-blur-sm">
+          {/* Premium Header with Gradient */}
+          <div className="bg-[#D73D32] px-6 py-4 text-center">
+            <div className="flex flex-col items-center">
+              <h2 className="text-xl font-semibold text-white tracking-tight">
+                Secure Payment
+              </h2>
+              <p className="text-gray-300 text-sm mt-1">Scan to pay with UPI</p>
+            </div>
+          </div>
+
+          {/* Content Area */}
+          <div className="p-6">
+            {qrLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-6">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-6 h-6 bg-gray-900 rounded-full animate-pulse" />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-700 font-medium">Generating QR Code</p>
+                  <p className="text-sm text-gray-500 mt-1">Please wait a moment...</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* QR Code Section */}
+                {qrData && (
+                  <div className="flex flex-col items-center mb-8">
+                    <div className="relative group">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-gray-900 to-gray-700 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300" />
+                      <div className="relative bg-white p-4 rounded-2xl shadow-xl">
+                        <img
+                          src={qrData}
+                          alt="UPI QR Code"
+                          className="w-56 h-56 mx-auto"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* Payment Apps Section with Image Icons */}
+                <div className="mb-6">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center mb-4">
+                    Supported Apps
+                  </p>
+                  <div className="flex justify-center items-center gap-6">
+                    {paymentApps.map((app) => (
+                      <div key={app.name} className="text-center group cursor-pointer">
+                        <div className={`w-12 h-12 rounded-xl ${app.bgColor} shadow-md flex items-center justify-center mx-auto group-hover:shadow-lg transition-shadow duration-200`}>
+                          <img
+                            src={app.icon}
+                            alt={app.name}
+                            className="w-7 h-7 object-contain"
+                            onError={(e) => {
+                              // Fallback if icon fails to load
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = `
+                              <div class="w-7 h-7 rounded-full bg-gradient-to-br from-gray-700 to-gray-900"></div>
+                            `;
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2 font-medium">{app.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  {/* <button
+                    onClick={handlePlaceOrder}
+                    className="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-white font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Confirm Payment
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-700 to-green-800 transform translate-y-full group-hover:translate-y-0 transition-transform duration-200" />
+                  </button> */}
+
+                  <button
+                    onClick={() => setShowQR(false)}
+                    className="w-full rounded-xl border-2 border-gray-200 bg-[#D73D32] px-6 py-3 text-white font-medium transition-all duration-200"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                {/* Help Text */}
+                <p className="text-xs text-center text-gray-400 mt-6">
+                  After scanning, please confirm payment to complete your order
+                </p>
+              </>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
   // ================= SUCCESS =================
   if (showSuccess)
     return (
@@ -410,11 +572,10 @@ export function CheckoutPage() {
                 <label
                   key={method.value}
                   htmlFor={method.value}
-                  className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    paymentMethod === method.value
-                      ? "border-[#D73D32] bg-red-50"
-                      : "border-gray-100 hover:border-gray-200"
-                  }`}
+                  className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === method.value
+                    ? "border-[#D73D32] bg-red-50"
+                    : "border-gray-100 hover:border-gray-200"
+                    }`}
                 >
                   <RadioGroupItem value={method.value} id={method.value} />
                   <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
@@ -536,7 +697,13 @@ export function CheckoutPage() {
             <div className="space-y-3">
               <Button
                 className="w-full bg-[#1A1A1A] hover:bg-black text-white py-6 text-base font-bold rounded-xl"
-                onClick={handlePlaceOrder}
+                onClick={() => {
+                  if (paymentMethod === "upi") {
+                    generateQR(); // 👈 show QR first
+                  } else {
+                    handlePlaceOrder();
+                  }
+                }}
                 disabled={placingOrder || !selectedAddressId}
               >
                 {placingOrder ? (
@@ -560,6 +727,9 @@ export function CheckoutPage() {
         </div>
       </div>
       <Toaster />
+
+
     </div>
   );
 }
+

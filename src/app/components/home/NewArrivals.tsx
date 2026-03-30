@@ -15,7 +15,7 @@ export function NewArrivals({ products, getValidImage }: NewArrivalsProps) {
 
   return (
     <div className="mb-4">
-      <SectionHeader title="✨ New Arrivals" sub="Just added to our catalogue" />
+      <SectionHeader title="New Arrivals" sub="Just added to our catalogue" />
       <div className="grid grid-cols-4 gap-3 max-md:grid-cols-2">
         {arrivals.map((p: any, i: number) => (
           <ProductCard
@@ -31,3 +31,4 @@ export function NewArrivals({ products, getValidImage }: NewArrivalsProps) {
     </div>
   );
 }
+
