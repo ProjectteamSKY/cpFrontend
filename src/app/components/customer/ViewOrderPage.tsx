@@ -1,46 +1,55 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Card } from "../ui/card";
-import { Button } from "../ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShoppingBag,
-  Package,
-  Truck,
-  CheckCircle,
-  Clock,
-  Printer,
-  ChevronRight,
-  MapPin,
-  Calendar,
-  CreditCard,
-  Download,
-  Share2,
-  AlertCircle,
-  ArrowLeft,
-  Sparkles,
-  ReceiptText
+  ShoppingBag, Package, Truck, CheckCircle, Clock, Printer,
+  ChevronRight, MapPin, Calendar, CreditCard, Download, Share2,
+  AlertCircle, ArrowLeft, Sparkles, ReceiptText, User, Phone, Home, BadgeCheck,
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE  = "http://54.206.3.97/api";
+const API_BASE   = "http://54.206.3.97/api";
 const MEDIA_BASE = "http://54.206.3.97/";
 
 const ORDER_STEPS = [
-  { key: "pending",  label: "Order Placed", icon: ShoppingBag, accent: "#f59e0b" },
-  { key: "process",  label: "Processing",   icon: Clock,       accent: "#3b82f6" },
-  { key: "printing", label: "Printing",     icon: Printer,     accent: "#8b5cf6" },
-  { key: "packed",   label: "Packed",       icon: Package,     accent: "#14b8a6" },
-  { key: "shipment", label: "Shipped",      icon: Truck,       accent: "#f97316" },
-  { key: "delivery", label: "Delivered",    icon: CheckCircle, accent: "#10b981" },
+  { key: "pending",  label: "Placed",     icon: ShoppingBag, doneBg: "bg-amber-400",   ring: "ring-amber-200",   activeText: "text-amber-500",   activeBorder: "border-amber-400"   },
+  { key: "process",  label: "Processing", icon: Clock,       doneBg: "bg-blue-400",    ring: "ring-blue-200",    activeText: "text-blue-500",    activeBorder: "border-blue-400"    },
+  { key: "printing", label: "Printing",   icon: Printer,     doneBg: "bg-violet-400",  ring: "ring-violet-200",  activeText: "text-violet-500",  activeBorder: "border-violet-400"  },
+  { key: "packed",   label: "Packed",     icon: Package,     doneBg: "bg-teal-400",    ring: "ring-teal-200",    activeText: "text-teal-500",    activeBorder: "border-teal-400"    },
+  { key: "shipment", label: "Shipped",    icon: Truck,       doneBg: "bg-orange-400",  ring: "ring-orange-200",  activeText: "text-orange-500",  activeBorder: "border-orange-400"  },
+  { key: "delivery", label: "Delivered",  icon: CheckCircle, doneBg: "bg-emerald-500", ring: "ring-emerald-200", activeText: "text-emerald-500", activeBorder: "border-emerald-400" },
 ];
 
+const STATUS_MAP: Record<string, { bg: string; text: string; dot: string; ring: string; label: string }> = {
+  pending:  { bg: "bg-amber-50",   text: "text-amber-700",   dot: "bg-amber-400",   ring: "ring-amber-200",   label: "Pending"    },
+  process:  { bg: "bg-blue-50",    text: "text-blue-700",    dot: "bg-blue-400",    ring: "ring-blue-200",    label: "Processing" },
+  printing: { bg: "bg-violet-50",  text: "text-violet-700",  dot: "bg-violet-400",  ring: "ring-violet-200",  label: "Printing"   },
+  packed:   { bg: "bg-teal-50",    text: "text-teal-700",    dot: "bg-teal-400",    ring: "ring-teal-200",    label: "Packed"     },
+  shipment: { bg: "bg-orange-50",  text: "text-orange-700",  dot: "bg-orange-400",  ring: "ring-orange-200",  label: "Shipped"    },
+  delivery: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500", ring: "ring-emerald-200", label: "Delivered"  },
+  cancelled:{ bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400",     ring: "ring-red-200",     label: "Cancelled"  },
+};
+
+interface Address {
+  id?: string;
+  full_name?: string;   name?: string;
+  phone?: string;       mobile?: string;
+  address_line1?: string; address_line2?: string; address?: string;
+  city?: string;        state?: string;
+  pincode?: string;     postal_code?: string;
+  landmark?: string;
+  address_type?: string; type?: string;
+  is_default?: boolean;
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
 export function ViewOrderPage() {
   const { orderId } = useParams();
   const navigate    = useNavigate();
 
   const [order,     setOrder]     = useState<any>(null);
   const [items,     setItems]     = useState<any[]>([]);
+  const [address,   setAddress]   = useState<Address | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [activeTab, setActiveTab] = useState<"details" | "tracking">("details");
 
@@ -52,8 +61,17 @@ export function ViewOrderPage() {
           axios.get(`${API_BASE}/orders_routes/${orderId}`),
           axios.get(`${API_BASE}/order_items_routes/list/${orderId}`),
         ]);
-        setOrder(oRes.data);
+        const orderData = oRes.data;
+        setOrder(orderData);
         setItems(iRes.data.items || []);
+
+        const addressId = orderData.address_id || orderData.shipping_address_id;
+        if (addressId) {
+          try {
+            const aRes = await axios.get(`${API_BASE}/user_address/${addressId}`);
+            setAddress(aRes.data);
+          } catch { /* silently ignore address fetch failure */ }
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -62,462 +80,269 @@ export function ViewOrderPage() {
     })();
   }, [orderId]);
 
-  /* ─── Loading ─────────────────────────────────────────────────────── */
+  /* ── Loading ──────────────────────────────────────────────────── */
   if (loading) return (
-    <div className="min-h-screen bg-[#fdfaf7] flex items-center justify-center" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Cormorant+Garamond:wght@600;700&display=swap');`}</style>
-      <div className="text-center space-y-4">
-        <div className="relative w-16 h-16 mx-auto">
-          <div className="absolute inset-0 rounded-full border-[3px] border-[#f0e4e0]" />
-          <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-[#D73D32] animate-spin" />
+    <div className="min-h-screen w-full bg-orange-50/30 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative w-14 h-14">
+          <div className="absolute inset-0 rounded-full border-[3px] border-orange-100" />
+          <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-red-600 animate-spin" />
         </div>
-        <p className="text-xs text-[#b89090] tracking-widest uppercase">Loading order</p>
+        <p className="text-[11px] tracking-widest uppercase text-orange-300 font-semibold">Loading your order</p>
       </div>
     </div>
   );
 
-  /* ─── Not found ────────────────────────────────────────────────────── */
+  /* ── Not found ────────────────────────────────────────────────── */
   if (!order) return (
-    <div className="min-h-screen bg-[#fdfaf7] flex items-center justify-center px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Cormorant+Garamond:wght@600;700&display=swap');`}</style>
-      <div className="text-center max-w-sm">
-        <AlertCircle className="w-12 h-12 text-[#dcc0bc] mx-auto mb-5" />
-        <h2 className="text-3xl text-gray-800 mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Order Not Found</h2>
-        <p className="text-sm text-[#b89090] mb-8">This order doesn't exist or may have been removed.</p>
-        <button onClick={() => navigate("/orders")} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D73D32] text-white text-sm font-semibold shadow-md hover:bg-[#c0342a] transition-colors">
+    <div className="min-h-screen w-full bg-orange-50/30 flex items-center justify-center px-4">
+      <div className="text-center max-w-sm w-full">
+        <div className="w-16 h-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-5">
+          <AlertCircle className="w-7 h-7 text-red-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Order Not Found</h2>
+        <p className="text-sm text-gray-400 mb-7 leading-relaxed">This order doesn't exist or may have been removed.</p>
+        <button
+          onClick={() => navigate("/orders")}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold shadow-lg shadow-red-200 hover:bg-red-700 transition-colors"
+        >
           <ArrowLeft className="w-4 h-4" /> Back to Orders
         </button>
       </div>
     </div>
   );
 
-  const currentIdx       = ORDER_STEPS.findIndex(s => s.key === order.status);
-  const progressPercent  = Math.round((currentIdx / (ORDER_STEPS.length - 1)) * 100);
+  const currentIdx      = ORDER_STEPS.findIndex(s => s.key === order.status);
+  const progressPercent = Math.max(0, Math.round((currentIdx / (ORDER_STEPS.length - 1)) * 100));
+  const statusCfg       = STATUS_MAP[order.status] || STATUS_MAP.pending;
+
+  const addrName     = address?.full_name     || address?.name     || "";
+  const addrPhone    = address?.phone         || address?.mobile   || "";
+  const addrLine1    = address?.address_line1 || address?.address  || "";
+  const addrLine2    = address?.address_line2 || "";
+  const addrCity     = address?.city          || "";
+  const addrState    = address?.state         || "";
+  const addrPin      = address?.pincode       || address?.postal_code || "";
+  const addrLandmark = address?.landmark      || "";
+  const addrType     = address?.address_type  || address?.type     || "";
+
+  const estimatedDate = new Date(new Date(order.created_at).getTime() + 7 * 86400000)
+    .toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="min-h-screen bg-[#fdfaf7]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&display=swap');
+    <div className="min-h-screen w-full bg-orange-50/20">
 
-        body { background: #fdfaf7; }
+      {/* ══ STICKY HEADER ══════════════════════════════════════════ */}
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-orange-100">
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
 
-        /* ── shared ─────────────────────────────────────── */
-        .warm-card {
-          background: #ffffff;
-          border: 1px solid #f0e8e2;
-          border-radius: 22px;
-          box-shadow: 0 2px 16px rgba(180,100,80,0.06);
-        }
-
-        /* ── header ─────────────────────────────────────── */
-        .page-header {
-          background: #fff;
-          border-bottom: 1px solid #f0e8e2;
-        }
-
-        .icon-btn {
-          border: 1.5px solid #f0e0dc;
-          background: #fffaf9;
-          border-radius: 12px;
-          padding: 8px 16px;
-          font-size: 13px;
-          font-weight: 600;
-          color: #9c7070;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s ease;
-        }
-        .icon-btn:hover {
-          border-color: #D73D32;
-          color: #D73D32;
-          background: #fff5f4;
-        }
-
-        /* ── hero card ───────────────────────────────────── */
-        .hero-accent-bar {
-          height: 4px;
-          border-radius: 4px 4px 0 0;
-          background: linear-gradient(90deg, #D73D32 0%, #ff7a6e 60%, #ffd4cf 100%);
-        }
-
-        .amount-display {
-          font-family: 'Cormorant Garamond', serif;
-          font-weight: 700;
-          color: #D73D32;
-        }
-
-        /* ── tabs ────────────────────────────────────────── */
-        .tab-btn {
-          position: relative;
-          padding: 10px 20px;
-          font-size: 14px;
-          font-weight: 600;
-          color: #b89090;
-          border-radius: 12px;
-          transition: color 0.2s ease;
-          letter-spacing: 0.01em;
-        }
-        .tab-btn.active {
-          color: #D73D32;
-          background: #fff5f4;
-        }
-        .tab-underline {
-          position: absolute;
-          bottom: 0;
-          left: 10%;
-          right: 10%;
-          height: 2.5px;
-          border-radius: 2px;
-          background: #D73D32;
-        }
-
-        /* ── items ───────────────────────────────────────── */
-        .item-card {
-          background: #fffaf9;
-          border: 1px solid #f5ece7;
-          border-radius: 18px;
-          transition: box-shadow 0.25s ease, transform 0.25s ease;
-        }
-        .item-card:hover {
-          box-shadow: 0 8px 28px rgba(215,61,50,0.08);
-          transform: translateY(-2px);
-        }
-
-        .item-thumb {
-          background: linear-gradient(135deg, #f5ece7 0%, #fce4df 100%);
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        /* ── tracking timeline ────────────────────────────── */
-        .timeline-step-label {
-          font-size: 11px;
-          font-weight: 600;
-          text-align: center;
-          margin-top: 10px;
-          letter-spacing: 0.03em;
-          text-transform: uppercase;
-          color: #c5a8a0;
-        }
-        .timeline-step-label.done {
-          color: #5a5a5a;
-        }
-        .timeline-step-label.current {
-          color: #D73D32;
-        }
-
-        .step-node {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 2.5px solid #f0e4e0;
-          background: #fdfaf7;
-          color: #d4b4ae;
-          transition: all 0.4s ease;
-          position: relative;
-        }
-        .step-node.done {
-          border-color: transparent;
-          color: white;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-        }
-        .step-node.current {
-          border-color: #D73D32;
-          color: #D73D32;
-          box-shadow: 0 0 0 6px rgba(215,61,50,0.1);
-        }
-
-        .track-bar-bg {
-          position: absolute;
-          top: 24px;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: #f0e4e0;
-          z-index: 0;
-        }
-        .track-bar-fill {
-          position: absolute;
-          top: 24px;
-          left: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #D73D32, #ff7a6e);
-          z-index: 1;
-          border-radius: 999px;
-        }
-
-        /* ── delivery info box ───────────────────────────── */
-        .delivery-box {
-          background: linear-gradient(135deg, #fff5f3 0%, #fff8f0 100%);
-          border: 1px solid #f0dcd6;
-          border-radius: 18px;
-        }
-
-        /* ── address box ─────────────────────────────────── */
-        .address-box {
-          background: #fff;
-          border: 1px solid #f0e8e2;
-          border-radius: 18px;
-        }
-
-        /* ── price summary ───────────────────────────────── */
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 10px 0;
-          border-bottom: 1px solid #f5ecea;
-          font-size: 14px;
-        }
-        .summary-row:last-child {
-          border-bottom: none;
-        }
-
-        /* ── footer actions ──────────────────────────────── */
-        .btn-ghost {
-          border: 1.5px solid #f0e0dc;
-          background: transparent;
-          color: #9c7070;
-          border-radius: 14px;
-          padding: 10px 24px;
-          font-size: 13px;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s ease;
-        }
-        .btn-ghost:hover {
-          border-color: #D73D32;
-          color: #D73D32;
-          background: #fff5f4;
-        }
-
-        .btn-red {
-          background: linear-gradient(135deg, #D73D32, #c0342a);
-          color: #fff;
-          border: none;
-          border-radius: 14px;
-          padding: 10px 28px;
-          font-size: 13px;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          box-shadow: 0 6px 20px rgba(215,61,50,0.3);
-          transition: all 0.2s ease;
-        }
-        .btn-red:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 10px 28px rgba(215,61,50,0.4);
-        }
-
-        .section-rule {
-          border: none;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #f0e4e0 20%, #f0e4e0 80%, transparent);
-          margin: 0;
-        }
-      `}</style>
-
-      {/* ═══ PAGE HEADER ═══════════════════════════════════════════════ */}
-      <div className="page-header sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => navigate("/orders")}
-              className="icon-btn"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-orange-100 bg-white text-xs font-semibold text-gray-500 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Orders
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Orders</span>
             </button>
-            <div>
-              <h1
-                className="text-2xl text-gray-800"
-                style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700 }}
-              >
-                Order Details
-              </h1>
-              <p className="text-xs text-[#b89090] -mt-0.5">#{order.id.slice(0, 8).toUpperCase()}</p>
+            <div className="w-px h-7 bg-orange-100 flex-shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-gray-800 leading-tight truncate">Order Details</h1>
+              <p className="text-[10px] text-gray-400 font-medium tracking-wider">#{order.id.slice(0, 8).toUpperCase()}</p>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <button className="icon-btn">
-              <Download className="w-3.5 h-3.5" /> Invoice
+          <div className="flex gap-2 flex-shrink-0">
+            <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-orange-100 bg-white text-xs font-semibold text-gray-500 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200">
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Invoice</span>
             </button>
-            <button className="icon-btn">
-              <Share2 className="w-3.5 h-3.5" /> Share
+            <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-orange-100 bg-white text-xs font-semibold text-gray-500 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200">
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Share</span>
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {/* ══ PAGE BODY ══════════════════════════════════════════════ */}
+      <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-6 space-y-5">
 
-        {/* ═══ HERO ORDER CARD ════════════════════════════════════════ */}
+        {/* ── HERO ORDER CARD ──────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="warm-card overflow-hidden"
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full bg-white rounded-2xl border border-orange-100 shadow-sm overflow-hidden"
         >
-          <div className="hero-accent-bar" />
-          <div className="p-6 md:p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-              {/* Left */}
-              <div className="flex items-start gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#D73D32] to-[#ff7a6e] flex items-center justify-center shadow-lg shadow-red-200/60 flex-shrink-0">
-                  <Package className="w-7 h-7 text-white" />
+          {/* Top gradient stripe */}
+          <div className="h-1 w-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-400" />
+
+          <div className="p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-5">
+
+              {/* Left – icon + meta */}
+              <div className="flex items-start gap-4 min-w-0 flex-1">
+                <div className="w-12 h-12 flex-shrink-0 rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center shadow-lg shadow-red-200/60">
+                  <Package className="w-6 h-6 text-white" />
                 </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <h2
-                      className="text-xl text-gray-800"
-                      style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700 }}
-                    >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h2 className="text-lg font-bold text-gray-800">
                       Order #{order.id.slice(0, 8).toUpperCase()}
                     </h2>
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                  <div className="flex flex-wrap gap-5 text-sm text-[#9c7070]">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#D73D32]" />
-                      {new Date(order.created_at).toLocaleDateString("en-IN", {
-                        day: "numeric", month: "long", year: "numeric"
-                      })}
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ${statusCfg.bg} ${statusCfg.text} ${statusCfg.ring}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusCfg.dot}`} />
+                      {statusCfg.label}
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5 text-[#D73D32]" />
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                      <Calendar className="w-3 h-3 text-red-400" />
+                      {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                      <CreditCard className="w-3 h-3 text-red-400" />
                       {order.payment_method || "Online Payment"}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                      <ShoppingBag className="w-3 h-3 text-red-400" />
+                      {items.length} item{items.length !== 1 ? "s" : ""}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Right — amount */}
+              {/* Right – total amount */}
               <div className="text-right flex-shrink-0">
-                <p className="text-xs text-[#b89090] uppercase tracking-widest mb-1">Total Amount</p>
-                <p className="amount-display" style={{ fontSize: "2.6rem", lineHeight: 1 }}>
-                  ₹{order.total_amount?.toLocaleString()}
+                <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-0.5">Order Total</p>
+                <p className="text-4xl font-extrabold text-red-600 leading-none tracking-tight">
+                  ₹{order.total_amount?.toLocaleString("en-IN")}
                 </p>
-                <p className="text-xs text-[#c5a8a0] mt-1">Incl. all taxes</p>
+                <p className="text-[11px] text-gray-300 mt-1">Incl. all taxes</p>
               </div>
+            </div>
+
+            {/* Bottom strip */}
+            <div className="mt-5 pt-4 border-t border-orange-50 flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 text-xs text-gray-500">
+                <Truck className="w-3.5 h-3.5 text-red-400" />
+                {order.status === "delivery"
+                  ? `Delivered · ${new Date(order.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
+                  : `Est. delivery by ${estimatedDate}`}
+              </span>
+              {order.status === "delivery" && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                  <BadgeCheck className="w-3.5 h-3.5" /> Delivered
+                </span>
+              )}
             </div>
           </div>
         </motion.div>
 
-        {/* ═══ TABS ════════════════════════════════════════════════════ */}
-        <div className="flex gap-1 bg-white border border-[#f0e8e2] rounded-2xl p-1.5 shadow-sm w-fit">
+        {/* ── TABS ─────────────────────────────────────────────── */}
+        <div className="inline-flex gap-1 bg-white border border-orange-100 rounded-2xl p-1.5 shadow-sm">
           {(["details", "tracking"] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`tab-btn ${activeTab === tab ? "active" : ""}`}
+              className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                activeTab === tab
+                  ? "bg-red-50 text-red-600"
+                  : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+              }`}
             >
-              {tab === "details" ? (
-                <span className="flex items-center gap-2"><ReceiptText className="w-3.5 h-3.5" /> Order Details</span>
-              ) : (
-                <span className="flex items-center gap-2"><Truck className="w-3.5 h-3.5" /> Tracking</span>
-              )}
+              {tab === "details"
+                ? <><ReceiptText className="w-3.5 h-3.5" /> Order Details</>
+                : <><Truck className="w-3.5 h-3.5" /> Tracking</>}
               {activeTab === tab && (
-                <motion.div layoutId="tab-underline" className="tab-underline" />
+                <motion.div
+                  layoutId="tab-underline"
+                  className="absolute bottom-0 left-[12%] right-[12%] h-0.5 rounded-full bg-red-500"
+                />
               )}
             </button>
           ))}
         </div>
 
-        {/* ═══ TAB CONTENT ════════════════════════════════════════════ */}
+        {/* ── TAB PANELS ───────────────────────────────────────── */}
         <AnimatePresence mode="wait">
 
-          {/* ── Details tab ─────────────────────────────────────────── */}
+          {/* ══ DETAILS TAB ════════════════════════════════════ */}
           {activeTab === "details" && (
             <motion.div
               key="details"
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-5"
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.22 }}
+              className="w-full space-y-4"
             >
-              {/* Items heading */}
-              <div className="flex items-center gap-2 mb-1">
-                <ShoppingBag className="w-4 h-4 text-[#D73D32]" />
-                <h3
-                  className="text-xl text-gray-800"
-                  style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700 }}
-                >
-                  Ordered Items
-                </h3>
-                <span className="ml-auto text-xs text-[#b89090]">{items.length} item{items.length !== 1 ? "s" : ""}</span>
-              </div>
-
               {/* Items list */}
-              <div className="space-y-3">
-                {items.map((item, i) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.07 }}
-                    className="item-card p-5"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="item-thumb w-16 h-16 flex-shrink-0">
+              <div className="w-full bg-white rounded-2xl border border-orange-100 shadow-sm p-5 sm:p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <ShoppingBag className="w-4 h-4 text-red-500" />
+                  <h3 className="text-base font-bold text-gray-800">Ordered Items</h3>
+                  <span className="ml-auto text-xs font-semibold text-red-500 bg-red-50 px-3 py-0.5 rounded-full">
+                    {items.length} item{items.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {items.map((item, i) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      className="flex items-center gap-3 sm:gap-4 p-4 bg-orange-50/50 border border-orange-100 rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      {/* Thumbnail */}
+                      <div className="w-14 h-14 flex-shrink-0 rounded-xl bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center overflow-hidden">
                         {item.image
-                          ? <img src={`${MEDIA_BASE}${item.image}`} alt="" className="w-full h-full object-cover rounded-[14px]" />
-                          : <Package className="w-7 h-7 text-[#D73D32]/40" />
-                        }
+                          ? <img src={`${MEDIA_BASE}${item.image}`} alt="" className="w-full h-full object-cover" />
+                          : <Package className="w-5 h-5 text-red-300" />}
                       </div>
+                      {/* Name + qty */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 truncate">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
                           {item.product_name || `Product #${item.product_id}`}
                         </p>
-                        <p className="text-xs text-[#b89090] mt-0.5">Qty: {item.quantity}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Qty: {item.quantity}</p>
                       </div>
+                      {/* Price */}
                       <div className="text-right flex-shrink-0">
-                        <p
-                          className="font-bold text-[#D73D32]"
-                          style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.25rem" }}
-                        >
-                          ₹{item.total?.toLocaleString()}
+                        <p className="text-base font-bold text-red-600">
+                          ₹{item.total?.toLocaleString("en-IN")}
                         </p>
-                        <p className="text-xs text-[#b89090]">₹{item.price} × {item.quantity}</p>
+                        <p className="text-[11px] text-gray-400">₹{item.price} × {item.quantity}</p>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
+                </div>
               </div>
 
-              {/* Price summary */}
-              <div className="warm-card p-6">
-                <h4 className="text-xs uppercase tracking-widest text-[#b89090] mb-4 flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-[#D73D32]" /> Price Summary
-                </h4>
+              {/* Price Breakdown */}
+              <div className="w-full bg-white rounded-2xl border border-orange-100 shadow-sm p-5 sm:p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <Sparkles className="w-4 h-4 text-red-500" />
+                  <h3 className="text-base font-bold text-gray-800">Price Breakdown</h3>
+                </div>
                 <div>
                   {[
-                    { label: "Subtotal", value: `₹${(order.total_amount * 0.82).toFixed(0)}` },
-                    { label: "GST (18%)", value: `₹${(order.total_amount * 0.18).toFixed(0)}` },
-                    { label: "Delivery", value: "Free" },
+                    { label: "Item Subtotal",   value: `₹${Math.round(order.total_amount * 0.82).toLocaleString("en-IN")}`, green: false },
+                    { label: "GST (18%)",        value: `₹${Math.round(order.total_amount * 0.18).toLocaleString("en-IN")}`, green: false },
+                    { label: "Delivery Charges", value: "FREE",                                                              green: true  },
                   ].map(row => (
-                    <div key={row.label} className="summary-row">
-                      <span className="text-[#9c7070]">{row.label}</span>
-                      <span className="text-gray-700 font-medium">{row.value}</span>
+                    <div key={row.label} className="flex items-center justify-between py-3 border-b border-orange-50 last:border-0">
+                      <span className="text-sm text-gray-500">{row.label}</span>
+                      <span className={`text-sm font-semibold ${row.green ? "text-emerald-600" : "text-gray-700"}`}>
+                        {row.value}
+                      </span>
                     </div>
                   ))}
-                  <div className="flex justify-between items-center pt-3 mt-1">
-                    <span className="font-semibold text-gray-800">Total</span>
-                    <span
-                      className="text-[#D73D32] font-bold"
-                      style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.4rem" }}
-                    >
-                      ₹{order.total_amount?.toLocaleString()}
+                  <div className="flex items-center justify-between pt-4 mt-1 border-t-2 border-dashed border-orange-100">
+                    <span className="text-sm font-bold text-gray-800">Order Total</span>
+                    <span className="text-2xl font-extrabold text-red-600">
+                      ₹{order.total_amount?.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -525,69 +350,80 @@ export function ViewOrderPage() {
             </motion.div>
           )}
 
-          {/* ── Tracking tab ────────────────────────────────────────── */}
+          {/* ══ TRACKING TAB ═══════════════════════════════════ */}
           {activeTab === "tracking" && (
             <motion.div
               key="tracking"
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-5"
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.22 }}
+              className="w-full space-y-4"
             >
               {/* Timeline card */}
-              <div className="warm-card p-6 md:p-8">
+              <div className="w-full bg-white rounded-2xl border border-orange-100 shadow-sm p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-8">
-                  <h3
-                    className="text-xl text-gray-800"
-                    style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700 }}
-                  >
-                    Order Timeline
-                  </h3>
-                  <span className="text-xs text-[#b89090] uppercase tracking-widest">
+                  <h3 className="text-base font-bold text-gray-800">Shipment Timeline</h3>
+                  <span className="text-xs font-semibold text-red-500 bg-red-50 px-3 py-0.5 rounded-full">
                     {progressPercent}% complete
                   </span>
                 </div>
 
                 {/* Step nodes */}
-                <div className="relative px-6 overflow-x-auto">
-                  {/* Track bar bg */}
-                  <div className="track-bar-bg" style={{ left: "40px", right: "40px" }} />
-                  {/* Track bar fill */}
-                  <motion.div
-                    className="track-bar-fill"
-                    style={{ left: "40px" }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `calc(${progressPercent}% - 40px)` }}
-                    transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
-                  />
+                <div className="overflow-x-auto pb-3">
+                  <div className="relative flex justify-between min-w-[380px]">
 
-                  <div className="relative flex justify-between gap-0">
+                    {/* Background track */}
+                    <div className="absolute top-[22px] left-9 right-9 h-[3px] bg-orange-100 rounded-full z-0" />
+
+                    {/* Progress fill — uses inline width only for the animated value */}
+                    <motion.div
+                      className="absolute top-[22px] left-9 h-[3px] bg-gradient-to-r from-red-600 to-orange-400 rounded-full z-[1]"
+                      initial={{ width: 0 }}
+                      animate={{ width: currentIdx <= 0 ? "0%" : `calc(${progressPercent}% - 36px)` }}
+                      transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
+                    />
+
                     {ORDER_STEPS.map((step, idx) => {
-                      const isDone    = idx < currentIdx;
-                      const isCurrent = idx === currentIdx;
-                      const Icon      = step.icon;
+                      const done    = idx < currentIdx;
+                      const current = idx === currentIdx;
+                      const Icon    = step.icon;
 
                       return (
-                        <div key={step.key} className="flex flex-col items-center" style={{ minWidth: 72 }}>
+                        <div key={step.key} className="relative z-[2] flex flex-col items-center flex-1">
                           <motion.div
-                            className={`step-node z-10 ${isDone ? "done" : ""} ${isCurrent ? "current" : ""}`}
-                            style={isDone ? { background: step.accent, borderColor: step.accent } : {}}
-                            animate={isCurrent ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                            transition={{ repeat: isCurrent ? Infinity : 0, duration: 1.8 }}
+                            className={`
+                              w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all duration-300
+                              ${done    ? `${step.doneBg} border-transparent shadow-md`                    : ""}
+                              ${current ? `bg-white ${step.activeBorder} ${step.ring} ring-4`             : ""}
+                              ${!done && !current ? "bg-orange-50 border-orange-200"                      : ""}
+                            `}
+                            animate={current ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                            transition={{ repeat: current ? Infinity : 0, duration: 2 }}
                           >
-                            <Icon className="w-5 h-5" />
+                            <Icon
+                              className={`w-4 h-4 ${
+                                done    ? "text-white"          :
+                                current ? step.activeText       :
+                                          "text-orange-200"
+                              }`}
+                            />
                           </motion.div>
-                          <p className={`timeline-step-label ${isDone ? "done" : ""} ${isCurrent ? "current" : ""}`}>
+
+                          <p className={`
+                            text-[9px] font-bold text-center mt-2 tracking-wider uppercase leading-tight
+                            ${done ? "text-gray-500" : current ? "text-red-600" : "text-gray-300"}
+                          `}>
                             {step.label}
                           </p>
-                          {isCurrent && (
+
+                          {current && (
                             <motion.span
                               initial={{ opacity: 0, y: 4 }}
                               animate={{ opacity: 1, y: 0 }}
-                              className="mt-1.5 text-[10px] font-semibold text-[#D73D32] bg-red-50 border border-red-100 rounded-full px-2 py-0.5"
+                              className="mt-1.5 text-[9px] font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-0.5 tracking-wide"
                             >
-                              Now
+                              NOW
                             </motion.span>
                           )}
                         </div>
@@ -600,80 +436,120 @@ export function ViewOrderPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="delivery-box mt-8 p-5 flex items-center gap-4"
+                  transition={{ delay: 0.7 }}
+                  className="mt-6 flex items-center gap-4 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-4"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-white shadow-sm border border-red-100 flex items-center justify-center flex-shrink-0">
-                    <Truck className="w-5 h-5 text-[#D73D32]" />
+                  <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-white border border-orange-100 shadow-sm flex items-center justify-center">
+                    <Truck className="w-4 h-4 text-red-500" />
                   </div>
-                  <div>
-                    <p className="text-xs text-[#b89090] uppercase tracking-wider">Estimated Delivery</p>
-                    <p className="font-semibold text-gray-800 mt-0.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-0.5">Estimated Delivery</p>
+                    <p className="text-sm font-semibold text-gray-800">
                       {order.status === "delivery"
                         ? `Delivered on ${new Date(order.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}`
-                        : new Date(
-                            new Date(order.created_at).getTime() + 7 * 24 * 60 * 60 * 1000
-                          ).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
-                      }
+                        : estimatedDate}
                     </p>
                   </div>
                   {order.status === "delivery" && (
-                    <CheckCircle className="ml-auto w-5 h-5 text-emerald-500" />
+                    <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                   )}
                 </motion.div>
               </div>
 
-              {/* Shipping address */}
-              <div className="address-box p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <MapPin className="w-4 h-4 text-[#D73D32]" />
+              {/* ── SHIPPING ADDRESS ─────────────────────────── */}
+              <div className="w-full bg-white rounded-2xl border border-orange-100 shadow-sm p-5 sm:p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <MapPin className="w-4 h-4 text-red-500" />
+                  <h3 className="text-base font-bold text-gray-800">Shipping Address</h3>
+                  {addrType && (
+                    <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-50 border border-red-100 px-2.5 py-0.5 rounded-full">
+                      {addrType}
+                    </span>
+                  )}
+                </div>
+
+                {address ? (
+                  <div className="divide-y divide-orange-50">
+
+                    {/* Full Name */}
+                    {addrName && (
+                      <div className="flex items-start gap-3 py-3 first:pt-0">
+                        <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center mt-0.5">
+                          <User className="w-3.5 h-3.5 text-red-500" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-widest font-semibold text-gray-400 mb-0.5">Full Name</p>
+                          <p className="text-sm font-semibold text-gray-800">{addrName}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Phone */}
+                    {addrPhone && (
+                      <div className="flex items-start gap-3 py-3">
+                        <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center mt-0.5">
+                          <Phone className="w-3.5 h-3.5 text-red-500" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-widest font-semibold text-gray-400 mb-0.5">Phone</p>
+                          <p className="text-sm font-semibold text-gray-800">{addrPhone}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Address lines */}
+                    <div className="flex items-start gap-3 py-3 last:pb-0">
+                      <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center mt-0.5">
+                        <Home className="w-3.5 h-3.5 text-red-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-widest font-semibold text-gray-400 mb-0.5">Delivery Address</p>
+                        <p className="text-sm font-medium text-gray-700 leading-relaxed">
+                          {[addrLine1, addrLine2].filter(Boolean).join(", ")}
+                          {addrLandmark && (
+                            <span className="block text-xs text-gray-400 mt-0.5">Near: {addrLandmark}</span>
+                          )}
+                          <span className="block">
+                            {[addrCity, addrState].filter(Boolean).join(", ")}
+                            {addrPin && ` — ${addrPin}`}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-[#b89090] mb-1">Shipping Address</p>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {order.shipping_address || "123 Business Street, Tech Park, Bengaluru — 560001"}
+                ) : (
+                  /* Fallback */
+                  <div className="flex gap-3 items-start">
+                    <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center mt-0.5">
+                      <Home className="w-3.5 h-3.5 text-red-500" />
+                    </div>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {order.shipping_address || "Address not available"}
                     </p>
                   </div>
-                </div>
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ═══ FOOTER ACTIONS ════════════════════════════════════════ */}
-        <div className="flex items-center justify-between pt-2 pb-6">
-          <button onClick={() => navigate("/orders")} className="btn-ghost">
+        {/* ── FOOTER ACTIONS ───────────────────────────────────── */}
+        <div className="flex items-center justify-between pb-8 pt-1 w-full">
+          <button
+            onClick={() => navigate("/orders")}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-orange-100 bg-white text-sm font-semibold text-gray-500 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
+          >
             <ArrowLeft className="w-4 h-4" /> Back to Orders
           </button>
 
           {order.status !== "delivery" && order.status !== "cancelled" && (
-            <button className="btn-red">
-              Need Help? <ChevronRight className="w-4 h-4" />
+            <button className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white text-sm font-semibold shadow-lg shadow-red-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-red-300 transition-all duration-200">
+              Need Help <ChevronRight className="w-4 h-4" />
             </button>
           )}
         </div>
+
       </div>
     </div>
-  );
-}
-
-/* ─── Tiny helpers ─────────────────────────────────────────────────────── */
-function OrderStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-    pending:  { bg: "bg-amber-50",   text: "text-amber-700",  dot: "bg-amber-400",  label: "Pending" },
-    process:  { bg: "bg-sky-50",     text: "text-sky-700",    dot: "bg-sky-400",    label: "Processing" },
-    printing: { bg: "bg-violet-50",  text: "text-violet-700", dot: "bg-violet-400", label: "Printing" },
-    packed:   { bg: "bg-teal-50",    text: "text-teal-700",   dot: "bg-teal-400",   label: "Packed" },
-    shipment: { bg: "bg-orange-50",  text: "text-orange-700", dot: "bg-orange-400", label: "Shipped" },
-    delivery: { bg: "bg-emerald-50", text: "text-emerald-700",dot: "bg-emerald-400",label: "Delivered" },
-    cancelled:{ bg: "bg-red-50",     text: "text-red-700",    dot: "bg-red-400",    label: "Cancelled" },
-  };
-  const c = map[status] || map.pending;
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text} border border-current/20`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {c.label}
-    </span>
   );
 }

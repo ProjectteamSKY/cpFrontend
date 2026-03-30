@@ -54,8 +54,6 @@ export function FeaturedProducts() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
-
         .fp-section {
           font-family: 'Sora', sans-serif;
           padding-bottom: 2.5rem;
@@ -263,9 +261,7 @@ export function FeaturedProducts() {
             <p className="fp-label">Explore</p>
             <h2 className="fp-title">Our Products</h2>
           </div>
-          {!loading && validProducts.length > 0 && (
-            <span className="fp-badge">{validProducts.length} items</span>
-          )}
+       
         </div>
 
         <div className="fp-divider" />
