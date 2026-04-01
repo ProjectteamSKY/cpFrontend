@@ -12,7 +12,6 @@ import api from "../../service/api";
 // ─── Styles ──────────────────────────────────────────────────────────────────────
 
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
   .drp-root {
     font-family: 'DM Sans', sans-serif;
@@ -378,26 +377,6 @@ export function DesignReviewPage() {
               </p>
             </div>
 
-            {/* Checklist */}
-            {/* <div className="drp-card" style={{ padding: "14px 18px", flexShrink: 0 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--gray-400)", marginBottom: 10 }}>Order Checklist</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {completedSteps.map(({ label, done }) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    {done ? (
-                      <div className="drp-step-done">
-                        <CheckCircle size={12} color="white" strokeWidth={2.5} />
-                      </div>
-                    ) : (
-                      <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid var(--gray-200)", flexShrink: 0 }} />
-                    )}
-                    <span style={{ fontSize: 12, color: done ? "var(--gray-800)" : "var(--gray-400)", fontWeight: done ? 600 : 400 }}>
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div> */}
           </div>
         </div>
 

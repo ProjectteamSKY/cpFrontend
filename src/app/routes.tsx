@@ -8,8 +8,6 @@ import { CartPage } from "./components/customer/CartPage";
 import { CheckoutPage } from "./components/customer/CheckoutPage";
 import { OrderHistoryPage } from "./components/customer/OrderTrackingPage";
 import { ViewOrderPage } from "./components/customer/ViewOrderPage";
-
-
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { ProductManagement } from "./components/admin/ProductManagement";
 import { OrderManagement } from "./components/admin/OrderManagement";
@@ -35,6 +33,7 @@ import ReviewsPage from "./components/customer/ReviewPage";
 import ProductReviews from "./components/customer/ReviewPage";
 import  { FAQManagement } from "./components/admin/FaqManagement";
 import { AddressPage } from "./components/customer/AddressPage";
+import SubcategoryListPage from "./components/customer/SubCategory";
 
 
 
@@ -58,6 +57,10 @@ export const router = createBrowserRouter([
       { path: "/MyProfile", Component: ProfilePage },
       { path: "/VpaPage", Component: VpaPage },
       { path: "/ReviewsPage", Component: ProductReviews },
+      { path: "/ReviewsPage", Component: ProductReviews },
+      { path: "/subcategorylist", Component: SubcategoryListPage },
+
+
       
 
 // <Route path="/address" element={<AddressPage />} />
@@ -84,7 +87,6 @@ export const router = createBrowserRouter([
       { path: "product", Component: ProductManagements },
       { path: "productVarient", Component: ProductVariantManagement },
       { path: "productDiscount", Component: ProductDiscountManagement },
-
       { path: "productVarientPrice", Component: ProductVariantPriceManagement },
       { path: "ProductSetup", Component: ProductSetupManagement },
       { path: "Order", Component: OrderManagement },

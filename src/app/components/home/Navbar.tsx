@@ -1,48 +1,104 @@
 // components/Navbar.tsx
 import { Link, useLocation } from "react-router";
-import { Search, User, Heart, ShoppingCart, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getAllCategories } from "../../service/categoryApiService";
+import { Search, User, Heart, ShoppingCart } from "lucide-react";
 
 interface Category {
     id: string;
     name: string;
 }
 
+interface Subcategory {
+    id: string;
+    category_id: string;
+    name: string;
+    description: string;
+    is_active: number;
+    is_deleted: number;
+}
+
+interface Product {
+    id: string;
+    name: string;
+}
+
+// 🔹 APIs
+async function getSubcategories(categoryId: string): Promise<Subcategory[]> {
+    const res = await fetch(
+        `http://54.206.3.97/api/subcategory/list?category_id=${categoryId}`
+    );
+    const data = await res.json();
+    return data.subcategories ?? [];
+}
+
+async function getProducts(subcategoryId: string): Promise<Product[]> {
+    const res = await fetch(
+        `http://54.206.3.97/api/product/subcategory/${subcategoryId}/minimal`
+    );
+    const data = await res.json();
+    return data.products ?? [];
+}
+
 export function Navbar() {
     const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+
+    const [subcategoriesMap, setSubcategoriesMap] = useState<
+        Record<string, Subcategory[]>
+    >({});
+
+    const [productsMap, setProductsMap] = useState<
+        Record<string, Product[]>
+    >({});
     const [searchFocused, setSearchFocused] = useState(false);
+
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const location = useLocation();
 
-    // Fetch categories
     useEffect(() => {
         const fetchCategories = async () => {
-            try {
-                const res = await getAllCategories();
-                setCategories([
-                    { id: "all", name: "All Products" },
-                    ...res
-                ]);
-            } catch (error) {
-                console.error("Error fetching categories:", error);
-            } finally {
-                setLoading(false);
-            }
+            const res = await getAllCategories();
+            setCategories([{ id: "all", name: "View All" }, ...res]);
         };
-
         fetchCategories();
     }, []);
 
-    // Close mobile menu on route change
     useEffect(() => {
         setMobileMenuOpen(false);
     }, [location]);
 
+    const loadSubcategories = async (categoryId: string) => {
+        if (subcategoriesMap[categoryId]) return;
+
+        const subs = await getSubcategories(categoryId);
+        setSubcategoriesMap((p) => ({ ...p, [categoryId]: subs }));
+
+        subs.forEach((sub) => loadProducts(sub.id));
+    };
+
+    const loadProducts = async (subcategoryId: string) => {
+        if (productsMap[subcategoryId]) return;
+
+        const products = await getProducts(subcategoryId);
+        setProductsMap((p) => ({ ...p, [subcategoryId]: products }));
+    };
+
+    const handleHover = (categoryId: string) => {
+        setHoveredCategory(categoryId);
+
+        if (categoryId === "all") {
+            categories.forEach((cat) => {
+                if (cat.id !== "all") loadSubcategories(cat.id);
+            });
+        } else {
+            loadSubcategories(categoryId);
+        }
+    };
+
     return (
-        <nav className="bg-white/95 backdrop-blur-md  sticky top-0 z-[100] shadow-sm">
-            {/* Top row */}
+        <nav className="bg-white sticky top-0 z-50 shadow-sm">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16 lg:h-20 gap-4">
                     {/* Logo */}
@@ -104,7 +160,7 @@ export function Navbar() {
                                 <ShoppingCart size={18} className="group-hover:scale-110 transition-transform" />
                                 <span>Cart</span>
                                 {/* Cart Badge Example */}
-                                
+
                             </Link>
 
                             <Link
@@ -117,115 +173,120 @@ export function Navbar() {
                     </div>
                 </div>
 
-                {/* Mobile Search */}
-                <div className="md:hidden pb-3">
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search size={16} className="text-gray-400" />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Search products..."
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#c0392b] focus:ring-2 focus:ring-[#c0392b]/20 text-sm"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Category nav - Desktop */}
-            <div className="hidden md:block border-t border-gray-100 bg-white/50">
-                <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
-                    <div className="flex overflow-x-auto scrollbar-none gap-1 py-2">
-                        {loading ? (
-                            <div className="flex gap-2">
-                                {[1, 2, 3, 4, 5].map((i) => (
-                                    <div key={i} className="h-10 w-24 bg-gray-100 rounded-lg animate-pulse"></div>
-                                ))}
+                <div className="hidden md:block border-t relative">
+                    <div className="max-w-[1400px] mx-auto px-6 flex gap-4 py-3">
+                        {categories.map((c) => (
+                            <div key={c.id} onMouseEnter={() => handleHover(c.id)}>
+                                <Link
+                                    to={c.id === "all" ? "/" : `/products?category=${c.id}`}
+                                    className={`px-4 py-2 text-sm rounded-lg ${hoveredCategory === c.id
+                                        ? "text-[#c0392b] bg-red-50"
+                                        : "text-gray-600 hover:text-[#c0392b]"
+                                        }`}
+                                >
+                                    {c.name}
+                                </Link>
                             </div>
-                        ) : (
-                            categories.map((c) => {
-                                const isAll = c.id === "all";
-                                const isActive = isAll
-                                    ? location.pathname === "/" && !location.search
-                                    : location.search.includes(`category=${c.id}`);
-
-                                return (
-                                    <Link
-                                        to={isAll ? "/" : `/products?category=${c.id}`}
-                                        key={c.id}
-                                        className={`relative px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap
-                ${isActive
-                                                ? "text-[#c0392b] bg-[#c0392b]/5"
-                                                : "text-gray-600 hover:text-[#c0392b] hover:bg-gray-50"
-                                            }`}
-                                    >
-                                        {c.name}
-                                        {isActive && (
-                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#c0392b] to-[#e74c3c] rounded-full"></div>
-                                        )}
-                                    </Link>
-                                );
-                            })
-                        )}
+                        ))}
                     </div>
-                </div>
-            </div>
 
-            {/* Mobile Menu */}
-            {mobileMenuOpen && (
-                <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg animate-slideDown">
-                    <div className="p-4 space-y-2">
-                        <Link
-                            to="/MyProfile"
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-[#c0392b] transition-all duration-200"
+                    {/* 🔥 MEGA MENU */}
+                    {hoveredCategory && (
+                        <div
+                            className="absolute left-0 w-full bg-white shadow-xl border-t z-50"
+                            onMouseLeave={() => setHoveredCategory(null)}
                         >
-                            <User size={18} />
-                            <span className="font-medium">My Profile</span>
-                        </Link>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-[#c0392b] transition-all duration-200">
-                            <Heart size={18} />
-                            <span className="font-medium">Wishlist</span>
-                        </button>
-                        <Link
-                            to="/cart"
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-[#c0392b] transition-all duration-200"
-                        >
-                            <ShoppingCart size={18} />
-                            <span className="font-medium">Cart</span>
-                        </Link>
-                        <div className="pt-2">
-                            <Link
-                                to="/products"
-                                className="block w-full text-center px-4 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#c0392b] to-[#e74c3c] text-white hover:shadow-lg transition-all duration-300"
-                            >
-                                Order Now
-                            </Link>
-                        </div>
+                            <div className="max-w-[1400px] mx-auto px-8 py-6">
 
-                        {/* Mobile Categories */}
-                        <div className="pt-4 border-t border-gray-100">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-4">
-                                Categories
-                            </p>
-                            <div className="space-y-1">
-                                {loading ? (
-                                    <div className="px-4 py-2 text-sm text-gray-400">Loading...</div>
+                                {/* 🔥 ALL VIEW */}
+                                {hoveredCategory === "all" ? (
+                                    <div className="grid grid-cols-5 gap-6">
+                                        {categories
+                                            .filter((c) => c.id !== "all")
+                                            .map((cat) => (
+                                                <div key={cat.id}>
+                                                    <Link
+                                                        to={`/products?category=${cat.id}`}
+                                                        className="font-bold text-[#c0392b] mb-2 block"
+                                                    >
+                                                        {cat.name}
+                                                    </Link>
+
+                                                    {(subcategoriesMap[cat.id] || [])
+                                                        .filter((s) => s.is_active === 1 && s.is_deleted === 0)
+                                                        .slice(0, 5)
+                                                        .map((sub) => (
+                                                            <Link
+                                                                key={sub.id}
+                                                                to={`/products?subcategory=${sub.id}`}
+                                                                className="block text-sm text-gray-700 hover:text-[#c0392b] py-1"
+                                                            >
+                                                                {sub.name}
+                                                            </Link>
+                                                        ))}
+
+                                                    <Link
+                                                        to={`/subcategorylist?category=${cat.id}`}
+                                                        className="block text-sm text-gray-700 hover:text-[#c0392b] py-1 font-medium"
+                                                    >
+                                                        View All
+                                                    </Link>
+                                                </div>
+                                            ))}
+                                    </div>
                                 ) : (
-                                    categories.map((c) => (
-                                        <Link
-                                            to={`/products?category=${c.id}`}
-                                            key={c.id}
-                                            className="block px-4 py-2.5 text-sm text-gray-600 hover:text-[#c0392b] hover:bg-gray-50 rounded-lg transition-all duration-200"
-                                        >
-                                            {c.name}
-                                        </Link>
-                                    ))
+                                    /* 🔥 SINGLE CATEGORY */
+                                    <div className="grid grid-cols-4 gap-6">
+                                        {(subcategoriesMap[hoveredCategory] || [])
+                                            .filter((s) => s.is_active === 1 && s.is_deleted === 0)
+                                            .map((sub) => (
+                                                <div key={sub.id}>
+                                                    <h3 className="font-semibold text-[#c0392b] mb-2">
+                                                        {sub.name}
+                                                    </h3>
+
+                                                    {(productsMap[sub.id] || []).map((product) => (
+                                                        <Link
+                                                            key={product.id}
+                                                            to={`/product/${product.id}`}
+                                                            className="block text-sm text-gray-700 hover:text-[#c0392b] py-1"
+                                                        >
+                                                            {product.name}
+                                                        </Link>
+                                                    ))}
+
+                                                    {/* 🔥 NEW: SUBCATEGORY VIEW ALL */}
+                                                    <Link
+                                                        to={`/products?subcategory=${sub.id}`}
+                                                        className="block text-sm text-gray-700 hover:text-[#c0392b] py-1 font-medium"
+                                                    >
+                                                        View All
+                                                    </Link>
+                                                </div>
+                                            ))}
+                                    </div>
                                 )}
+
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                {/* MOBILE */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden border-t p-4">
+                        {categories.map((c) => (
+                            <Link
+                                key={c.id}
+                                to={c.id === "all" ? "/" : `/products?category=${c.id}`}
+                                className="block py-2"
+                            >
+                                {c.name}
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </div>
         </nav>
     );
 }
