@@ -1,18 +1,34 @@
-import React from "react";
-import { Edit3, AlertCircle } from "lucide-react";
+// ConfigurePanel.tsx
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { ShoppingCart, Upload, Zap, X, ArrowRight, ImagePlus, Trash2, FileImage } from "lucide-react";
 import { Product } from "../../types/productlist";
-import { VariantOption, Size, PaperType, PrintType, CutType } from "../../hooks/useproductdetail";
+import {
+  VariantOption,
+  Size,
+  PaperType,
+  PrintType,
+  CutType,
+} from "../../hooks/useproductdetail";
 import SectionLabel from "../../components/product/sectionLabel";
-import OptionPill from "../../components/product/OptionPill";
+import { Stars } from "./Stars";
+import NoDesignScreen from "./Nodesignscreen";
+import type { NoDesignFormData } from "./Nodesignscreen";
+import UploadScreen from "./UploadPanel";
 
-const SIDES_OPTIONS = [
-  { label: "Single Sided", value: "1", desc: "Front only"   },
-  { label: "Double Sided", value: "2", desc: "Front & back" },
-];
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+interface PriceTier {
+  id: string;
+  min_qty: number;
+  max_qty?: number;
+  price: number;
+}
 
 interface Props {
   product: Product;
   allSizes: Size[];
+  totalPrice: number;
   availablePaperTypes: PaperType[];
   availablePrintTypes: PrintType[];
   availableCutTypes: CutType[];
@@ -34,8 +50,91 @@ interface Props {
   onQuantitySelect: (id: string) => void;
   onCustomQtyToggle: () => void;
   onCustomQtyChange: (val: string) => void;
+  // Upload props
+  frontFile: File | null;
+  backFile: File | null;
+  frontPreview: string | null;
+  backPreview: string | null;
+  onFrontUpload: (file: File) => void;
+  onBackUpload: (file: File) => void;
+  onFrontRemove: () => void;
+  onBackRemove: () => void;
+  ctaDisabled: boolean;
+  ctaLabel: string;
+  onContinue: () => void;
 }
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+const SIDES_OPTIONS = [
+  { label: "Single Sided — Front only", value: "1" },
+  { label: "Double Sided — Front & back", value: "2" },
+];
+
+export const fmt = (n: number) =>
+  new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+
+const selectClass =
+  "w-full h-10 px-3 pr-8 border border-neutral-200 rounded-xl bg-white text-sm " +
+  "text-neutral-900 appearance-none focus:outline-none focus:border-[#D73D32] " +
+  "transition-colors cursor-pointer " +
+  "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")] " +
+  "bg-no-repeat bg-[right_12px_center]";
+
+
+function PriceCard({ unitPrice, qty, total, sides }: { unitPrice: number; qty: number; total: number; sides: string }) {
+  const sidesMultiplier = Number(sides) || 1;
+  return (
+    <div className="rounded-2xl border border-neutral-200 overflow-hidden">
+      <div className="px-5 py-3 flex items-center justify-between" style={{ background: "#D73D32" }}>
+        <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Price Summary</p>
+        {unitPrice > 0 && (
+          <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: "#ffd6d4" }}>
+            <Zap className="w-3 h-3" />
+            Best rate applied
+          </span>
+        )}
+      </div>
+      <div className="px-5 py-4 space-y-2.5 bg-white">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-neutral-500">Unit price</span>
+          <span className="font-semibold text-neutral-800">{unitPrice > 0 ? `₹${fmt(unitPrice)} / pc` : "—"}</span>
+        </div>
+        {sidesMultiplier > 1 && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-neutral-500">Sides multiplier</span>
+            <span className="font-semibold text-neutral-800">×{sidesMultiplier} = ₹{fmt(unitPrice * sidesMultiplier)} / pc</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-neutral-500">Quantity</span>
+          <span className="font-semibold text-neutral-800">{qty > 0 ? `${qty.toLocaleString("en-IN")} pcs` : "—"}</span>
+        </div>
+        <div className="border-t border-dashed border-neutral-200 pt-2.5">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mb-0.5">Total</p>
+              <p className="text-3xl font-bold text-neutral-900 tracking-tight leading-none">
+                {total > 0 ? `₹${fmt(total)}` : "₹0.00"}
+              </p>
+            </div>
+            {unitPrice > 0 && qty > 0 && (
+              <p className="text-[10px] text-neutral-400 font-medium mb-0.5">incl. all taxes</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main ConfigurePanel
+// ---------------------------------------------------------------------------
 export function ConfigurePanel({
   product,
   allSizes,
@@ -51,167 +150,243 @@ export function ConfigurePanel({
   selectedQuantity,
   useCustomQty,
   customQty,
-  customQtyPrice,
   onSizeChange,
   onPaperChange,
   onPrintChange,
   onCutChange,
   onSidesChange,
   onQuantitySelect,
-  onCustomQtyToggle,
   onCustomQtyChange,
+  frontFile,
+  backFile,
+  frontPreview,
+  backPreview,
+  onFrontUpload,
+  onBackUpload,
+  onFrontRemove,
+  onBackRemove,
+  ctaDisabled,
+  ctaLabel,
+  onContinue,
 }: Props) {
+  const tiers: PriceTier[] = selectedVariant?.prices ?? [];
+  const minQty = product.min_order_qty || 1;
+  const sidesMultiplier = Number(selectedSides) || 1;
+
+  const [selectedTierId, setSelectedTierId] = useState<string>(() => tiers[0]?.id ?? "");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [noDesignOpen, setNoDesignOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectedQuantity && tiers.find((t) => t.id === selectedQuantity)) {
+      setSelectedTierId(selectedQuantity);
+    } else if (tiers.length > 0) {
+      setSelectedTierId(tiers[0].id);
+    }
+  }, [selectedQuantity, tiers]);
+
+  const activeTier = tiers.find((t) => t.id === selectedTierId) ?? tiers[0] ?? null;
+  const baseUnitPrice = activeTier?.price ?? 0;
+  const qty = activeTier?.min_qty ?? 0;
+  const total = baseUnitPrice * sidesMultiplier * qty;
+
+  const handleQtyDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setSelectedTierId(id);
+    onQuantitySelect(id);
+    const tier = tiers.find((t) => t.id === id);
+    if (tier) onCustomQtyChange(String(tier.min_qty));
+  };
+
+  const getTierLabel = (t: PriceTier) => {
+    const range = t.max_qty && t.max_qty !== t.min_qty ? `${t.min_qty}–${t.max_qty}` : `${t.min_qty}+`;
+    const effectivePrice = t.price * sidesMultiplier;
+    return sidesMultiplier > 1
+      ? `${range} pcs — ₹${t.price.toFixed(2)} × ${sidesMultiplier} = ₹${effectivePrice.toFixed(2)}/pc`
+      : `${range} pcs — ₹${t.price.toFixed(2)}/pc`;
+  };
+
+  const selectedTierLabel = activeTier ? getTierLabel(activeTier) : "";
+  const canOrder = qty >= minQty && total > 0;
+
+  const handleNoDesignSubmit = (data: NoDesignFormData) => {
+    console.log("No design order:", { ...data, product: product.name, selectedSize, total });
+    // TODO: send to API
+  };
+  const userId = localStorage.getItem("user_id");
+
   return (
-    <div className="space-y-7">
-      {/* Header */}
-      <div className="pb-4 border-b border-neutral-100">
-        <h2 className="product-name text-xl font-normal text-neutral-900">Configure Your Order</h2>
-        <p className="text-xs text-neutral-400 mt-1.5 font-medium">
-          Select size — paper, print &amp; cut auto-update to a valid match.
+    <>
+      <div className="space-y-6">
+        {/* Product header */}
+        <div>
+          <h1 className="text-[2rem] leading-[1.1] font-normal text-neutral-900 mb-3">{product.name}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Stars rating={Number(product.rating || 4.2)} size="md" />
+            <span className="text-sm font-bold text-neutral-800">{product.rating || 4.2}</span>
+            <span className="text-sm text-neutral-400">({product.review_count || 90} reviews)</span>
+          </div>
+        </div>
+
+        {/* Price card */}
+        <PriceCard unitPrice={baseUnitPrice} qty={qty} total={total} sides={selectedSides} />
+
+        {/* Configure header */}
+        <div className="pb-4 border-b border-neutral-100">
+          <h2 className="text-xl font-normal text-neutral-900">Configure Your Order</h2>
+          <p className="text-xs text-neutral-400 mt-1.5 font-medium">
+            Select size — paper, print &amp; cut auto-update to a valid match.
+          </p>
+        </div>
+
+        {/* Row 1: Size + Paper */}
+        <div className="grid grid-cols-2 gap-4">
+          {allSizes.length > 0 && (
+            <div>
+              <SectionLabel label="Size" hint="Dimensions" />
+              <select className={selectClass} value={selectedSize} onChange={(e) => onSizeChange(e.target.value)}>
+                {allSizes.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}{s.dimensions ? ` (${s.dimensions})` : ""}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {availablePaperTypes.length > 0 && (
+            <div>
+              <SectionLabel label="Paper Type" />
+              <select className={selectClass} value={selectedPaperType} onChange={(e) => onPaperChange(e.target.value)}>
+                {availablePaperTypes.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Row 2: Print + Cut */}
+        <div className="grid grid-cols-2 gap-4">
+          {availablePrintTypes.length > 0 && (
+            <div>
+              <SectionLabel label="Print Type" />
+              <select className={selectClass} value={selectedPrintType} onChange={(e) => onPrintChange(e.target.value)}>
+                {availablePrintTypes.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+              </select>
+            </div>
+          )}
+          {availableCutTypes.length > 0 && (
+            <div>
+              <SectionLabel label="Cut Type" />
+              <select className={selectClass} value={selectedCutType} onChange={(e) => onCutChange(e.target.value)}>
+                {availableCutTypes.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Row 3: Sides + Quantity */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <SectionLabel label="Printing Sides" />
+            <select className={selectClass} value={selectedSides} onChange={(e) => onSidesChange(e.target.value)}>
+              {SIDES_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          {tiers.length > 0 && (
+            <div>
+              <SectionLabel label="Quantity" hint="Best rate auto-applied" />
+              <select className={selectClass} value={selectedTierId} onChange={handleQtyDropdownChange}>
+                {tiers.map((t) => <option key={t.id} value={t.id}>{getTierLabel(t)}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* CTA buttons */}
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <button
+            type="button"
+            disabled={!canOrder}
+            onClick={() => setUploadOpen(true)}
+            style={{ background: "#D73D32" }}
+            className="h-14 rounded-2xl text-white font-semibold
+                       flex flex-col items-center justify-center gap-1 px-3
+                       transition-all duration-150 hover:opacity-90 active:scale-[0.98]
+                       disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-1.5">
+              <Upload className="w-4 h-4" />
+              <span className="text-xs font-bold">Upload Design</span>
+            </div>
+            {total > 0 && <span className="text-[10px] text-white/60">₹{fmt(total)}</span>}
+          </button>
+
+          <button
+            type="button"
+            disabled={!canOrder}
+            onClick={() => setNoDesignOpen(true)}
+            className="h-14 rounded-2xl font-semibold border-2
+                       flex flex-col items-center justify-center gap-1 px-3
+                       transition-all duration-150 hover:bg-red-50 active:scale-[0.98]
+                       disabled:opacity-40 disabled:cursor-not-allowed bg-white"
+            style={{ borderColor: "#D73D32", color: "#D73D32" }}
+          >
+            <div className="flex items-center gap-1.5">
+              <ShoppingCart className="w-4 h-4" />
+              <span className="text-xs font-bold">No Design</span>
+            </div>
+            {total > 0 && <span className="text-[10px]" style={{ color: "#D73D32", opacity: 0.6 }}>₹{fmt(total)}</span>}
+          </button>
+        </div>
+
+        <p className="text-center text-[10px] text-neutral-400 -mt-3">
+          No design? Our team will help you create one.
         </p>
       </div>
 
-      {/* Size */}
-      {allSizes.length > 0 && (
-        <div>
-          <SectionLabel label="Size" hint="Physical dimensions of the printed card" />
-          <div className="grid grid-cols-3 gap-2">
-            {allSizes.map((s) => (
-              <OptionPill key={s.id} active={selectedSize === s.name} onClick={() => onSizeChange(s.name)}>
-                <span className="text-[13px]">{s.name}</span>
-                {s.dimensions && (
-                  <span className="text-[10px] opacity-60 font-normal mt-0.5">{s.dimensions}</span>
-                )}
-              </OptionPill>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Paper Type */}
-      {availablePaperTypes.length > 0 && (
-        <div>
-          <SectionLabel label="Paper Type" hint="Material and finish of the paper used" />
-          <div className="grid grid-cols-3 gap-2">
-            {availablePaperTypes.map((p) => (
-              <OptionPill key={p.id} active={selectedPaperType === p.name} onClick={() => onPaperChange(p.name)}>
-                <span className="text-[13px]">{p.name}</span>
-              </OptionPill>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="space-y-6">
+        <UploadScreen
+          open={uploadOpen}
+          onClose={() => setUploadOpen(false)}
+          product={product}
+          selectedSides={selectedSides}
+          selectedSize={selectedSize}
+          selectedPaperType={selectedPaperType}
+          selectedPrintType={selectedPrintType}
+          selectedCutType={selectedCutType}
+          selectedTierLabel={selectedTierLabel}
+          total={total}
+          frontFile={frontFile}
+          backFile={backFile}
+          frontPreview={frontPreview}
+          backPreview={backPreview}
+          onFrontUpload={onFrontUpload}
+          onBackUpload={onBackUpload}
+          onFrontRemove={onFrontRemove}
+          onBackRemove={onBackRemove}
+          ctaDisabled={ctaDisabled}
+          ctaLabel={ctaLabel}
+          onContinue={onContinue}
+        />
 
-      {/* Print Type */}
-      {availablePrintTypes.length > 0 && (
-        <div>
-          <SectionLabel label="Print Type" hint="Printing technology used for production" />
-          <div className="grid grid-cols-3 gap-2">
-            {availablePrintTypes.map((p) => (
-              <OptionPill key={p.id} active={selectedPrintType === p.name} onClick={() => onPrintChange(p.name)}>
-                <span className="text-[13px]">{p.name}</span>
-              </OptionPill>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Cut Type */}
-      {availableCutTypes.length > 0 && (
-        <div>
-          <SectionLabel label="Cut Type" hint="Edge finishing style of the final card" />
-          <div className="grid grid-cols-3 gap-2">
-            {availableCutTypes.map((c) => (
-              <OptionPill key={c.id} active={selectedCutType === c.name} onClick={() => onCutChange(c.name)}>
-                <span className="text-[13px]">{c.name}</span>
-              </OptionPill>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Printing Sides */}
-      <div>
-        <SectionLabel label="Printing Sides" />
-        <div className="grid grid-cols-2 gap-2">
-          {SIDES_OPTIONS.map((o) => (
-            <OptionPill
-              key={o.value}
-              active={selectedSides === o.value}
-              onClick={() => onSidesChange(o.value)}
-            >
-              <span className="text-[13px]">{o.label}</span>
-              <span className="text-[10px] opacity-60 font-normal mt-0.5">{o.desc}</span>
-            </OptionPill>
-          ))}
-        </div>
+        {/* Full-screen No Design */}
+        <NoDesignScreen
+          open={noDesignOpen}
+          onClose={() => setNoDesignOpen(false)}
+          product={product}
+          selectedSize={selectedSize}
+          selectedPaperType={selectedPaperType}
+          selectedPrintType={selectedPrintType}
+          selectedCutType={selectedCutType}
+          selectedSides={selectedSides}
+          selectedTierLabel={selectedTierLabel}
+          total={total}
+          userId={userId || undefined}
+          selectedVariant={selectedVariant}
+          selectedQuantity={selectedQuantity}
+          onSubmit={handleNoDesignSubmit}
+        />
       </div>
+      {/* Full-screen Upload */}
 
-      {/* Quantity */}
-      {selectedVariant && selectedVariant.prices.length > 0 && (
-        <div>
-          <SectionLabel label="Quantity" hint="Choose a tier or enter a custom amount" />
-          <div className="grid grid-cols-3 gap-2">
-            {selectedVariant.prices.map((price) => (
-              <OptionPill
-                key={price.id}
-                active={!useCustomQty && selectedQuantity === price.id}
-                onClick={() => onQuantitySelect(price.id)}
-              >
-                <span className="text-[13px] font-bold">
-                  {price.min_qty}
-                  {price.max_qty && price.max_qty !== price.min_qty
-                    ? `–${price.max_qty}`
-                    : "+"}{" "}
-                  pcs
-                </span>
-                <span
-                  className={`text-[11px] font-bold mt-0.5 transition-colors ${
-                    !useCustomQty && selectedQuantity === price.id
-                      ? "text-white/70"
-                      : "text-neutral-400"
-                  }`}
-                >
-                  ₹{price.price.toFixed(2)}
-                </span>
-              </OptionPill>
-            ))}
-            <OptionPill active={useCustomQty} onClick={onCustomQtyToggle}>
-              <Edit3 className="w-3.5 h-3.5 mb-0.5" />
-              <span className="text-[13px]">Custom</span>
-              <span className="text-[10px] opacity-60 font-normal mt-0.5">Any qty</span>
-            </OptionPill>
-          </div>
-
-          {useCustomQty && (
-            <div className="mt-3 flex items-center gap-2.5">
-              <input
-                type="number"
-                min={product.min_order_qty || 1}
-                value={customQty}
-                onChange={(e) => onCustomQtyChange(e.target.value)}
-                placeholder={`Min ${product.min_order_qty || 100} pcs`}
-                className="flex-1 border border-neutral-200 focus:border-neutral-900 rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition-colors bg-white placeholder-neutral-300"
-              />
-              {customQtyPrice !== null && (
-                <div className="shrink-0 text-right px-3.5 py-2.5 bg-neutral-900 text-white rounded-xl">
-                  <p className="text-[9px] text-white/60 uppercase tracking-wider font-bold">Price</p>
-                  <p className="text-base font-bold">₹{customQtyPrice.toFixed(2)}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {customQty &&
-            parseInt(customQty) < (product.min_order_qty || 100) &&
-            parseInt(customQty) > 0 && (
-              <p className="text-[11px] text-amber-600 flex items-center gap-1.5 mt-2 font-semibold">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                Minimum order is {product.min_order_qty || 100} pieces.
-              </p>
-            )}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

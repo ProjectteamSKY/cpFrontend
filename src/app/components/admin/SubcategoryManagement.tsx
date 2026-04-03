@@ -131,6 +131,21 @@ export function SubcategoryManagement({ categoryId }: Props) {
         <span className="text-gray-600">{row.original.description || "-"}</span>
       ),
     },
+    // {
+    //   header: "Image",
+    //   cell: ({ row }) => {
+    //     const img = row.original.images?.[0]?.url;
+
+    //     return img ? (
+    //       <img
+    //         src={img}
+    //         className="w-12 h-12 object-cover rounded-md border"
+    //       />
+    //     ) : (
+    //       <span className="text-gray-400 text-sm">No Image</span>
+    //     );
+    //   },
+    // },
     {
       header: "Status",
       cell: ({ row }) => {

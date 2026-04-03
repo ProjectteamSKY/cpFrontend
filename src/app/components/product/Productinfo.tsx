@@ -35,15 +35,7 @@ export function ProductHero({
   return (
     <div className="space-y-6 fade-up">
       {/* Badges */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[9px] font-bold text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full uppercase tracking-[0.15em]">
-          {product.sku}
-        </span>
-        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-          In Stock
-        </span>
-      </div>
+        
 
       {/* Name + Rating */}
       <div>
@@ -89,7 +81,7 @@ export function ProductHero({
       </div>
 
       {/* Quick spec chips */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* <div className="grid grid-cols-4 gap-2">
         {[
           { icon: <Layers className="w-4 h-4" />,      label: "Sizes",  value: `${allSizesCount}`      },
           { icon: <PackageCheck className="w-4 h-4" />, label: "Papers", value: `${availablePaperCount}` },
@@ -105,18 +97,18 @@ export function ProductHero({
             <p className="text-[9px] text-neutral-400 font-semibold uppercase tracking-wider">{label}</p>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {/* Min order banner */}
-      <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+      {/* <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
         <PackageCheck className="w-4 h-4 text-amber-600 shrink-0" />
         <span className="text-[12px] text-amber-800 font-semibold">
           Minimum order: <strong>{product.min_order_qty || 100} pieces</strong>
         </span>
-      </div>
+      </div> */}
 
       {/* Trust badges */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* <div className="grid grid-cols-2 gap-2">
         {[
           { icon: <Truck className="w-3.5 h-3.5" />,     label: "Fast Delivery",    sub: "3–5 business days",   icon_bg: "bg-blue-600"   },
           { icon: <Shield className="w-3.5 h-3.5" />,    label: "Quality Assured",  sub: "100% satisfaction",   icon_bg: "bg-emerald-600" },
@@ -138,7 +130,7 @@ export function ProductHero({
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }

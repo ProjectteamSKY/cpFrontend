@@ -7,6 +7,7 @@ const mapSubcategoryFromApi = (sub: any): Subcategory => ({
   category_id: sub.category_id,
   name: sub.name,
   description: sub.description ?? "",
+  images: sub.images ?? [],   // ✅ IMPORTANT
   is_active: Boolean(sub.is_active),
   created_at: sub.created_at ?? null,
   updated_at: sub.updated_at ?? null,
@@ -37,10 +38,10 @@ export const getAllSubcategories = async (categoryId?: string): Promise<Subcateg
     const res = await api.get("/subcategory/list", {
       params: categoryId ? { category_id: categoryId } : {}, // query param
     });
-    console.log("SUBCATEGORY RESPONSE: - subcategoryApiService.ts:40", res);
+    console.log("SUBCATEGORY RESPONSE: - subcategoryApiService.ts:41", res);
     return (res.data.subcategories || []).map(mapSubcategoryFromApi);
   } catch (error: any) {
-    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:43", error.response?.data ?? error);
+    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:44", error.response?.data ?? error);
     throw new Error("Failed to fetch subcategories");
   }
 };
@@ -51,51 +52,53 @@ export const getAllSubcategoriesss = async (): Promise<Subcategory[]> => {
     const res = await api.get("/subcategory/list"); // no params
     return (res.data.subcategories || []).map(mapSubcategoryFromApi);
   } catch (error: any) {
-    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:54", error.response?.data ?? error);
+    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:55", error.response?.data ?? error);
     throw new Error("Failed to fetch subcategories");
   }
 };
 
-export const createSubcategory = async (data: SubcategoryFormData) => {
-  if (!data.category_id) {
-    throw new Error("Category ID is required to create a subcategory");
-  }
+// createSubcategory
 
+export const createSubcategory = async (data: SubcategoryFormData) => {
   const formData = new FormData();
+
   formData.append("category_id", data.category_id);
   formData.append("name", data.name);
   formData.append("description", data.description ?? "");
-  formData.append("is_active", String(data.is_active)); // backend expects string
+  formData.append("is_active", String(data.is_active));
 
-  try {
-    const res = await api.post("/subcategory/create", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+  // ✅ IMAGES
+  if (data.images) {
+    Array.from(data.images).forEach((file) => {
+      formData.append("images", file);
     });
-    return res.data; // return created subcategory for UI
-  } catch (error: any) {
-    console.error("Create Subcategory Error: - subcategoryApiService.ts:76", error.response?.data ?? error);
-    throw new Error("Failed to create subcategory");
   }
+
+  const res = await api.post("/subcategory/create", formData);
+  return res.data;
 };
+
+// updateSubcategory
 
 export const updateSubcategory = async (
   id: string,
   data: SubcategoryFormData
-): Promise<void> => {
+) => {
   const formData = new FormData();
+
   formData.append("category_id", data.category_id);
   formData.append("name", data.name);
   formData.append("description", data.description ?? "");
-  formData.append("is_active", String(data.is_active)); // convert boolean to string
+  formData.append("is_active", String(data.is_active));
 
-  try {
-    await api.put(`/subcategory/update/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+  // ✅ IMAGES
+  if (data.images) {
+    Array.from(data.images).forEach((file) => {
+      formData.append("images", file);
     });
-  } catch (error: any) {
-    console.error("Update Subcategory Error: - subcategoryApiService.ts:96", error.response?.data ?? error);
-    throw new Error("Failed to update subcategory");
   }
+
+  await api.put(`/subcategory/update/${id}`, formData);
 };
 
 export const deleteSubcategory = async (id: string): Promise<void> => {

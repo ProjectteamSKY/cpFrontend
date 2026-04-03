@@ -274,13 +274,7 @@ export function WhyUs() {
       </div>
 
       {/* Floating trust badge */}
-      <div className="fixed bottom-6 right-6 z-50 hidden lg:block">
-        <div className="bg-white/90 backdrop-blur-md rounded-full shadow-2xl px-4 py-2 border border-gray-200 flex items-center gap-3 animate-bounce-slow">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-xs font-medium text-gray-700">Sriram</span>
-          <Gift size={14} className="text-[#D73D32]" />
-        </div>
-      </div>
+      
     </div>
   );
 }

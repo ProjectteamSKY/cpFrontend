@@ -1,27 +1,31 @@
-import { useEffect } from "react";
+// components/forms/SubcategoryForm.tsx
+
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { SubcategoryFormData, Subcategory } from "../../types/subcategory";
+import {
+  SubcategoryFormData,
+  SubcategoryFormProps,
+} from "../../types/subcategory";
 import { subcategoryValidation } from "../../validation/subcategoryValidation";
 
-interface Props {
-  defaultValues?: Subcategory | null;
-  defaultCategoryId?: string;
-  onSubmit: (data: SubcategoryFormData) => Promise<void>;
-  onCancel: () => void;
-}
+// ✅ BASE URL
+const BASE_URL = "http://54.206.3.97";
 
 export function SubcategoryForm({
   defaultValues,
   defaultCategoryId,
   onSubmit,
   onCancel,
-}: Props) {
+}: SubcategoryFormProps) {
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SubcategoryFormData>({
     defaultValues: {
@@ -32,12 +36,36 @@ export function SubcategoryForm({
     },
   });
 
+  /* ---------------- IMAGE PREVIEW (UPLOAD) ---------------- */
+  const watchImages = watch("images");
+
+  useEffect(() => {
+    if (watchImages && watchImages.length > 0) {
+      const urls = Array.from(watchImages).map((file) =>
+        URL.createObjectURL(file)
+      );
+      setPreviewImages(urls);
+    }
+  }, [watchImages]);
+
+  /* ---------------- DEFAULT VALUES (EDIT MODE) ---------------- */
   useEffect(() => {
     if (defaultValues) {
       setValue("category_id", defaultValues.category_id ?? "");
       setValue("name", defaultValues.name ?? "");
       setValue("description", defaultValues.description ?? "");
-      setValue("is_active", true);
+      setValue("is_active", defaultValues.is_active ?? true);
+
+      // ✅ FIXED IMAGE URL HANDLING
+      if (defaultValues.images && defaultValues.images.length > 0) {
+        setPreviewImages(
+          defaultValues.images.map((img) =>
+            img.url.startsWith("http")
+              ? img.url
+              : `${BASE_URL}/${img.url}`
+          )
+        );
+      }
     } else {
       reset({
         category_id: defaultCategoryId ?? "",
@@ -45,109 +73,92 @@ export function SubcategoryForm({
         description: "",
         is_active: true,
       });
+      setPreviewImages([]);
     }
   }, [defaultValues, defaultCategoryId, setValue, reset]);
 
+  /* ---------------- SUBMIT HANDLER ---------------- */
+  const handleFormSubmit = (data: SubcategoryFormData) => {
+    onSubmit(data);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="w-full space-y-6">
       
       {/* Hidden Fields */}
-      <input type="hidden" {...register("is_active")} value="true" />
       <input type="hidden" {...register("category_id")} />
+      <input type="hidden" {...register("is_active")} value="true" />
 
-      {/* Header */}
-      {/* <div className="text-center">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Add Subcategory
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Create and manage subcategories
-        </p>
-      </div> */}
-
-      {/* Name */}
+      {/* NAME */}
       <div className="flex flex-col">
-        <label className="text-sm font-medium text-gray-800 mb-2">
-          Subcategory Name <span className="text-red-500">*</span>
+        <label className="text-sm font-medium mb-1">
+          Subcategory Name *
         </label>
 
         <input
           {...register("name", subcategoryValidation.name)}
-          placeholder="e.g. Visiting Cards, Brochures"
-          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-          ${
-            errors.name
-              ? "border-red-500 ring-1 ring-red-200"
-              : "border-gray-300 focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32]"
+          placeholder="e.g. Visiting Cards"
+          className={`border rounded-xl px-4 py-2 ${
+            errors.name ? "border-red-500" : "border-gray-300"
           }`}
         />
 
         {errors.name && (
-          <p className="mt-1 text-xs text-red-500">
+          <p className="text-red-500 text-xs mt-1">
             {errors.name.message}
           </p>
         )}
       </div>
 
-      {/* Description */}
+      {/* DESCRIPTION */}
       <div className="flex flex-col">
-        <label className="text-sm font-medium text-gray-800 mb-2">
-          Description
-        </label>
+        <label className="text-sm font-medium mb-1">Description</label>
 
         <textarea
           {...register("description")}
-          placeholder="Short description about subcategory"
-          rows={4}
-          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none resize-none focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32] transition"
+          rows={3}
+          className="border border-gray-300 rounded-xl px-4 py-2"
         />
-
-        {errors.description && (
-          <p className="mt-1 text-xs text-red-500">
-            {errors.description.message}
-          </p>
-        )}
       </div>
 
-      {/* Buttons */}
-      <div className="flex gap-3 pt-2">
+      {/* IMAGE UPLOAD */}
+      <div className="flex flex-col">
+        <label className="text-sm font-medium mb-2">Upload Images</label>
+
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          {...register("images")}
+        />
+
+        {/* PREVIEW */}
+        <div className="flex gap-3 mt-3 flex-wrap">
+          {previewImages.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt="preview"
+              className="w-20 h-20 object-cover rounded-lg border"
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* BUTTONS */}
+      <div className="flex gap-3">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#D73D32] text-white py-2.5 text-sm font-semibold shadow-md hover:shadow-lg hover:bg-[#c53028] transition disabled:opacity-60"
+          className="flex-1 bg-[#D73D32] text-white py-2 rounded-xl"
         >
-          {isSubmitting ? (
-            <>
-              <svg
-                className="w-4 h-4 animate-spin"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="white"
-                  strokeWidth="4"
-                  fill="none"
-                  opacity="0.3"
-                />
-                <path
-                  d="M4 12a8 8 0 018-8"
-                  stroke="white"
-                  strokeWidth="4"
-                />
-              </svg>
-              Saving...
-            </>
-          ) : (
-            "Save"
-          )}
+          {isSubmitting ? "Saving..." : "Save"}
         </button>
 
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+          className="flex-1 border rounded-xl py-2"
         >
           Cancel
         </button>
