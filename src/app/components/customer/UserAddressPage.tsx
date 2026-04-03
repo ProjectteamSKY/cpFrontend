@@ -260,7 +260,6 @@ export default function userAddressPage() {
             style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&display=swap');
 
                 .addr-card {
                     background: #ffffff;
@@ -592,7 +591,6 @@ export default function userAddressPage() {
                                                     padding: "16px 20px",
                                                     fontSize: 13,
                                                     overflow: "auto",
-                                                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                                                     lineHeight: 1.7,
                                                     maxHeight: 320,
                                                 }}

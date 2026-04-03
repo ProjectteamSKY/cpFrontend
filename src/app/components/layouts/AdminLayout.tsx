@@ -641,6 +641,7 @@ import {
   Tag,
   ChevronRight,
   Bell,
+  Palette,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -674,6 +675,13 @@ const navGroups = [
       { path: "/admin/Cuttype", icon: Scissors, label: "Cut Types" },
       { path: "/admin/Printtype", icon: Printer, label: "Print Types" },
       { path: "/admin/SizeType", icon: Maximize2, label: "Sizes" },
+    ],
+  },
+
+   {
+    label: "Design",
+    items: [
+      { path: "/admin/Design", icon: Palette, label: "Design" },
     ],
   },
 ];

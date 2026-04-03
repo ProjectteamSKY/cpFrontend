@@ -34,6 +34,7 @@ import ProductReviews from "./components/customer/ReviewPage";
 import  { FAQManagement } from "./components/admin/FaqManagement";
 import { AddressPage } from "./components/customer/AddressPage";
 import SubcategoryListPage from "./components/customer/SubCategory";
+import { DesignManagement } from "./components/admin/DesignManagement";
 
 
 
@@ -91,6 +92,8 @@ export const router = createBrowserRouter([
       { path: "ProductSetup", Component: ProductSetupManagement },
       { path: "Order", Component: OrderManagement },
       { path: "FAQ", Component: FAQManagement },
+      { path: "Design", Component: DesignManagement },
+
 
    
 

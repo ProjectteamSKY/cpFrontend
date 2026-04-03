@@ -152,7 +152,7 @@ export function ProductManagements() {
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Product Management</h1>
+        <h1 className="text-3xl font-bold">Products Management</h1>
 
         {mode === "list" && (
           <Button
