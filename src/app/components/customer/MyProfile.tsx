@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
     User,
@@ -15,6 +15,12 @@ import {
     ChevronRight,
     Crown,
     Paintbrush,
+    Edit3,
+    Check,
+    X,
+    Camera,
+    Loader2,
+    Save,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -33,6 +39,7 @@ const MEDIA_BASE = "http://54.206.3.97/";
 interface UserProfile {
     id: string;
     name: string;
+    full_name?: string;
     email: string;
     phone: string;
     avatar: string | null;
@@ -41,6 +48,19 @@ interface UserProfile {
     total_spent: number;
     loyalty_points: number;
     membership_tier: "Bronze" | "Silver" | "Gold" | "Platinum";
+}
+
+interface ExtendedProfile {
+    user_id: string;
+    profile_picture: string | null;
+    phone_number: string | null;
+    gender: string;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    postal_code: string | null;
+    date_of_birth: string | null;
 }
 
 interface DesignRequestSummary {
@@ -77,7 +97,7 @@ const tierConfig = {
 };
 
 // ---------------------------------------------------------------------------
-// Status badge helper (reused from tracking component style)
+// Status badge helper
 // ---------------------------------------------------------------------------
 const STATUS_COLORS: Record<string, { color: string; bg: string; dot: string }> = {
     NEW: { color: "text-blue-600", bg: "bg-blue-50", dot: "bg-blue-500" },
@@ -109,8 +129,215 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "addresses", label: "Addresses", icon: MapPin },
     { id: "wishlist", label: "Wishlist", icon: Heart },
-    { id: "designs", label: "My Designs", icon: Paintbrush },
+    { id: "designs", label: "My Designs Request", icon: Paintbrush },
 ];
+
+// ---------------------------------------------------------------------------
+// Inline editable field component
+// ---------------------------------------------------------------------------
+interface EditableFieldProps {
+    label: string;
+    value: string;
+    icon: React.ElementType;
+    fieldKey: string;
+    type?: string;
+    onSave: (key: string, value: string) => Promise<void>;
+    readOnly?: boolean;
+}
+
+function EditableField({ label, value, icon: Icon, fieldKey, type = "text", onSave, readOnly }: EditableFieldProps) {
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState(value);
+    const [saving, setSaving] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setDraft(value);
+    }, [value]);
+
+    useEffect(() => {
+        if (editing) inputRef.current?.focus();
+    }, [editing]);
+
+    const handleSave = async () => {
+        if (draft === value) {
+            setEditing(false);
+            return;
+        }
+        setSaving(true);
+        try {
+            await onSave(fieldKey, draft);
+            setEditing(false);
+        } catch {
+            setDraft(value); // revert on error
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCancel = () => {
+        setDraft(value);
+        setEditing(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") handleSave();
+        if (e.key === "Escape") handleCancel();
+    };
+
+    return (
+        <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group">
+            <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-4 h-4 text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400">{label}</p>
+                {editing ? (
+                    <input
+                        ref={inputRef}
+                        type={type}
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        className="w-full text-sm font-medium text-gray-900 bg-transparent border-b border-red-400 outline-none py-0.5"
+                    />
+                ) : (
+                    <p className="text-sm font-medium text-gray-900 truncate">{value || <span className="text-gray-400 italic">Not added</span>}</p>
+                )}
+            </div>
+            {!readOnly && (
+                <div className="flex items-center gap-1 shrink-0">
+                    {editing ? (
+                        <>
+                            {saving ? (
+                                <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                            ) : (
+                                <>
+                                    <button onClick={handleSave} className="p-1 rounded-lg hover:bg-green-100 text-green-600 transition-colors">
+                                        <Check className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={handleCancel} className="p-1 rounded-lg hover:bg-red-100 text-red-500 transition-colors">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => setEditing(true)}
+                            className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-all"
+                        >
+                            <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Avatar Upload Component
+// ---------------------------------------------------------------------------
+interface AvatarUploadProps {
+    avatarUrl: string | null;
+    name: string | undefined;
+    userId: string;
+    onUpdated: (newUrl: string) => void;
+}
+
+function AvatarUpload({ avatarUrl, name, userId, onUpdated }: AvatarUploadProps) {
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate type & size
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select a valid image file.");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Image must be under 5MB.");
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append("user_id", userId);
+            formData.append("profile_picture", file);
+
+            // Try PUT first (update), fall back to POST (create)
+            let res;
+            try {
+                res = await axios.put(`${API_BASE}/user-profile/${userId}`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+            } catch (putErr: any) {
+                if (putErr.response?.status === 404) {
+                    res = await axios.post(`${API_BASE}/user-profile/create`, formData, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    });
+                } else {
+                    throw putErr;
+                }
+            }
+
+            const newUrl = res.data?.profile_picture ?? res.data?.data?.profile_picture ?? null;
+            if (newUrl) {
+                onUpdated(newUrl);
+                toast.success("Profile picture updated!");
+            }
+        } catch (err) {
+            console.error("Avatar upload failed", err);
+            toast.error("Failed to upload profile picture.");
+        } finally {
+            setUploading(false);
+            // Reset input so same file can be re-selected
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    return (
+        <div className="relative flex-shrink-0 group cursor-pointer" onClick={() => !uploading && fileInputRef.current?.click()}>
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+                {avatarUrl ? (
+                    <img
+                        src={avatarUrl.startsWith("http") ? avatarUrl : `${MEDIA_BASE}${avatarUrl}`}
+                        alt={name}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-full bg-red-50 flex items-center justify-center">
+                        <User className="w-10 h-10 text-red-400" />
+                    </div>
+                )}
+            </div>
+
+            {/* Overlay on hover */}
+            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploading ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                    <Camera className="w-6 h-6 text-white" />
+                )}
+            </div>
+
+            <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
+
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+            />
+        </div>
+    );
+}
 
 // ---------------------------------------------------------------------------
 // Design Requests List subpage
@@ -127,20 +354,19 @@ function DesignRequestsList({
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetch = async () => {
+        const fetchDesigns = async () => {
             setLoading(true);
             try {
                 const res = await axios.get(`${API_BASE}/design_request/user/${userId}`);
-                // Support both { data: [...] } and direct array
                 const list = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
                 setRequests(list);
-            } catch (e: any) {
+            } catch {
                 setError("Failed to load design requests.");
             } finally {
                 setLoading(false);
             }
         };
-        fetch();
+        fetchDesigns();
     }, [userId]);
 
     if (loading) {
@@ -152,9 +378,7 @@ function DesignRequestsList({
     }
 
     if (error) {
-        return (
-            <div className="text-center py-16 text-sm text-red-500">{error}</div>
-        );
+        return <div className="text-center py-16 text-sm text-red-500">{error}</div>;
     }
 
     if (requests.length === 0) {
@@ -185,9 +409,7 @@ function DesignRequestsList({
                                 <Paintbrush className="w-5 h-5 text-red-500" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-sm font-semibold text-gray-900 truncate">
-                                    {req.product_name}
-                                </p>
+                                <p className="text-sm font-semibold text-gray-900 truncate">{req.product_name}</p>
                                 <p className="text-xs text-gray-400 mt-0.5">
                                     {new Date(req.created_at).toLocaleDateString("en-IN", {
                                         day: "2-digit",
@@ -209,6 +431,129 @@ function DesignRequestsList({
 }
 
 // ---------------------------------------------------------------------------
+// Extended Profile Form (separate card)
+// ---------------------------------------------------------------------------
+interface ExtendedProfileFormProps {
+    userId: string;
+    extProfile: ExtendedProfile | null;
+    onSaved: (updated: ExtendedProfile) => void;
+}
+
+function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFormProps) {
+    const [form, setForm] = useState<Omit<ExtendedProfile, "user_id" | "profile_picture">>({
+        phone_number: extProfile?.phone_number ?? "",
+        gender: extProfile?.gender ?? "Not Specified",
+        address: extProfile?.address ?? "",
+        city: extProfile?.city ?? "",
+        state: extProfile?.state ?? "",
+        country: extProfile?.country ?? "",
+        postal_code: extProfile?.postal_code ?? "",
+        date_of_birth: extProfile?.date_of_birth ?? "",
+    });
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (extProfile) {
+            setForm({
+                phone_number: extProfile.phone_number ?? "",
+                gender: extProfile.gender ?? "Not Specified",
+                address: extProfile.address ?? "",
+                city: extProfile.city ?? "",
+                state: extProfile.state ?? "",
+                country: extProfile.country ?? "",
+                postal_code: extProfile.postal_code ?? "",
+                date_of_birth: extProfile.date_of_birth ?? "",
+            });
+        }
+    }, [extProfile]);
+
+    const handleChange = (key: keyof typeof form, value: string) => {
+        setForm((prev) => ({ ...prev, [key]: value }));
+    };
+    const handleSubmit = async () => {
+        setSaving(true);
+        try {
+            const formData = new FormData();
+            formData.append("user_id", userId);
+            Object.entries(form).forEach(([k, v]) => {
+                if (v) formData.append(k, v);
+            });
+
+            const res = await axios.post(`${API_BASE}/user-profile/`, formData
+            );
+
+            onSaved(res.data);
+            toast.success("Profile updated successfully!");
+        } catch (err) {
+            console.error("Extended profile save failed", err);
+            toast.error("Failed to save profile.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const inputClass =
+        "w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition";
+
+    const fields: { key: keyof typeof form; label: string; type?: string; span?: boolean }[] = [
+        { key: "phone_number", label: "Phone Number", type: "tel" },
+        { key: "date_of_birth", label: "Date of Birth", type: "date" },
+        { key: "address", label: "Address", span: true },
+        { key: "city", label: "City" },
+        { key: "state", label: "State" },
+        { key: "country", label: "Country" },
+        { key: "postal_code", label: "Postal Code" },
+    ];
+
+    return (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
+                Extended Information
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Gender select */}
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-400">Gender</label>
+                    <select
+                        value={form.gender}
+                        onChange={(e) => handleChange("gender", e.target.value)}
+                        className={inputClass}
+                    >
+                        {["Not Specified", "Male", "Female", "Other"].map((g) => (
+                            <option key={g} value={g}>{g}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {fields.map(({ key, label, type = "text", span }) => (
+                    <div key={key} className={`flex flex-col gap-1 ${span ? "sm:col-span-2" : ""}`}>
+                        <label className="text-xs text-gray-400">{label}</label>
+                        <input
+                            type={type}
+                            value={form[key] ?? ""}
+                            onChange={(e) => handleChange(key, e.target.value)}
+                            className={inputClass}
+                            placeholder={`Enter ${label.toLowerCase()}`}
+                        />
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-5 flex justify-end">
+                <button
+                    onClick={handleSubmit}
+                    disabled={saving}
+                    className="flex items-center gap-2 px-5 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-60"
+                >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
 // ProfilePage
 // ---------------------------------------------------------------------------
 export function ProfilePage() {
@@ -218,7 +563,9 @@ export function ProfilePage() {
 
     const [activeTab, setActiveTab] = useState<TabId>("profile");
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [extProfile, setExtProfile] = useState<ExtendedProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [extLoading, setExtLoading] = useState(false);
 
     // Tracking slide-over state
     const [trackingOpen, setTrackingOpen] = useState(false);
@@ -231,6 +578,7 @@ export function ProfilePage() {
             return;
         }
         fetchProfile();
+        fetchExtendedProfile();
     }, [userId]);
 
     const fetchProfile = async () => {
@@ -242,6 +590,49 @@ export function ProfilePage() {
             toast.error("Failed to load profile");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchExtendedProfile = async () => {
+        setExtLoading(true);
+        try {
+            const res = await axios.get(`${API_BASE}/user-profile/${userId}`);
+            console.log("Extended profile data:", res.data);
+            setExtProfile(res.data);
+        } catch (err: any) {
+            if (err.response?.status !== 404) {
+                console.error("Failed to fetch extended profile", err);
+            }
+            // 404 is fine — no profile yet
+        } finally {
+            setExtLoading(false);
+        }
+    };
+
+    // Save a single field from the core UserProfile (name/email — read-only for now)
+    // This hook is passed to EditableField for any fields that map to a PATCH/PUT on /users/{id}
+    const handleCoreFieldSave = async (key: string, value: string) => {
+        try {
+            const res = await axios.patch(`${API_BASE}/users/${userId}`, { [key]: value });
+            setProfile((prev) => (prev ? { ...prev, ...res.data } : prev));
+            toast.success("Updated successfully!");
+        } catch (err) {
+            console.error("Failed to update field", err);
+            toast.error("Failed to update. Please try again.");
+            throw err;
+        }
+    };
+
+    const handleAvatarUpdated = (newUrl: string) => {
+        setProfile((prev) => (prev ? { ...prev, avatar: newUrl } : prev));
+        setExtProfile((prev) => (prev ? { ...prev, profile_picture: newUrl } : prev));
+    };
+
+    const handleExtProfileSaved = (updated: ExtendedProfile) => {
+        setExtProfile(updated);
+        // Sync phone back to core profile state for display
+        if (updated.phone_number) {
+            setProfile((prev) => (prev ? { ...prev, phone: updated.phone_number! } : prev));
         }
     };
 
@@ -261,6 +652,13 @@ export function ProfilePage() {
     const tier = (profile?.membership_tier ?? "Bronze") as keyof typeof tierConfig;
     const config = tierConfig[tier];
     const TierIcon = config.icon;
+
+    // Derive the display avatar URL
+    const avatarUrl = profile?.avatar
+        ? profile.avatar.startsWith("http")
+            ? profile.avatar
+            : `${MEDIA_BASE}${profile.avatar}`
+        : null;
 
     if (loading) {
         return (
@@ -283,28 +681,18 @@ export function ProfilePage() {
                     <div className="p-6">
                         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
 
-                            {/* Avatar */}
-                            <div className="relative flex-shrink-0">
-                                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
-                                    {profile?.avatar ? (
-                                        <img
-                                            src={`${MEDIA_BASE}${profile.avatar}`}
-                                            alt={profile?.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-red-50 flex items-center justify-center">
-                                            <User className="w-10 h-10 text-red-400" />
-                                        </div>
-                                    )}
-                                </div>
-                                <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
-                            </div>
+                            {/* Avatar with upload */}
+                            <AvatarUpload
+                                avatarUrl={avatarUrl}
+                                name={profile?.full_name}
+                                userId={userId}
+                                onUpdated={handleAvatarUpdated}
+                            />
 
                             {/* Info */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <h2 className="text-lg font-bold text-gray-900">{profile?.name}</h2>
+                                    <h2 className="text-lg font-bold text-gray-900">{profile?.full_name}</h2>
                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${config.badgeBg} ${config.badgeText}`}>
                                         <TierIcon className="w-3 h-3" />
                                         {tier}
@@ -322,6 +710,10 @@ export function ProfilePage() {
                                         </span>
                                     )}
                                 </div>
+                                <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                                    <Camera className="w-3 h-3" />
+                                    Click on your photo to update it
+                                </p>
                             </div>
 
                             {/* Logout */}
@@ -344,11 +736,10 @@ export function ProfilePage() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                                activeTab === tab.id
+                            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${activeTab === tab.id
                                     ? "border-red-600 text-red-600"
                                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                            }`}
+                                }`}
                         >
                             <tab.icon className="w-4 h-4" />
                             {tab.label}
@@ -358,54 +749,96 @@ export function ProfilePage() {
 
                 {/* Tab Content */}
                 <div>
-                    {/* Profile */}
+                    {/* Profile Tab */}
                     {activeTab === "profile" && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                            {/* Core info — read-only fields (email/name are managed by auth) */}
                             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
-                                    Personal Information
+                                    Account Information
                                 </h3>
                                 <div className="space-y-1">
+                                    <EditableField
+                                        icon={User}
+                                        label="Full Name"
+                                        value={profile?.full_name ?? profile?.name ?? ""}
+                                        fieldKey="full_name"
+                                        onSave={handleCoreFieldSave}
+                                        readOnly
+                                    />
+                                    <EditableField
+                                        icon={Mail}
+                                        label="Email Address"
+                                        value={profile?.email ?? ""}
+                                        fieldKey="email"
+                                        type="email"
+                                        onSave={handleCoreFieldSave}
+                                        readOnly
+                                    />
+                                    <EditableField
+                                        icon={Calendar}
+                                        label="Member Since"
+                                        value={
+                                            profile?.join_date
+                                                ? new Date(profile.join_date).toLocaleDateString("en-US", {
+                                                    day: "numeric",
+                                                    month: "long",
+                                                    year: "numeric",
+                                                })
+                                                : ""
+                                        }
+                                        fieldKey="join_date"
+                                        onSave={handleCoreFieldSave}
+                                        readOnly
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Stats card */}
+                            {/* <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
+                                    Account Stats
+                                </h3>
+                                <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { icon: User, label: "Full Name", value: profile?.name },
-                                        { icon: Mail, label: "Email Address", value: profile?.email },
-                                        { icon: Phone, label: "Phone Number", value: profile?.phone || "Not added" },
+                                        { label: "Orders", value: profile?.total_orders ?? 0 },
+                                        { label: "Points", value: profile?.loyalty_points ?? 0 },
                                         {
-                                            icon: Calendar,
-                                            label: "Member Since",
-                                            value: new Date(profile?.join_date || "").toLocaleDateString("en-US", {
-                                                day: "numeric",
-                                                month: "long",
-                                                year: "numeric",
-                                            }),
+                                            label: "Spent",
+                                            value: `₹${(profile?.total_spent ?? 0).toLocaleString("en-IN")}`,
                                         },
-                                    ].map((item) => (
-                                        <div
-                                            key={item.label}
-                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group cursor-pointer"
-                                        >
-                                            <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
-                                                <item.icon className="w-4 h-4 text-red-500" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-xs text-gray-400">{item.label}</p>
-                                                <p className="text-sm font-medium text-gray-900 truncate">{item.value}</p>
-                                            </div>
-                                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+                                    ].map(({ label, value }) => (
+                                        <div key={label} className="rounded-xl bg-red-50 p-3 text-center">
+                                            <p className="text-lg font-bold text-red-600">{value}</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
                                         </div>
                                     ))}
                                 </div>
+                            </div> */}
+
+                            {/* Extended profile form — spans full width */}
+                            <div className="md:col-span-2">
+                                {extLoading ? (
+                                    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center justify-center gap-2 text-gray-400 text-sm">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Loading extended profile...
+                                    </div>
+                                ) : (
+                                    <ExtendedProfileForm
+                                        userId={userId}
+                                        extProfile={extProfile}
+                                        onSaved={handleExtProfileSaved}
+                                    />
+                                )}
                             </div>
                         </div>
                     )}
 
                     {activeTab === "orders" && <OrderHistoryPage />}
-
                     {activeTab === "addresses" && <AddressPage isEmbedded />}
-
                     {activeTab === "wishlist" && <WishlistPage />}
 
-                    {/* My Designs tab — shows list, clicking opens slide-over */}
                     {activeTab === "designs" && (
                         <DesignRequestsList userId={userId} onOpen={openTracking} />
                     )}

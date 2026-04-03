@@ -458,7 +458,7 @@ export default function NoDesignScreen({
                                                 </p>
                                             </div>
 
-                                            <div>
+                                            {/* <div>
                                                 <label className="text-sm font-semibold text-neutral-700 mb-2 block flex items-center gap-2">
                                                     <Palette className="w-4 h-4 text-[#D73D32]" />
                                                     Preferred / Brand Colors
@@ -473,7 +473,7 @@ export default function NoDesignScreen({
                                                 <p className="text-xs text-neutral-400 mt-1">
                                                     Specify hex codes or color names for accurate matching
                                                 </p>
-                                            </div>
+                                            </div> */}
 
                                             {/* Logo Section */}
                                             <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">

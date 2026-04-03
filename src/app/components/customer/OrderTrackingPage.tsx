@@ -283,8 +283,7 @@ export function OrderHistoryPage() {
       <div className="mb-8">
         <div className="flex items-end justify-between mb-4">
           <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-red-400 mb-1">Account</p>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-none">My Orders</h1>
+            <h1 className="text-3xl  text-gray-900 ">My Orders</h1>
           </div>
           <span className="text-xs text-gray-400 font-semibold bg-gray-100 px-3 py-1 rounded-full mb-1">
             {orders.length} total
