@@ -1003,7 +1003,7 @@
 
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { useWishlist } from "../../hooks/useWishlist";
 
 /* ─────────────────────────────────────────
@@ -1622,11 +1622,13 @@ function SkeletonCard() {
 ───────────────────────────────────────── */
 export function ProductListingPage() {
   const navigate = useNavigate();
+    const location = useLocation();
+
   const [searchParams] = useSearchParams();
   const subcategoryId = searchParams.get("subcategory") || "";
-  const categoryName = searchParams.get("categoryName") || "Products";
-  const parentCategory = searchParams.get("parentCategory") || "Shop";
-
+  
+const categoryName = location.state?.categoryName || "Category";
+  const subcategoryName = location.state?.subcategoryName ;
   const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id") || null;
   const { isFavorite, toggleWishlist } = useWishlist(userId);
 
@@ -1693,7 +1695,7 @@ export function ProductListingPage() {
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
-    { label: parentCategory, href: "/shop" },
+    { label: subcategoryName, href: `/subcategorylist?category=${location.state?.categoryId}&subcategory=${subcategoryId}` },
     { label: categoryName },
   ];
 

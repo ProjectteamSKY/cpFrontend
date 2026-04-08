@@ -68,7 +68,7 @@ export function CheckoutPage() {
 
     try {
       const res = await axios.get(
-        `${API_BASE}/cartitems/cart-items/user/${userId}`,
+        `${API_BASE}/cartitems/user/${userId}`,
         { withCredentials: true }
       );
 

@@ -48,12 +48,24 @@ export function CutTypeManagement() {
         await createCutType(data);
         toast.success("Cut type created successfully!");
       }
+
+      // Reset UI
       setShowAddDialog(false);
       setShowEditDialog(false);
       setEditingCutType(null);
+
       fetchCutTypes();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save cut type");
+      console.log("Full error:", error);
+
+      // ✅ Extract correct backend message
+      const errorMessage =
+        error?.response?.data?.detail || // FastAPI format
+        error?.response?.data?.message || // Other APIs
+        error?.message ||
+        "Failed to save cut type";
+
+      toast.error(errorMessage);
     }
   };
 
@@ -66,7 +78,7 @@ export function CutTypeManagement() {
     if (!confirm("Are you sure you want to delete this cut type?")) return;
     try {
       await deleteCutType(id);
-      toast.success("Cut type deleted successfully!");
+      toast.error("Cut type deleted successfully!");
       fetchCutTypes();
     } catch (error: any) {
       toast.error("Failed to delete cut type");
@@ -77,7 +89,7 @@ export function CutTypeManagement() {
     try {
       if (ct.is_active) {
         await deactivateCutType(ct.id);
-        toast.success("Cut type deactivated successfully!");
+        toast.error("Cut type deactivated successfully!");
       } else {
         await activateCutType(ct.id);
         toast.success("Cut type activated successfully!");

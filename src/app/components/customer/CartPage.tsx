@@ -34,7 +34,7 @@ export function CartPage() {
 
     try {
       const res = await axios.get(
-        `${API_BASE}/cartitems/cart-items/user/${userId}`,
+        `${API_BASE}/cartitems/user/${userId}`,
         { withCredentials: true }
       );
 
@@ -128,7 +128,7 @@ export function CartPage() {
 
     try {
       await axios.post(
-        `${API_BASE}/cartitems/cart-items/`,
+        `${API_BASE}/cartitems/`,
         {
           user_id: userId,
           product_id: newItem.product.id,
@@ -156,7 +156,7 @@ export function CartPage() {
   // ===============================
   const deleteItem = async (id: string) => {
     try {
-      await axios.delete(`${API_BASE}/cartitems/cart-items/${id}`, {
+      await axios.delete(`${API_BASE}/cartitems/${id}`, {
         withCredentials: true,
       });
       toast.success(

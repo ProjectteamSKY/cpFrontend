@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { getUserId } from "../../utils/authStorage";
 
 const API_BASE = "http://54.206.3.97";
 
@@ -346,7 +347,7 @@ function AddressList({ savedAddresses, selectedAddressId, setSelectedAddressId, 
 /* ─── Main Page ───────────────────────────────────────────────────────── */
 export function AddressPage({ isEmbedded = false }: { isEmbedded?: boolean }) {
   const navigate = useNavigate();
-  const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+  const userId = getUserId();
 
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);

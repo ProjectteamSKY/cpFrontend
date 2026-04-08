@@ -135,15 +135,19 @@ export default function SubcategoryListPage() {
   const count = isProductMode ? filteredProducts.length : filteredSubcategories.length;
 
   const handleSubcategoryClick = (subcategory: Subcategory) => {
-    navigate("/productlist", {
-      state: {
-        subcategoryId: subcategory.id,
-        subcategoryName: subcategory.name,
-        categoryId: subcategory.category_id
+    navigate(
+      `/products?subcategory=${subcategory.id}&subcategoryName=${encodeURIComponent(subcategory.name)}`,
+      {
+        state: {
+          subcategoryId: subcategory.id,
+          subcategoryName: subcategory.name,
+          categoryId: subcategory.category_id,
+          // ✅ ADD THIS (if available)
+        }
       }
-    });
+    );
   };
-
+  // products?subcategory=029fab9f-6bc2-4dd8-822f-a8dfd1fe1e38
   const handleProductClick = (productId: string) => {
     navigate(`/product/${productId}`);
   };
@@ -247,8 +251,8 @@ export default function SubcategoryListPage() {
                 <button
                   onClick={() => setView("grid")}
                   className={`p-2 rounded-full transition-all duration-200 ${view === "grid"
-                      ? "bg-white shadow-sm text-black"
-                      : "text-gray-500 hover:text-black"
+                    ? "bg-white shadow-sm text-black"
+                    : "text-gray-500 hover:text-black"
                     }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,8 +262,8 @@ export default function SubcategoryListPage() {
                 <button
                   onClick={() => setView("list")}
                   className={`p-2 rounded-full transition-all duration-200 ${view === "list"
-                      ? "bg-white shadow-sm text-black"
-                      : "text-gray-500 hover:text-black"
+                    ? "bg-white shadow-sm text-black"
+                    : "text-gray-500 hover:text-black"
                     }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -433,8 +437,8 @@ export default function SubcategoryListPage() {
                         <div className="absolute top-4 left-4 flex flex-col gap-2">
                           {p.badge && (
                             <span className={`text-[10px] font-semibold tracking-wider px-2.5 py-1 rounded-full backdrop-blur-sm ${p.badge.toLowerCase() === "sale" ? "bg-red-500 text-white" :
-                                p.badge.toLowerCase() === "new" ? "bg-emerald-500 text-white" :
-                                  "bg-black/80 text-white"
+                              p.badge.toLowerCase() === "new" ? "bg-emerald-500 text-white" :
+                                "bg-black/80 text-white"
                               }`}>
                               {p.badge.toUpperCase()}
                             </span>

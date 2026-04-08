@@ -64,31 +64,28 @@ export function CategoryManagement() {
             let response;
 
             if (editingCategory) {
-                // For update
                 response = await updateCategory(editingCategory.id, data);
-                toast.success("Category updated successfully!");
-
             } else {
-                // For create
                 response = await createCategory(data);
-                toast.success("Category created successfully!");
             }
 
-            // If response indicates failure (e.g., name exists)
-            if (response && response.success === false) {
-                toast.error(response.message); // Show the backend message
-                return; // Stop further execution
+            // ✅ HANDLE FAILURE FIRST
+            if (!response.success) {
+                toast.error(response.message);
+                return;
             }
 
-            // Success: close dialogs and refresh
+            // ✅ SUCCESS ONLY HERE
+            toast.success(response.message || "Saved successfully!");
+
             setShowAddDialog(false);
             setShowEditDialog(false);
             setEditingCategory(null);
             fetchCategories();
 
-        } catch (err: any) {
-            // Fallback in case of unexpected errors    
-            toast.error(err.message || "Something went wrong");
+        } catch (error: any) {
+            // This will rarely run now (only unexpected crashes)
+            toast.error(error.message || "Something went wrong");
         }
     };
 
@@ -102,15 +99,23 @@ export function CategoryManagement() {
     /* ---------- Delete ---------- */
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this category?"))
-            return;
+        if (!confirm("Are you sure you want to delete this category?")) return;
 
         try {
             await deleteCategory(id);
-            toast.error("Category deleted successfully!");
+
+            toast.success("Category deleted successfully!");
             fetchCategories();
-        } catch (error) {
-            toast.error("Failed to delete category");
+
+        } catch (error: any) {
+            console.log("UI ERROR:", error);
+
+            let message = error.message || "Something went wrong";
+
+            // ✅ Remove unwanted prefix
+            message = message.replace("Cannot delete: ", "");
+
+            toast.error(message);
         }
     };
 

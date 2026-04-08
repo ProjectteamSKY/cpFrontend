@@ -29,7 +29,7 @@ export const mapPrintTypeToFormData = (data: PrintTypeFormData): FormData => {
    Get All PrintTypes
 ========================================================= */
 export const getAllPrintTypes = async (): Promise<PrintType[]> => {
-  const res = await api.get("/print_type/list");
+  const res = await api.get("/print_type/list/active");
   return (res.data.print_types || []).map(mapPrintTypeFromApi);
 };
 

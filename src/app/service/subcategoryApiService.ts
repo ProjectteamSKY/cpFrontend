@@ -102,7 +102,18 @@ export const updateSubcategory = async (
 };
 
 export const deleteSubcategory = async (id: string): Promise<void> => {
-  await api.delete(`/subcategory/delete/subcategory/${id}`);  
+  try {
+    await api.delete(`/subcategory/delete/subcategory/${id}`);
+  } catch (error: any) {
+    console.log("DELETE SUBCATEGORY ERROR: - subcategoryApiService.ts:108", error.response?.data);
+
+    const message =
+      error?.response?.data?.detail ||
+      error?.message ||
+      "Failed to delete subcategory";
+
+    throw new Error(message); // ✅ pass real message
+  }
 };
 
 export const activateSubcategory = async (id: string): Promise<void> => {

@@ -7,6 +7,8 @@ export interface SubcategoryImage {
 }
 
 export interface Subcategory {
+  is_deleted: any;
+  is_deleted: any;
   id: string;
   category_id: string;
   name: string;

@@ -65,7 +65,7 @@ export function PrintTypeManagement() {
     if (!confirm("Delete this print type?")) return; 
     try {
       await deletePrintType(id);
-      toast.success("Print type deleted successfully!");
+      toast.error("Print type deleted successfully!");
       fetchPrintTypes();
     } catch (error: any) {
       toast.error("Failed to delete print type");
@@ -76,7 +76,7 @@ export function PrintTypeManagement() {
     try {
       if (pt.is_active) {
         await deactivatePrintType(pt.id);
-        toast.success("Print type deactivated successfully!");
+        toast.error("Print type deactivated successfully!");
       } else {
         await activatePrintType(pt.id);
         toast.success("Print type activated successfully!");

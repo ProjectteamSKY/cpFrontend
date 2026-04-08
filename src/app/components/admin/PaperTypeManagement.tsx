@@ -75,7 +75,7 @@ export function PaperTypeManagement() {
     if (!confirm("Are you sure you want to delete this paper type?")) return;
     try {
       await deletePaperType(id);
-      toast.success("Paper type deleted successfully!");
+      toast.error("Paper type deleted successfully!");
       fetchPaperTypes();
     } catch (error: any) {
       toast.error("Failed to delete paper type");
@@ -87,7 +87,7 @@ export function PaperTypeManagement() {
     try {
       if (pt.is_active) {
         await deactivatePaperType(pt.id);
-        toast.success("Paper type deactivated successfully!");
+        toast.error("Paper type deactivated successfully!");
       } else {
         await activatePaperType(pt.id);
         toast.success("Paper type activated successfully!");

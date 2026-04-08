@@ -73,7 +73,7 @@ export function ProductVariantPriceManagement() {
         if (!confirm("Delete this price?")) return;
         try {
             await deleteProductVariantPrice(id);
-            toast.success("Price deleted successfully!");
+            toast.error("Price deleted successfully!");
             fetchPrices();
         } catch (error: any) {
             toast.error("Failed to delete price");

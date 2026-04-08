@@ -57,16 +57,16 @@ export function DesignReviewPage() {
 
   const getCartId = async (userId: string): Promise<string> => {
     try {
-      const response = await api.get(`/cart/carts/user/${userId}`);
+      const response = await api.get(`/cart/user/${userId}`);
       const carts = response.data;
       if (Array.isArray(carts) && carts.length > 0) return String(carts[0].id);
-      const createResponse = await api.post("/cart/carts", {
+      const createResponse = await api.post("/cart", {
         user_id: userId, status: "active", total_amount: 0, total_discount: 0,
       });
       return String(createResponse.data.id);
     } catch (err: any) {
       if (err.response?.status === 404) {
-        const createResponse = await api.post("/cart/carts", {
+        const createResponse = await api.post("/cart", {
           user_id: userId, status: "active", total_amount: 0, total_discount: 0,
         });
         return String(createResponse.data.id);
@@ -105,7 +105,7 @@ export function DesignReviewPage() {
       if (frontDesign) formData.append("front_file", frontDesign);
       if (sides === "2" && backDesign) formData.append("back_file", backDesign);
 
-      await api.post("/cartitems/cart-items/with-files", formData, {
+      await api.post("/cartitems/with-files", formData, {
         headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${accessToken}` },
       });
 

@@ -1,3 +1,5 @@
+import { JSX } from "react/jsx-runtime";
+
 export interface ProductImage {
   id: string;
   url: string;
@@ -5,6 +7,8 @@ export interface ProductImage {
 }
 
 export interface Product {
+  price(price: JSX.Element): unknown;
+  price: import("react/jsx-runtime").JSX.Element;
   id: string;
   name: string;
   category_id?: string;
