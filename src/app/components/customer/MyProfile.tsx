@@ -29,6 +29,7 @@ import { OrderHistoryPage } from "./OrderTrackingPage";
 import { WishlistPage } from "./WishlistPage";
 import { AddressPage } from "./AddressPage";
 import DesignRequestTracking from "./Designrequesttracking";
+import { getUserId, getUserRoles } from "../../utils/authStorage";
 
 const API_BASE = "http://54.206.3.97/api";
 const MEDIA_BASE = "http://54.206.3.97/";
@@ -558,9 +559,12 @@ function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFor
 // ---------------------------------------------------------------------------
 export function ProfilePage() {
     const navigate = useNavigate();
-    const userId =
-        sessionStorage.getItem("user_id") || localStorage.getItem("user_id") || "";
+    // const userItem = sessionStorage.getItem("user") || localStorage.getItem("user");
+    // const user = userItem ? JSON.parse(userItem) : null;
+    const userId = getUserId();
+    const roles = getUserRoles();
 
+    console.log("ProfilePage mounted. User ID:", userId);
     const [activeTab, setActiveTab] = useState<TabId>("profile");
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [extProfile, setExtProfile] = useState<ExtendedProfile | null>(null);
@@ -570,7 +574,6 @@ export function ProfilePage() {
     // Tracking slide-over state
     const [trackingOpen, setTrackingOpen] = useState(false);
     const [trackingRequestId, setTrackingRequestId] = useState<string>("");
-
     useEffect(() => {
         if (!userId) {
             toast.error("Please login to view your profile");
@@ -737,8 +740,8 @@ export function ProfilePage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${activeTab === tab.id
-                                    ? "border-red-600 text-red-600"
-                                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                ? "border-red-600 text-red-600"
+                                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                                 }`}
                         >
                             <tab.icon className="w-4 h-4" />

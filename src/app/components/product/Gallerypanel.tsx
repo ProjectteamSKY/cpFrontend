@@ -74,7 +74,7 @@ export function GalleryPanel({
 
         {/* Top-left action buttons */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
-          <button
+          {/* <button
             onClick={onShare}
             className="w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all border border-neutral-100"
           >
@@ -83,7 +83,7 @@ export function GalleryPanel({
             ) : (
               <Share2 className="w-4 h-4 text-neutral-600" />
             )}
-          </button>
+          </button> */}
           <button
             onClick={onFavoriteToggle}
             className="w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all border border-neutral-100"

@@ -15,21 +15,28 @@ export function PaperTypeForm({ defaultValues, onSubmit, onCancel }: Props) {
     register,
     handleSubmit,
     reset,
-    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PaperTypeFormData>({
+    mode: "onTouched",
+    reValidateMode: "onChange",
     defaultValues: {
-      name: "",
-      description: "",
-      is_active: true,
+      name: defaultValues?.name ?? "",
+      description: defaultValues?.description ?? "",
+      is_active: defaultValues?.is_active ?? true,
     },
   });
 
+  // Watch the name field to ensure validation updates
+  const nameValue = watch("name");
+
   useEffect(() => {
     if (defaultValues) {
-      setValue("name", defaultValues.name ?? "");
-      setValue("description", defaultValues.description ?? "");
-      setValue("is_active", true);
+      reset({
+        name: defaultValues.name ?? "",
+        description: defaultValues.description ?? "",
+        is_active: defaultValues.is_active ?? true,
+      });
     } else {
       reset({
         name: "",
@@ -37,102 +44,85 @@ export function PaperTypeForm({ defaultValues, onSubmit, onCancel }: Props) {
         is_active: true,
       });
     }
-  }, [defaultValues, setValue, reset]);
+  }, [defaultValues, reset]);
+
+  const handleFormSubmit = async (data: PaperTypeFormData) => {
+    console.log("SUBMIT DATA:", data);
+    await onSubmit(data);
+  };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="w-full space-y-6"
-    >
-      {/* Hidden Active */}
-      <input type="hidden" {...register("is_active")} value="true" />
-
-      {/* Header */}
-  
-
-      {/* Name */}
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="w-full space-y-6">
+      {/* Name Field */}
       <div className="flex flex-col p-3">
-        <label className="text-sm font-medium text-gray-800 mb-2">
+        <label htmlFor="name" className="text-sm font-medium text-gray-800 mb-2">
           Paper Type Name <span className="text-red-500">*</span>
         </label>
 
         <input
+          id="name"
           {...register("name", paperTypeValidation.name)}
           placeholder="e.g. Glossy, Matte"
-          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-          ${
-            errors.name
-              ? "border-red-500 ring-1 ring-red-200"
-              : "border-gray-300 focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32]"
-          }`}
+          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition ${errors.name
+            ? "border-red-500 ring-1 ring-red-200 focus:ring-red-500"
+            : "border-gray-300 focus:border-[#D73D32] focus:ring-2 focus:ring-[#D73D32]/20"
+            }`}
         />
 
-        {errors.name && (
-          <p className="mt-1 text-xs text-red-500">
-            {errors.name.message}
-          </p>
-        )}
+        {/* Error Message - Always renders with min-height to prevent layout shift */}
+        <p className="mt-1.5 text-xs font-medium text-red-500 min-h-[18px]">
+          {errors.name?.message || ""}
+        </p>
       </div>
 
-      {/* Description */}
-      <div className="flex flex-col">
-        <label className="text-sm font-medium text-gray-800 mb-2">
+      {/* Description Field */}
+      <div className="flex flex-col px-3">
+        <label htmlFor="description" className="text-sm font-medium text-gray-800 mb-2">
           Description
         </label>
 
         <textarea
-          {...register("description")}
-          placeholder="Short description about paper type"
+          id="description"
+          {...register("description", {
+            required: "Description is required",
+            maxLength: {
+              value: 200,
+              message: "Cannot exceed 200 characters",
+            },
+            setValueAs: (value) => value?.trim(), // ✅ IMPORTANT FIX
+            validate: (value) => value !== "" || "Description is required",
+          })}
           rows={4}
-          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none resize-none focus:ring-2 focus:ring-[#D73D32] focus:border-[#D73D32] transition"
+          placeholder="Short description (optional)"
+          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none resize-none transition ${errors.description
+            ? "border-red-500 ring-1 ring-red-200 focus:ring-red-500"
+            : "border-gray-300 focus:border-[#D73D32] focus:ring-2 focus:ring-[#D73D32]/20"
+            }`}
         />
 
-        {errors.description && (
-          <p className="mt-1 text-xs text-red-500">
-            {errors.description.message}
-          </p>
-        )}
+        <p className="mt-1.5 text-xs font-medium text-red-500 min-h-[18px]">
+          {errors.description?.message || ""}
+        </p>
       </div>
 
-      {/* Buttons */}
-      <div className="flex gap-3 pt-2">
+      {/* Action Buttons */}
+      <div className="flex gap-3 pt-2 px-3">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#D73D32] text-white py-2.5 text-sm font-semibold shadow-md hover:shadow-lg hover:bg-[#c53028] transition disabled:opacity-60"
+          className={`flex-1 rounded-xl bg-[#D73D32] text-white py-2.5 text-sm font-semibold transition ${isSubmitting
+            ? "opacity-70 cursor-not-allowed"
+            : "hover:bg-[#c2341f] active:scale-95"
+            }`}
         >
-          {isSubmitting ? (
-            <>
-              <svg
-                className="w-4 h-4 animate-spin"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="white"
-                  strokeWidth="4"
-                  fill="none"
-                  opacity="0.3"
-                />
-                <path
-                  d="M4 12a8 8 0 018-8"
-                  stroke="white"
-                  strokeWidth="4"
-                />
-              </svg>
-              Saving...
-            </>
-          ) : (
-            "Save"
-          )}
+          {isSubmitting ? "Saving..." : "Save"}
         </button>
 
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+          disabled={isSubmitting}
+          className="flex-1 rounded-xl border border-gray-300 text-gray-700 py-2.5 text-sm font-medium transition hover:bg-gray-50 active:scale-95 disabled:opacity-50"
         >
           Cancel
         </button>

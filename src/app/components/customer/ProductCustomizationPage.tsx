@@ -12,6 +12,7 @@ import { ImageGalleryModal } from "../product/ImageGalleryModal";
 import { ToastStack } from "../ui/ToasterStack";
 import { useProductDetail } from "../../hooks/Useproductdetail";
 import FAQ from "./Faqsection";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 
 // PATH CHAGES
@@ -19,7 +20,8 @@ import FAQ from "./Faqsection";
 // PATH CHAGES
 export function ProductDetailPage() {
   const ctx = useProductDetail();
-
+  const location = useLocation();
+  const [params] = useSearchParams();
   // ── Loading ───────────────────────────────────────────────────────────────
   if (ctx.loading) {
     return (
@@ -61,28 +63,49 @@ export function ProductDetailPage() {
   }
 
   // ── Page ──────────────────────────────────────────────────────────────────
+
+  const subcategoryId =
+    params.get("subcategory") || ctx.product?.subcategory_id;
+
+  const subcategoryName =
+    params.get("subcategoryName") || "Products";
+
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: "'DM Sans', 'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-white">
       {/* <GlobalStyles /> */}
 
       {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-neutral-100 sticky top-0 z-30 backdrop-blur-sm bg-white/95">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center gap-2 text-[11px] text-neutral-400 overflow-x-auto">
+
+          {/* Home */}
           <button
             onClick={() => ctx.navigate("/")}
             className="hover:text-neutral-900 transition-colors font-semibold shrink-0 tracking-wide"
           >
             Home
           </button>
-          <span className="text-neutral-200 font-light">/</span>
+
+          <span className="text-neutral-200">/</span>
+
+          {/* Subcategory (dynamic) */}
           <button
-            onClick={() => ctx.navigate("/products")}
+            onClick={() =>
+              ctx.navigate(
+                `/products?subcategory=${subcategoryId}&subcategoryName=${encodeURIComponent(subcategoryName)}`
+              )
+            }
             className="hover:text-neutral-900 transition-colors font-semibold shrink-0 tracking-wide"
           >
-            Products
+            {subcategoryName}
           </button>
-          <span className="text-neutral-200 font-light">/</span>
-          <span className="text-neutral-700 font-semibold truncate">{ctx.product.name}</span>
+
+          <span className="text-neutral-200">/</span>
+
+          {/* Product */}
+          <span className="text-neutral-700 font-semibold truncate">
+            {ctx.product.name}
+          </span>
         </div>
       </div>
 

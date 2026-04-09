@@ -26,7 +26,7 @@ class ProductListApiService {
   // Fetch all products
   async getAllProducts() {
     try {
-      const response = await this.api.get("/product/");
+      const response = await this.api.get("/product/list");
       return response.data; // you can type this as Product[] if you have a Product interface
     } catch (error: any) {
       console.error("Error fetching products: - productlistapiservice.ts:32", error);

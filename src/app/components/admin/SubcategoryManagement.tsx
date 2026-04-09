@@ -90,13 +90,23 @@ export function SubcategoryManagement({ categoryId }: Props) {
   /* ---------- Delete ---------- */
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this subcategory?")) return;
+
     try {
       await deleteSubcategory(id);
-      toast.error("Subcategory deleted successfully!");
+
+      // ✅ fix wrong toast type
+      toast.success("Subcategory deleted successfully!");
       fetchSubcategories();
+
     } catch (error: any) {
       console.error(error);
-      toast.error("Failed to delete subcategory.");
+
+      let message = error.message || "Something went wrong";
+
+      // ✅ trim prefix
+      message = message.replace("Cannot delete: ", "");
+
+      toast.error(message);
     }
   };
 

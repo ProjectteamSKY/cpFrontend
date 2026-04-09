@@ -1,7 +1,9 @@
+// types/paperType.ts
+
 export interface PaperType {
   id: string;
   name: string;
-  description?: string | null;
+  description?: string;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
@@ -9,6 +11,6 @@ export interface PaperType {
 
 export interface PaperTypeFormData {
   name: string;
-  description?: string;
+  description: string;
   is_active: boolean;
 }

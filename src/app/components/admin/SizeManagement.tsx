@@ -72,7 +72,7 @@ export function SizeManagement() {
     if (!confirm("Are you sure you want to delete this size?")) return;
     try {
       await deleteSize(id);
-      toast.success("Size deleted successfully!");
+      toast.error("Size deleted successfully!");
       fetchSizes();
     } catch (error: any) {
       toast.error("Failed to delete size");
@@ -86,7 +86,7 @@ export function SizeManagement() {
 
       if (size.is_active) {
         await deactivateSize(size.id);
-        toast.success("Size deactivated successfully!");
+        toast.error("Size deactivated successfully!");
       } else {
         await activateSize(size.id);
         toast.success("Size activated successfully!");

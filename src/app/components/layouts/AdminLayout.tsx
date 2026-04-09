@@ -644,52 +644,161 @@ import {
   Palette,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+
 
 const navGroups = [
   {
     label: "Overview",
     items: [
-      { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-      { path: "/admin/Order", icon: ShoppingBag, label: "Orders" },
+      {
+        path: "/admin",
+        icon: LayoutDashboard,
+        label: "Dashboard",
+        roles: ["admin", "designer", "warehouser"],
+      },
+      {
+        path: "/admin/Order",
+        icon: ShoppingBag,
+        label: "Orders",
+        roles: ["admin", "warehouser"],
+      },
     ],
   },
   {
     label: "Catalogue",
     items: [
-      { path: "/admin/product", icon: Package, label: "Products" },
-      { path: "/admin/productVarient", icon: Tag, label: "Variants" },
-      { path: "/admin/productVarientPrice", icon: Receipt, label: "Variant Prices" },
-      { path: "/admin/productSetup", icon: Settings, label: "Product Setup" },
-      { path: "/admin/productDiscount", icon: BarChart3, label: "Discounts" },
-      { path: "/admin/FAQ", icon: BarChart3, label: "FAQ" },
-
-
-
+      {
+        path: "/admin/Products",
+        icon: Package,
+        label: "Products",
+        roles: ["admin", "designer", "warehouser"],
+      },
+      // {
+      //   path: "/admin/productVarient",
+      //   icon: Tag,
+      //   label: "Variants",
+      //   roles: ["admin", "designer"],
+      // },
+      // {
+      //   path: "/admin/productVarientPrice",
+      //   icon: Receipt,
+      //   label: "Variant Prices",
+      //   roles: ["admin", "designer"],
+      // },
+      // {
+      //   path: "/admin/productSetup",
+      //   icon: Settings,
+      //   label: "Product Setup",
+      //   roles: ["admin"],
+      // },
+      {
+        path: "/admin/productDiscount",
+        icon: BarChart3,
+        label: "Discounts",
+        roles: ["admin"],
+      },
+      {
+        path: "/admin/FAQ",
+        icon: BarChart3,
+        label: "FAQ",
+        roles: ["admin"],
+      },
     ],
   },
   {
     label: "Configuration",
     items: [
-      { path: "/admin/Category", icon: Users, label: "Categories" },
-      { path: "/admin/Papertype", icon: FileCheck, label: "Paper Types" },
-      { path: "/admin/Cuttype", icon: Scissors, label: "Cut Types" },
-      { path: "/admin/Printtype", icon: Printer, label: "Print Types" },
-      { path: "/admin/SizeType", icon: Maximize2, label: "Sizes" },
+      {
+        path: "/admin/Category",
+        icon: Users,
+        label: "Categories",
+        roles: ["admin"],
+      },
+      // {
+      //   path: "/admin/Papertype",
+      //   icon: FileCheck,
+      //   label: "Paper Types",
+      //   roles: ["admin"],
+      // },
+      // {
+      //   path: "/admin/Cuttype",
+      //   icon: Scissors,
+      //   label: "Cut Types",
+      //   roles: ["admin"],
+      // },
+      // {
+      //   path: "/admin/Printtype",
+      //   icon: Printer,
+      //   label: "Print Types",
+      //   roles: ["admin"],
+      // },
+      // {
+      //   path: "/admin/SizeType",
+      //   icon: Maximize2,
+      //   label: "Sizes",
+      //   roles: ["admin"],
+      // },
+      {
+        path: "/admin/attribute",
+        icon: Maximize2,
+        label: "attribute",
+        roles: ["admin"],
+      },
+      {
+        path: "/admin/product-attribute",
+        icon: Maximize2,
+        label: "Product Attribute",
+        roles: ["admin"],
+      },
+       {
+        path: "/admin/ProductSetupWrapper",
+        icon: Maximize2,
+        label: "ProductSetupWrapper",
+        roles: ["admin"],
+      },
+
+
+      
     ],
   },
 
-   {
+
+  {
     label: "Design",
     items: [
-      { path: "/admin/Design", icon: Palette, label: "Design" },
+      {
+        path: "/admin/Design",
+        icon: Palette,
+        label: "Design",
+        roles: ["admin", "designer"],
+      },
     ],
   },
+  {
+    label: "Role Management",
+    items: [
+      {
+        path: "/admin/Role",
+        icon: Users,
+        label: "Role",
+        roles: ["admin"],
+      },
+    ],
+  },
+
+
 ];
 
 export function AdminLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth(); // get roles
 
+  const hasAccess = (itemRoles?: string[]) => {
+    if (!itemRoles) return true;
+    return itemRoles.some(role => user?.roles?.includes(role));
+  };
   const currentLabel =
     navGroups
       .flatMap((g) => g.items)
@@ -1056,25 +1165,36 @@ export function AdminLayout() {
           </div>
 
           <nav className="al-nav">
-            {navGroups.map((group, gi) => (
-              <div key={group.label} className="al-group">
-                {gi > 0 && <div className="al-divider" />}
-                <div className="al-group-label">{group.label}</div>
-                {group.items.map(({ path, icon: Icon, label }) => {
-                  const isActive = location.pathname === path;
-                  return (
-                    <Link
-                      key={path}
-                      to={path}
-                      className={`al-link${isActive ? " active" : ""}`}
-                    >
-                      <Icon />
-                      <span className="al-link-label">{label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
+            {navGroups.map((group, gi) => {
+              const filteredItems = group.items.filter(item =>
+                hasAccess(item.roles)
+              );
+
+              // ❌ hide group if no items
+              if (filteredItems.length === 0) return null;
+
+              return (
+                <div key={group.label} className="al-group">
+                  {gi > 0 && <div className="al-divider" />}
+                  <div className="al-group-label">{group.label}</div>
+
+                  {filteredItems.map(({ path, icon: Icon, label }) => {
+                    const isActive = location.pathname === path;
+
+                    return (
+                      <Link
+                        key={path}
+                        to={path}
+                        className={`al-link${isActive ? " active" : ""}`}
+                      >
+                        <Icon />
+                        <span className="al-link-label">{label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </nav>
 
           <div className="al-collapse-wrap">
