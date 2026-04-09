@@ -17,15 +17,15 @@ const RequireAuth = ({ allowedRoles }: Props) => {
   }
 
   // ❌ Not logged in → redirect to login
-//   if (!isAuthenticated) {
-//     return (
-//       <Navigate
-//         to="/login"
-//         state={{ from: location }} // ✅ for redirect after login
-//         replace
-//       />
-//     );
-//   }
+  //   if (!isAuthenticated) {
+  //     return (
+  //       <Navigate
+  //         to="/login"
+  //         state={{ from: location }} // ✅ for redirect after login
+  //         replace
+  //       />
+  //     );
+  //   }
 
   // ❌ Role not allowed
   if (

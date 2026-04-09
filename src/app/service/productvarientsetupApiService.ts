@@ -22,8 +22,23 @@ export const deleteVariant = (id: string) =>
 export const createVariantAttributeValue = (payload: Partial<VariantAttributeValue>) =>
   api.post("/variant_attribute_value/create", payload);
 
-export const getVariantAttributeValues = (variantId: string) =>
-  api.get(`/variant_attribute_value/variant/${variantId}`);
+export const getVariantAttributeValues = async (variantId: string) => {
+  const res = await api.get(`/variant_attribute_value/variant/${variantId}`);
+  return res.data.data; // only return the array
+};
+
+// Move this to your service file (productvarientsetupApiService.ts)
+export const updateVariantAttributeValue = async (payload: {
+  variant_id: string;
+  attribute_id: string;
+  attribute_value_ids: string[];
+}) => {
+  const res = await api.put(`/variant_attribute_value/update`, payload);
+  // or use api.post depending on your backend
+  // const res = await api.post(`/variant_attribute_value/update`, payload);
+  return res.data.data;
+};
+
 
 export const deleteVariantAttributeValue = (id: string) =>
   api.delete(`/variant_attribute_value/${id}`);
@@ -32,8 +47,10 @@ export const deleteVariantAttributeValue = (id: string) =>
 export const createVariantPrice = (payload: Partial<VariantPrice>) =>
   api.post("/variant_price/create", payload);
 
-export const getVariantPrices = (variantId: string) =>
-  api.get(`/variant_price/variant/${variantId}`);
+export const getVariantPrices = async (variantId: string) => {
+  const res = await api.get(`/variant_price/variant/${variantId}`);
+  return res.data.data;
+};
 
 export const deleteVariantPrice = (id: string) =>
   api.delete(`/variant_price/${id}`);
