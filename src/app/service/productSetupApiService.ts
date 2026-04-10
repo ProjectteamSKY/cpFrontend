@@ -1,7 +1,7 @@
 import axios from "axios";
 import { ProductSetup, ProductSetupFormData } from "../types/productSetup";
 
-const API_BASE_URL = "http://54.206.3.97/api";
+const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 export const getAllProducts = async (): Promise<ProductSetup[] | { products: ProductSetup[], total?: number }> => {
   try {

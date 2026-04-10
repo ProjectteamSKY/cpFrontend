@@ -2,7 +2,7 @@ import axios from "axios";
 import { Variant, VariantAttributeValue, VariantPrice, Attribute, AttributeValue } from "../types/productvarientsetup";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000/api",
+  baseURL: "http://54.206.3.97/api",
 });
 
 // ------------------ VARIANTS (product_variant_combinations) ------------------
