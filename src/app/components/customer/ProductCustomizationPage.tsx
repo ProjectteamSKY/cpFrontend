@@ -263,7 +263,7 @@ import { SpecsTable } from "../product/SpecsTable";
 import { MobileStickyBar } from "../product/MobileStickyBar";
 import { ImageGalleryModal } from "../product/ImageGalleryModal";
 import { ToastStack } from "../ui/ToasterStack";
-import { useProductDetail } from "../../hooks/useproductdetail";
+import { useProductDetail } from "../../hooks/Useproductdetail";
 import FAQ from "./Faqsection";
 import { useLocation, useSearchParams } from "react-router-dom";
 

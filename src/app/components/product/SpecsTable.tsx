@@ -1,7 +1,7 @@
 // SpecsTable.tsx
 import React, { useMemo } from "react";
 import { FileText } from "lucide-react";
-import { DynamicVariant, PriceTier } from "../../hooks/useproductdetail";
+import { DynamicVariant, PriceTier } from "../../hooks/Useproductdetail";
 
 interface Props {
   variants: any[]; // Original variant data from API

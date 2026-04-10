@@ -770,7 +770,7 @@ export function useProductDetail() {
           }
         }
       } catch (error) {
-        console.error('Error fetching product: - useproductdetail.ts:773', error);
+        console.error('Error fetching product:  Useproductdetail.ts:773 - useproductdetail.ts:773', error);
         showToast("error", "Failed to load product details.");
       } finally {
         setLoading(false);
