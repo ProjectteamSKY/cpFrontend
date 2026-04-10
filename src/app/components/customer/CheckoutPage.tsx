@@ -21,8 +21,8 @@ import paytm from "../../../media/icons8-paytm-50.svg";
 import phonepe from "../../../media/icons8-phone-pe-50.svg";
 
 
-const API_BASE = "http://127.0.0.1:8000/api";
-const MEDIA_BASE = "http://127.0.0.1:8000/";
+const API_BASE = "http://54.206.3.97/api";
+const MEDIA_BASE = "http://54.206.3.97/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import axios from "axios";
 import api from "./api";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api/shipping";
+const API_BASE_URL = "http://54.206.3.97/api/shipping";
 
 // ✅ Create Shipment (Shiprocket Order)
 export const createShiprocketOrder = async (

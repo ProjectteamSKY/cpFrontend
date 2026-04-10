@@ -177,7 +177,7 @@ export default function NoDesignScreen({
             fd.append("logo_file", formData.logoFile);
         }
 
-        const response = await fetch("http://127.0.0.1:8000/api/design_request/create", {
+        const response = await fetch("http://54.206.3.97/api/design_request/create", {
             method: "POST",
             body: fd,
         });

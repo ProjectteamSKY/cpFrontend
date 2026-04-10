@@ -10,7 +10,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "http://54.206.3.97/api";
 
 const STATUS_CONFIG: Record<
   string,

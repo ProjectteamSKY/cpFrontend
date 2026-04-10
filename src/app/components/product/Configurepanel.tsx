@@ -326,7 +326,7 @@ export function ConfigurePanel({
     try {
       setLoading(true);
       const response = await fetch(
-        `http://127.0.0.1:8000/api/variant_attribute_value/product/${productId}/full-details`
+        `http://54.206.3.97/api/variant_attribute_value/product/${productId}/full-details`
       );
       const data: FullDetailsResponse = await response.json();
 

@@ -346,7 +346,7 @@ export function DesignManagement() {
                                 {selectedDesign.logo_images.map((img, idx) => (
                                     <img
                                         key={idx}
-                                        src={`http://127.0.0.1:8000/${img}`}
+                                        src={`http://54.206.3.97/${img}`}
                                         alt={`Logo ${idx + 1}`}
                                         className="w-full h-32 object-cover rounded-lg border border-gray-200"
                                     />
@@ -363,7 +363,7 @@ export function DesignManagement() {
                                 {selectedDesign.designed_images.map((img, idx) => (
                                     <img
                                         key={idx}
-                                        src={`http://127.0.0.1:8000/${img}`}
+                                        src={`http://54.206.3.97/${img}`}
                                         alt={`Design ${idx + 1}`}
                                         className="w-full h-32 object-cover rounded-lg border border-gray-200"
                                     />
