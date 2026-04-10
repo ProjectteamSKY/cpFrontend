@@ -1,10 +1,11 @@
+// NoDesignScreen.tsx
 import {
-    ArrowRight, X, Sparkles, FileText, Link2, Palette, Image,
+    ArrowRight, X, Sparkles, FileText, Image,
     CheckCircle2, AlertCircle, Upload, Trash2
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Product } from "../../types/productlist";
-import { VariantOption } from "../../hooks/useproductdetail"; // ✅ FIXED
+import { fmt } from "./Configurepanel";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -14,7 +15,6 @@ export interface NoDesignFormData {
     phone: string;
     email: string;
     designNotes: string;
-    preferredColors: string;
     hasLogo: boolean;
     logoNotes: string;
     logoFile?: File;
@@ -24,36 +24,35 @@ export interface NoDesignFormData {
 export interface NoDesignScreenProps {
     open: boolean;
     onClose: () => void;
-
     product: Product;
-
-    selectedSize: string;
-    selectedPaperType: string;
-    selectedPrintType: string;
-    selectedCutType: string;
-    selectedSides: string;
-
+    selectedAttributes: Record<string, string>; // Dynamic attributes
+    sidesMultiplier: number; // Dynamic number of sides
     selectedTierLabel: string;
-    selectedQuantity: string;
-
     total: number;
-
     userId?: string;
-
-    selectedVariant: VariantOption | null; // ✅ FIXED
-
+    selectedVariant: {
+        id: string;
+        name: string;
+        prices: Array<{
+            min_qty: number;
+            max_qty?: number;
+            price: number;
+            id?: string;
+        }>;
+    } | null;
+    selectedQuantity: string;
     onSubmit: (data: NoDesignFormData) => void;
 }
 
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
 export default function NoDesignScreen({
     open,
     onClose,
     product,
-    selectedSize,
-    selectedPaperType,
-    selectedPrintType,
-    selectedCutType,
-    selectedSides,
+    selectedAttributes,
+    sidesMultiplier,
     selectedTierLabel,
     total,
     userId,
@@ -67,7 +66,6 @@ export default function NoDesignScreen({
         phone: "",
         email: "",
         designNotes: "",
-        preferredColors: "",
         hasLogo: false,
         logoNotes: "",
     });
@@ -77,12 +75,6 @@ export default function NoDesignScreen({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const fmt = (n: number) =>
-        new Intl.NumberFormat("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(n);
 
     useEffect(() => {
         if (open) document.body.style.overflow = "hidden";
@@ -100,7 +92,6 @@ export default function NoDesignScreen({
                 phone: "",
                 email: "",
                 designNotes: "",
-                preferredColors: "",
                 hasLogo: false,
                 logoNotes: "",
             });
@@ -121,52 +112,82 @@ export default function NoDesignScreen({
         if (!form.name.trim()) newErrors.name = "Name is required";
 
         const phoneRegex = /^[6-9]\d{9}$/;
-        if (!phoneRegex.test(form.phone)) newErrors.phone = "Enter valid phone";
+        if (!phoneRegex.test(form.phone)) newErrors.phone = "Enter valid 10-digit phone number";
 
         if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-            newErrors.email = "Invalid email";
+            newErrors.email = "Invalid email address";
 
-        if (form.designNotes.length < 10)
-            newErrors.designNotes = "Min 10 characters";
+        if (!form.designNotes.trim()) {
+            newErrors.designNotes = "Design brief is required";
+        } else if (form.designNotes.length < 10) {
+            newErrors.designNotes = "Please provide at least 10 characters";
+        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    // ✅ FIXED API PART
     const submitToAPI = async (formData: NoDesignFormData) => {
         const fd = new FormData();
 
+        // User details
         fd.append("user_id", userId || "guest");
         fd.append("name", formData.name);
         fd.append("phone", formData.phone);
         fd.append("email", formData.email || "");
 
+        // Product details
         fd.append("product_id", product.id || "");
         fd.append("product_name", product.name);
 
+        // Variant and pricing
         const variantId = selectedVariant?.id || "";
-
-        const priceId =
-            selectedVariant?.prices?.find((p) => p.id === selectedQuantity)?.id || "";
-
         fd.append("variant_id", variantId);
-        fd.append("product_variant_price_id", priceId);
+        fd.append("variant_name", selectedVariant?.name || "");
 
+        // Find price ID from selected quantity tier
+        const priceTier = selectedVariant?.prices?.find((p) => {
+            if (selectedQuantity === String(p.min_qty)) return true;
+            if (p.id === selectedQuantity) return true;
+            return false;
+        });
+        
+        fd.append("product_variant_price_id", priceTier?.id || "");
+        fd.append("selected_quantity", selectedQuantity);
+
+        // Configuration details - dynamic sides multiplier
+        fd.append("sides_multiplier", String(sidesMultiplier));
+        fd.append("total_price", String(total));
+
+        // Add all dynamic attributes
+        Object.entries(selectedAttributes).forEach(([key, value]) => {
+            fd.append(`attribute_${key.toLowerCase().replace(/\s/g, "_")}`, value);
+        });
+
+        // Design brief
         fd.append("design_notes", formData.designNotes);
-
-        if (formData.hasLogo && formData.logoFile) {
-            fd.append("logo_files", formData.logoFile);
+        fd.append("has_logo", String(formData.hasLogo));
+        
+        if (formData.logoNotes) {
+            fd.append("logo_notes", formData.logoNotes);
         }
 
-        const res = await fetch("http://54.206.3.97/api/design_request/create", {
+        // Logo file
+        if (formData.hasLogo && formData.logoFile) {
+            fd.append("logo_file", formData.logoFile);
+        }
+
+        const response = await fetch("http://54.206.3.97/api/design_request/create", {
             method: "POST",
             body: fd,
         });
 
-        if (!res.ok) throw new Error("API error");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || "Failed to submit design request");
+        }
 
-        return res.json();
+        return response.json();
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -182,7 +203,8 @@ export default function NoDesignScreen({
             onSubmit(form);
             setSubmitted(true);
         } catch (err: any) {
-            setApiError(err.message);
+            setApiError(err.message || "Something went wrong. Please try again.");
+            console.error("Submission error:", err);
         } finally {
             setIsSubmitting(false);
         }
@@ -191,6 +213,17 @@ export default function NoDesignScreen({
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            setApiError("Logo file size should be less than 5MB");
+            return;
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/svg+xml'];
+        if (!allowedTypes.includes(file.type)) {
+            setApiError("Please upload JPEG, PNG, JPG, or SVG file");
+            return;
+        }
 
         const preview = URL.createObjectURL(file);
         setField("logoFile", file);
@@ -220,13 +253,18 @@ export default function NoDesignScreen({
             : "border-neutral-200 focus:border-[#D73D32] focus:ring-[#D73D32]/20"
         }`;
 
+    // Generate side label dynamically
+    const getSidesLabel = () => {
+        if (sidesMultiplier === 1) return "Single Sided";
+        if (sidesMultiplier === 2) return "Double Sided";
+        return `${sidesMultiplier}-Sided`;
+    };
+
+    // Build configuration items dynamically
     const configItems = [
         { label: "Product", value: product.name },
-        { label: "Size", value: selectedSize },
-        { label: "Paper", value: selectedPaperType },
-        { label: "Print", value: selectedPrintType },
-        { label: "Cut", value: selectedCutType },
-        { label: "Sides", value: selectedSides === "2" ? "Double Sided" : "Single Sided" },
+        ...Object.entries(selectedAttributes).map(([key, value]) => ({ label: key, value })),
+        { label: "Sides", value: `${getSidesLabel()} (×${sidesMultiplier} multiplier)` },
         { label: "Quantity", value: selectedTierLabel },
         { label: "Total", value: `₹${fmt(total)}` },
     ];
@@ -297,7 +335,7 @@ export default function NoDesignScreen({
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
                     <div className="flex-1 overflow-y-auto">
                         <div className="flex flex-col lg:flex-row h-full">
-                            {/* LEFT COLUMN - Configuration Summary */}
+                            {/* LEFT COLUMN - Configuration Summary (Dynamic) */}
                             <div className="lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r border-neutral-100 bg-neutral-50/30 p-5">
                                 <div className="sticky top-0 lg:top-5">
                                     <div className="flex items-center gap-2 mb-4">
@@ -457,23 +495,6 @@ export default function NoDesignScreen({
                                                     Include text content, placement preferences, and any specific requirements
                                                 </p>
                                             </div>
-
-                                            {/* <div>
-                                                <label className="text-sm font-semibold text-neutral-700 mb-2 block flex items-center gap-2">
-                                                    <Palette className="w-4 h-4 text-[#D73D32]" />
-                                                    Preferred / Brand Colors
-                                                </label>
-                                                <input
-                                                    className={inputClass()}
-                                                    placeholder="Example: Navy blue (#003366) & gold, or match brand colors"
-                                                    value={form.preferredColors}
-                                                    onChange={(e) => setField("preferredColors", e.target.value)}
-                                                    disabled={isSubmitting}
-                                                />
-                                                <p className="text-xs text-neutral-400 mt-1">
-                                                    Specify hex codes or color names for accurate matching
-                                                </p>
-                                            </div> */}
 
                                             {/* Logo Section */}
                                             <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">

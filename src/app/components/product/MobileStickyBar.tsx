@@ -1,5 +1,5 @@
 import React from "react";
-import { VariantOption } from "../../hooks/useproductdetail";
+import { VariantOption } from "../../hooks/Useproductdetail";
 
 interface Props {
   selectedVariant: VariantOption | null;

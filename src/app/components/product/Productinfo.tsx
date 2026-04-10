@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { Product } from "../../types/productlist";
 import { Stars } from "./Stars";
-import { VariantOption } from "../../hooks/useproductdetail";
+import { VariantOption } from "../../hooks/Useproductdetail";
 
 interface Props {
   product: Product;
