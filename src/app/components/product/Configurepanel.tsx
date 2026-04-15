@@ -1,5 +1,5 @@
-// ConfigurePanel.tsx
-import React, { useState, useEffect } from "react";
+// ConfigurePanel.tsx - COMPLETE FIXED VERSION
+import React, { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, Upload, Zap, AlertCircle } from "lucide-react";
 import { Product } from "../../types/productlist";
 import SectionLabel from "../../components/product/sectionLabel";
@@ -7,6 +7,8 @@ import { Stars } from "./Stars";
 import NoDesignScreen from "./Nodesignscreen";
 import type { NoDesignFormData } from "./Nodesignscreen";
 import UploadScreen from "./UploadPanel";
+import { getUserId } from "../../utils/authStorage";
+
 // ---------------------------------------------------------------------------
 // Types based on API response
 // ---------------------------------------------------------------------------
@@ -23,6 +25,7 @@ interface Attribute {
 }
 
 interface PriceTier {
+  id: string;
   min_qty: number;
   max_qty?: number;
   price: number;
@@ -42,8 +45,21 @@ interface FullDetailsResponse {
   };
 }
 
-interface SelectedConfiguration {
-  [key: string]: string;
+export interface SelectedConfiguration {
+  [attributeName: string]: string;
+}
+
+interface AttributeMetadata {
+  attribute_id: string;
+  attribute_value_id: string;
+  attribute_value_name: string;
+}
+
+export interface UploadedFilesData {
+  frontFile: File | null;
+  backFile: File | null;
+  frontPreview: string | null;
+  backPreview: string | null;
 }
 
 interface Props {
@@ -51,6 +67,7 @@ interface Props {
   productId: string;
   onConfigurationChange?: (config: SelectedConfiguration) => void;
   onPriceChange?: (price: number, qty: number) => void;
+  onContinue?: (uploadedFiles?: UploadedFilesData) => void;
   priceCardConfig?: {
     headerText?: string;
     bestRateText?: string;
@@ -86,7 +103,7 @@ const selectClass =
   "bg-no-repeat bg-[right_12px_center]";
 
 // ---------------------------------------------------------------------------
-// Price Card Component - Fully Dynamic
+// Price Card Component
 // ---------------------------------------------------------------------------
 interface PriceCardProps {
   unitPrice: number;
@@ -159,13 +176,14 @@ function PriceCard({ unitPrice, qty, total, config = {} }: PriceCardProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Main ConfigurePanel Component - Fully Dynamic
+// Main ConfigurePanel Component
 // ---------------------------------------------------------------------------
 export function ConfigurePanel({
   product,
   productId,
   onConfigurationChange,
   onPriceChange,
+  onContinue,
   priceCardConfig,
   buttonConfig = {}
 }: Props) {
@@ -174,15 +192,24 @@ export function ConfigurePanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Dynamic state for selected attribute values
-  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  const [selectedAttributes, setSelectedAttributes] = useState<SelectedConfiguration>({});
+  const [attributeMetadata, setAttributeMetadata] = useState<Record<string, AttributeMetadata>>({});
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
-  const [selectedTierId, setSelectedTierId] = useState<number>(0);
+  const [selectedTierId, setSelectedTierId] = useState<string>("");
 
+  // const [selectedTierIdnodesign, setselectedTierIdnodesign] = useState<string>("");
+  console.log("🚀 ConfigurePanel rendered with:", {
+    product,
+    productId,
+    selectedAttributes,
+    attributeMetadata,
+    selectedVariant,
+    selectedTierId
+  });
   // UI state
   const [uploadOpen, setUploadOpen] = useState(false);
   const [noDesignOpen, setNoDesignOpen] = useState(false);
-
+  const userId = getUserId();
   // Upload state
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
@@ -221,7 +248,7 @@ export function ConfigurePanel({
   };
 
   // Find variant that matches all selected attributes
-  const findMatchingVariant = (attributes: Record<string, string>): Variant | null => {
+  const findMatchingVariant = (attributes: SelectedConfiguration): Variant | null => {
     for (const variant of variants) {
       let matches = true;
 
@@ -246,25 +273,48 @@ export function ConfigurePanel({
     return null;
   };
 
-  // Handle attribute change dynamically
-  const handleAttributeChange = (attributeName: string, value: string) => {
+  // Handle attribute change with proper metadata tracking
+  const handleAttributeChange = useCallback((attributeName: string, value: string) => {
     const newAttributes = { ...selectedAttributes, [attributeName]: value };
     setSelectedAttributes(newAttributes);
 
-    const matchingVariant = findMatchingVariant(newAttributes);
-    if (matchingVariant) {
-      setSelectedVariant(matchingVariant);
-      setSelectedTierId(0);
-
-      if (onConfigurationChange) {
-        onConfigurationChange(newAttributes);
+    const newMetadata = { ...attributeMetadata };
+    for (const variant of variants) {
+      const attr = variant.attributes.find(a => a.attribute_name === attributeName);
+      if (attr) {
+        const val = attr.values.find(v => v.attribute_value_name === value);
+        if (val) {
+          newMetadata[attributeName] = {
+            attribute_id: attr.attribute_id,
+            attribute_value_id: val.attribute_value_id,
+            attribute_value_name: val.attribute_value_name
+          };
+          break;
+        }
       }
     }
-  };
+    setAttributeMetadata(newMetadata);
+
+    const matchingVariant = findMatchingVariant(newAttributes);
+
+    if (matchingVariant) {
+      setSelectedVariant(matchingVariant);
+
+      // ✅ FIXED
+      setSelectedTierId(matchingVariant?.prices?.[0]?.id ?? "");
+    }
+
+    // Always call onConfigurationChange with the complete config
+    if (onConfigurationChange) {
+      console.log("🔵 ConfigurePanel - Sending config change:", newAttributes);
+      onConfigurationChange(newAttributes);
+    }
+  }, [selectedAttributes, attributeMetadata, variants, findMatchingVariant, onConfigurationChange]);
 
   // Get current price tier
-  const currentTier = selectedVariant?.prices[selectedTierId] || selectedVariant?.prices[0];
-  const unitPrice = currentTier?.price || 0;
+  const currentTier =
+    selectedVariant?.prices?.find(t => t.id === selectedTierId) ||
+    selectedVariant?.prices?.[0]; const unitPrice = currentTier?.price || 0;
   const quantity = currentTier?.min_qty || 0;
   const totalPrice = unitPrice * quantity;
 
@@ -276,45 +326,26 @@ export function ConfigurePanel({
     return `${range} pcs — ₹${tier.price}/pc`;
   };
 
-  // Check if all required attributes are selected
-  const areAllAttributesSelected = (): boolean => {
-    const attributeNames = getAllAttributeNames();
-    return attributeNames.every(attrName => selectedAttributes[attrName]);
-  };
-
   // Determine selected sides based on print location attribute
   const getSelectedSides = (): string => {
-    const printLocation = selectedAttributes["print location"];
+    const printLocationValue = selectedAttributes["print location"];
 
-    // Check if print location includes both front and back
-    if (printLocation) {
-      if (printLocation === "front" || printLocation === "back") {
+    if (printLocationValue && typeof printLocationValue === "string") {
+      if (printLocationValue === "front" || printLocationValue === "back") {
         return "1";
       }
-      // If print location value contains both (e.g., "front, back" or similar)
-      if (printLocation.includes("front") && printLocation.includes("back")) {
+      if (printLocationValue.toLowerCase().includes("front") && printLocationValue.toLowerCase().includes("back")) {
         return "2";
       }
     }
 
-    // Check available options for print location
-    const printLocationAttr = variants.find(v =>
-      v.attributes.some(a => a.attribute_name === "print location")
-    );
-
-    if (printLocationAttr) {
-      const attr = printLocationAttr.attributes.find(a => a.attribute_name === "print location");
-      if (attr) {
-        const hasFront = attr.values.some(v => v.attribute_value_name === "front");
-        const hasBack = attr.values.some(v => v.attribute_value_name === "back");
-        if (hasFront && hasBack) {
-          // Default to single sided if both are available
-          return "1";
-        }
-      }
-    }
-
     return "1";
+  };
+
+  // Check if all required attributes are selected
+  const areAllAttributesSelected = (): boolean => {
+    const attributeNames = getAllAttributeNames();
+    return attributeNames.every(attrName => selectedAttributes[attrName]);
   };
 
   // Fetch product variants on mount
@@ -334,14 +365,30 @@ export function ConfigurePanel({
         setVariants(data.data.variants);
 
         const firstVariant = data.data.variants[0];
-        const defaultAttributes: Record<string, string> = {};
+        const defaultAttributes: SelectedConfiguration = {};
+        const defaultMetadata: Record<string, AttributeMetadata> = {};
+
         firstVariant.attributes.forEach(attr => {
           if (attr.values.length > 0) {
-            defaultAttributes[attr.attribute_name] = attr.values[0].attribute_value_name;
+            const value = attr.values[0];
+            defaultAttributes[attr.attribute_name] = value.attribute_value_name;
+            defaultMetadata[attr.attribute_name] = {
+              attribute_id: attr.attribute_id,
+              attribute_value_id: value.attribute_value_id,
+              attribute_value_name: value.attribute_value_name
+            };
           }
         });
+
         setSelectedAttributes(defaultAttributes);
+        setAttributeMetadata(defaultMetadata);
         setSelectedVariant(firstVariant);
+
+        const firstTier = firstVariant.prices?.[0];
+
+        if (firstTier) {
+          setSelectedTierId(firstTier.id);
+        }
 
         if (onConfigurationChange) {
           onConfigurationChange(defaultAttributes);
@@ -382,28 +429,60 @@ export function ConfigurePanel({
     setBackPreview(null);
   };
 
+  // Handle upload continue - passes files to parent
+  const handleUploadContinue = (uploadedFiles?: UploadedFilesData) => {
+    console.log("🔵 ConfigurePanel.handleUploadContinue - Received:", {
+      hasUploadedFiles: !!uploadedFiles,
+      frontFile: uploadedFiles?.frontFile?.name,
+      backFile: uploadedFiles?.backFile?.name,
+    });
+
+    if (uploadedFiles) {
+      // Clean up old previews
+      if (frontPreview) URL.revokeObjectURL(frontPreview);
+      if (backPreview) URL.revokeObjectURL(backPreview);
+
+      // Set new files
+      setFrontFile(uploadedFiles.frontFile);
+      setBackFile(uploadedFiles.backFile);
+      setFrontPreview(uploadedFiles.frontPreview);
+      setBackPreview(uploadedFiles.backPreview);
+    }
+
+    setUploadOpen(false);
+
+    // Pass files to parent
+    if (onContinue) {
+      const filesToSend = {
+        frontFile: uploadedFiles?.frontFile || frontFile,
+        backFile: uploadedFiles?.backFile || backFile,
+        frontPreview: uploadedFiles?.frontPreview || frontPreview,
+        backPreview: uploadedFiles?.backPreview || backPreview,
+      };
+
+      console.log("🔵 ConfigurePanel - Calling onContinue with:", {
+        frontFile: filesToSend.frontFile?.name,
+        backFile: filesToSend.backFile?.name,
+      });
+
+      onContinue(filesToSend);
+    }
+  };
+
   const handleNoDesignSubmit = (data: NoDesignFormData) => {
     console.log("No design order:", {
       ...data,
       product: product.name,
       selectedAttributes,
+      attributeMetadata,
       quantity,
       totalPrice
     });
   };
 
-  const handleUploadContinue = (uploadedFiles?: any) => {
-    console.log("Continue with upload", {
-      selectedAttributes,
-      quantity,
-      totalPrice,
-      uploadedFiles
-    });
-    setUploadOpen(false);
-    // Here you would typically navigate to cart or next step
-  };
-
-  const selectedTierLabel = currentTier ? getTierLabel(currentTier, selectedTierId) : "";
+  const selectedTierLabel = currentTier
+    ? getTierLabel(currentTier, 0)
+    : "";
   const canOrder = quantity > 0 && totalPrice > 0 && areAllAttributesSelected();
   const attributeNames = getAllAttributeNames();
   const selectedSides = getSelectedSides();
@@ -515,10 +594,10 @@ export function ConfigurePanel({
               <select
                 className={selectClass}
                 value={selectedTierId}
-                onChange={(e) => setSelectedTierId(Number(e.target.value))}
+                onChange={(e) => setSelectedTierId(e.target.value)}
               >
                 {selectedVariant.prices.map((tier, index) => (
-                  <option key={index} value={index}>
+                  <option key={tier.id} value={tier.id}>
                     {getTierLabel(tier, index)}
                   </option>
                 ))}
@@ -581,7 +660,8 @@ export function ConfigurePanel({
         onClose={() => setUploadOpen(false)}
         product={product}
         selectedSides={selectedSides}
-        selectedAttributes={selectedAttributes}  // Pass all attributes dynamically
+        selectedAttributes={selectedAttributes}
+        attributeMetadata={attributeMetadata}
         selectedTierLabel={selectedTierLabel}
         total={totalPrice}
         frontFile={frontFile}
@@ -595,6 +675,8 @@ export function ConfigurePanel({
         ctaDisabled={!canOrder}
         ctaLabel="Continue to Cart"
         onContinue={handleUploadContinue}
+        selectedVariant={selectedVariant}
+        selectedTierId={selectedTierId}
       />
 
       {/* No Design Screen Modal */}
@@ -603,21 +685,15 @@ export function ConfigurePanel({
         onClose={() => setNoDesignOpen(false)}
         product={product}
         selectedAttributes={selectedAttributes}
+        attributeMetadata={attributeMetadata}
         sidesMultiplier={selectedSides === "2" ? 2 : 1}
         selectedTierLabel={selectedTierLabel}
         total={totalPrice}
-        userId={localStorage.getItem("user_id") || undefined}
-        selectedVariant={selectedVariant ? {
-          id: selectedVariant.variant_id,
-          name: Object.entries(selectedAttributes).map(([key, val]) => `${key}: ${val}`).join(", "),
-          prices: selectedVariant.prices.map(price => ({
-            min_qty: price.min_qty,
-            max_qty: price.max_qty,
-            price: price.price,
-            id: `${price.min_qty}-${price.max_qty || 'plus'}`
-          }))
-        } : null}
+        userId={userId}
+        selectedVariant={selectedVariant}
+        selectedTierId={selectedTierId}
         selectedQuantity={String(quantity)}
+
         onSubmit={handleNoDesignSubmit}
       />
     </>

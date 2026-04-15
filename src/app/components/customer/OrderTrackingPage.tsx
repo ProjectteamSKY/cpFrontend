@@ -9,6 +9,7 @@ import {
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
+import { getUserId } from "../../utils/authStorage";
 
 const API_BASE = "http://54.206.3.97/api";
 
@@ -235,7 +236,7 @@ function ReviewFormModal({ order, userId, customerName, onClose, onSuccess }: Re
 ══════════════════════════════════════════════════════════════════════ */
 export function OrderHistoryPage() {
   const navigate     = useNavigate();
-  const userId       = sessionStorage.getItem("user_id")       || localStorage.getItem("user_id")       || "";
+  const userId = getUserId();
   const customerName = sessionStorage.getItem("customer_name") || localStorage.getItem("customer_name") || "Customer";
 
   const [orders,      setOrders]      = useState<any[]>([]);

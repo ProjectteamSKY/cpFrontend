@@ -69,14 +69,14 @@ export function CategoryManagement() {
                 response = await createCategory(data);
             }
 
-            // ✅ HANDLE FAILURE FIRST
-            if (!response.success) {
-                toast.error(response.message);
+            console.log("RESPONSE:", response);
+
+            if (!response || response.success !== true) {
+                toast.error(response?.message || "Something went wrong");
                 return;
             }
 
-            // ✅ SUCCESS ONLY HERE
-            toast.success(response.message || "Saved successfully!");
+            toast.success(response.message || "Success");
 
             setShowAddDialog(false);
             setShowEditDialog(false);
@@ -84,11 +84,9 @@ export function CategoryManagement() {
             fetchCategories();
 
         } catch (error: any) {
-            // This will rarely run now (only unexpected crashes)
-            toast.error(error.message || "Something went wrong");
+            toast.error(error?.message || "Unexpected error");
         }
     };
-
     /* ---------- Edit ---------- */
 
     const handleEdit = (category: Category) => {

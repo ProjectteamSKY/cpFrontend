@@ -12,7 +12,9 @@ import {
 import VariantAttributesSection from "./VariantAttributesSection";
 import VariantPricesSection from "./VariantPricesSection";
 
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from "../ui/toaster";
 
 
 
@@ -59,6 +61,10 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
     onSuccess: () => {
       refetch();
       handleCloseModal();
+      toast.success("Variant created successfully");
+    },
+    onError: () => {
+      toast.error("Failed to create variant");
     },
   });
 
@@ -67,12 +73,22 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
     onSuccess: () => {
       refetch();
       handleCloseModal();
+      toast.success("Variant updated successfully");
+    },
+    onError: () => {
+      toast.error("Update failed");
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteVariant(id),
-    onSuccess: () => refetch(),
+    onSuccess: () => {
+      refetch();
+      toast.success("Variant deleted");
+    },
+    onError: () => {
+      toast.error("Delete failed");
+    },
   });
 
   const generateSKU = () => `SKU-${uuidv4().split("-")[0].toUpperCase()}`;
@@ -120,21 +136,27 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
   ];
 
   const tabs = [
-    { id: "variants" as TabType, label: "Variants", icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    )},
-    { id: "attributes" as TabType, label: "Attributes", icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-      </svg>
-    )},
-    { id: "pricing" as TabType, label: "Pricing", icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )},
+    {
+      id: "variants" as TabType, label: "Variants", icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      )
+    },
+    {
+      id: "attributes" as TabType, label: "Attributes", icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      )
+    },
+    {
+      id: "pricing" as TabType, label: "Pricing", icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
   ];
 
   const isLoading = loadingVariants || loadingAttributes || loadingAttributeValues;
@@ -194,11 +216,10 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-t-lg transition-all font-medium ${
-                    activeTab === tab.id
-                      ? "bg-white text-[#D73D32] border-t border-l border-r border-gray-200 -mb-px"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-t-lg transition-all font-medium ${activeTab === tab.id
+                    ? "bg-white text-[#D73D32] border-t border-l border-r border-gray-200 -mb-px"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
                 >
                   {tab.icon}
                   {tab.label}
@@ -260,16 +281,14 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
                             </div>
                             <div className="flex items-center gap-4">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                                  variant.is_active
-                                    ? "bg-green-50 text-green-700 border border-green-200"
-                                    : "bg-gray-50 text-gray-500 border border-gray-200"
-                                }`}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${variant.is_active
+                                  ? "bg-green-50 text-green-700 border border-green-200"
+                                  : "bg-gray-50 text-gray-500 border border-gray-200"
+                                  }`}
                               >
                                 <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    variant.is_active ? "bg-green-500 animate-pulse" : "bg-gray-400"
-                                  }`}
+                                  className={`w-1.5 h-1.5 rounded-full ${variant.is_active ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                                    }`}
                                 ></span>
                                 {variant.is_active ? "Active" : "Inactive"}
                               </span>
@@ -427,14 +446,12 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
                 <span className="text-gray-700 text-sm font-medium">Active Status</span>
                 <button
                   onClick={() => setIsActive(!isActive)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    isActive ? "bg-[#D73D32]" : "bg-gray-300"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? "bg-[#D73D32]" : "bg-gray-300"
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      isActive ? "translate-x-6" : "translate-x-1"
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? "translate-x-6" : "translate-x-1"
+                      }`}
                   />
                 </button>
               </div>
@@ -456,6 +473,7 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
           </div>
         </div>
       )}
+       <Toaster />
     </div>
   );
 };

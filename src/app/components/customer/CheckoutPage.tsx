@@ -19,6 +19,7 @@ import { Toaster } from "../ui/toaster";
 import gpay from "../../../media/icons8-google-pay-50.svg";
 import paytm from "../../../media/icons8-paytm-50.svg";
 import phonepe from "../../../media/icons8-phone-pe-50.svg";
+import { getUserId } from "../../utils/authStorage";
 
 
 const API_BASE = "http://54.206.3.97/api";
@@ -26,8 +27,8 @@ const MEDIA_BASE = "http://54.206.3.97/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const userId =
-    sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+  const userId = getUserId();
+
 
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -71,7 +72,7 @@ export function CheckoutPage() {
         `${API_BASE}/cartitems/user/${userId}`,
         { withCredentials: true }
       );
-
+      console.log("Cart items response:", res.data);
       const rawItems = res.data.data || [];
 
       if (!rawItems.length) {
@@ -84,63 +85,118 @@ export function CheckoutPage() {
       const enrichedItems = await Promise.all(
         rawItems.map(async (item: any) => {
           try {
-            const [productRes, variantRes, weightRes] = await Promise.all([
-              axios.get(`${API_BASE}/product/${item.product_id}`),
-              axios.get(`${API_BASE}/product_variant/${item.variant_id}`),
-              axios.get(
-                `${API_BASE}/product_variant_price/variant/${item.variant_id}/price-weight/${item.product_variant_price_id}`
-              ),
-            ]);
-
+            // Fetch product details
+            const productRes = await axios.get(`${API_BASE}/product/${item.product_id}`);
             const product = productRes.data.data || productRes.data;
-            const variant = variantRes.data.data || variantRes.data;
-            const weightData = weightRes.data.data || weightRes.data;
 
-            let productImage = null;
-            if (product.images) {
-              const images = Array.isArray(product.images)
-                ? product.images
-                : JSON.parse(product.images || "[]");
-              const defaultImg = images.find((img: any) => img.is_default);
-              if (defaultImg) {
-                productImage = MEDIA_BASE + defaultImg.url.replace(/^\/?/, "");
+            // Parse selected_attributes from JSON string
+            let parsedAttributes = {};
+            if (item.selected_attributes) {
+              try {
+                const attrArray = JSON.parse(item.selected_attributes);
+                console.log("Parsed attributes array:", attrArray);
+
+                // Convert array to object with attribute_name as key and attribute_value_name as value
+                if (Array.isArray(attrArray)) {
+                  attrArray.forEach((attr: any) => {
+                    parsedAttributes[attr.attribute_name] = attr.attribute_value_name;
+                  });
+                }
+                console.log("Formatted attributes:", parsedAttributes);
+              } catch (e) {
+                console.error("Failed to parse selected_attributes", e);
               }
             }
 
+            // Get product image
+            let productImage = null;
+            if (product.images) {
+              let images = product.images;
+              if (typeof images === 'string') {
+                try {
+                  images = JSON.parse(images);
+                } catch (e) {
+                  images = [];
+                }
+              }
+              if (Array.isArray(images) && images.length > 0) {
+                const defaultImg = images.find((img: any) => img.is_default);
+                const imgToUse = defaultImg || images[0];
+                if (imgToUse && imgToUse.url) {
+                  productImage = MEDIA_BASE + imgToUse.url.replace(/^\/?/, "");
+                }
+              }
+            }
+
+            // Process files - ensure URLs are complete
             const files = (item.files || []).map((f: any) => ({
               ...f,
               front_side_url: f.front_side_url
-                ? MEDIA_BASE + f.front_side_url.replace(/^\/?/, "")
+                ? (f.front_side_url.startsWith('http')
+                  ? f.front_side_url
+                  : MEDIA_BASE + f.front_side_url.replace(/^\/?/, ""))
                 : null,
               back_side_url: f.back_side_url
-                ? MEDIA_BASE + f.back_side_url.replace(/^\/?/, "")
+                ? (f.back_side_url.startsWith('http')
+                  ? f.back_side_url
+                  : MEDIA_BASE + f.back_side_url.replace(/^\/?/, ""))
                 : null,
             }));
+
+            // Get weight using the new API endpoint
+            let weightGrams = 0;
+            try {
+              const weightRes = await axios.post(
+                `${API_BASE}/variant_attribute_value/total`,
+                { variant_id: item.variant_id }
+              );
+              const weightData = weightRes.data.data || weightRes.data;
+              weightGrams = Number(weightData.total_weight_grams) || 0;
+            } catch (weightErr) {
+              console.warn("Could not fetch weight for item:", item.id, weightErr);
+              weightGrams = 100; // Default 100g per item
+            }
 
             return {
               ...item,
               product_name: product.name || "Unknown Product",
               product_image: productImage,
-              size_name: variant.size_name,
-              paper_type_name: variant.paper_type_name,
-              print_type_name: variant.print_type_name,
-              cut_type_name: variant.cut_type_name,
-              orientation: variant.orientation,
-              selected_options: item.selected_options
-                ? JSON.parse(item.selected_options)
-                : {},
-              files,
-              weight_grams: Number(weightData.total_weight_grams),
+              selected_options: parsedAttributes,
+              files: files,
+              weight_grams: weightGrams,
             };
           } catch (err) {
-            console.error("Failed to enrich item", err);
-            return { ...item, weight_grams: 0 };
+            console.error("Failed to enrich item", item.id, err);
+            // Return basic item info without enrichment
+            const files = (item.files || []).map((f: any) => ({
+              ...f,
+              front_side_url: f.front_side_url
+                ? (f.front_side_url.startsWith('http')
+                  ? f.front_side_url
+                  : MEDIA_BASE + f.front_side_url.replace(/^\/?/, ""))
+                : null,
+              back_side_url: f.back_side_url
+                ? (f.back_side_url.startsWith('http')
+                  ? f.back_side_url
+                  : MEDIA_BASE + f.back_side_url.replace(/^\/?/, ""))
+                : null,
+            }));
+
+            return {
+              ...item,
+              product_name: "Product",
+              product_image: null,
+              selected_options: {},
+              files: files,
+              weight_grams: 100,
+            };
           }
         })
       );
 
+      console.log("Enriched cart items:", enrichedItems);
       setCartItems(enrichedItems);
-      fetchDeliveryCharge(enrichedItems);
+      await fetchDeliveryCharge(enrichedItems);
     } catch (err) {
       console.error("Failed to fetch cart items", err);
       toast.error("Failed to load cart items");

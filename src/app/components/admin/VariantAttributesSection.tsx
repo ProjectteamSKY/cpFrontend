@@ -1,128 +1,4 @@
-// import React, { useState } from "react";
-// import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// import { Form, Select, Button, Table, Spin } from "antd";
-// import { Variant, VariantAttributeValue, Attribute, AttributeValue } from "../../types/productvarientsetup";
-// import {
-//   createVariantAttributeValue,
-//   getVariantAttributeValues,
-//   deleteVariantAttributeValue,
-// } from "../../service/productvarientsetupApiService";
 
-// interface Props {
-//   variant: Variant;
-//   attributes: Attribute[];
-//   attributeValues: AttributeValue[];
-// }
-
-// const VariantAttributesSection: React.FC<Props> = ({ variant, attributes, attributeValues }) => {
-//   const queryClient = useQueryClient();
-//   const [form] = Form.useForm();
-//   const [selectedAttributeId, setSelectedAttributeId] = useState<string | null>(null);
-
-//   // Fetch variant attribute values
-//   const { data: valuesArray = [], isLoading } = useQuery<VariantAttributeValue[]>({
-//     queryKey: ["variantAttributeValues", variant.id],
-//     queryFn: async () => {
-//       const res = await getVariantAttributeValues(variant.id);
-//       // API response has { status, data } → we only need data
-//       return Array.isArray(res) ? res : [];
-//     },
-//   });
-
-//   // Add new attribute value
-//   const addMutation = useMutation({
-//     mutationFn: (payload: Partial<VariantAttributeValue>) => createVariantAttributeValue(payload),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ["variantAttributeValues", variant.id] });
-//       form.resetFields();
-//       setSelectedAttributeId(null);
-//     },
-//   });
-
-//   // Delete attribute value
-//   const deleteMutation = useMutation({
-//     mutationFn: (id: string) => deleteVariantAttributeValue(id),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ["variantAttributeValues", variant.id] });
-//     },
-//   });
-
-//   // Filter attribute values for the selected attribute
-//   const filteredValues = selectedAttributeId
-//     ? attributeValues.filter((v) => v.attribute_id === selectedAttributeId)
-//     : [];
-
-//   return (
-//     <div style={{ marginTop: 16 }}>
-//       <h3>Variant Attributes: {variant.sku}</h3>
-
-//       {/* Add new variant attribute */}
-//       <Form
-//         form={form}
-//         layout="inline"
-//         onFinish={(vals) =>
-//           addMutation.mutate({
-//             variant_id: variant.id,
-//             attribute_id: vals.attribute_id,
-//             attribute_value_ids: [vals.attribute_value_id], // required by backend
-//           })
-//         }
-//       >
-//         <Form.Item label="Attribute" name="attribute_id" rules={[{ required: true }]}>
-//           <Select
-//             style={{ width: 150 }}
-//             options={attributes.map((a) => ({ label: a.name, value: a.id }))}
-//             onChange={(val) => {
-//               setSelectedAttributeId(val);
-//               form.setFieldValue("attribute_value_id", undefined);
-//             }}
-//           />
-//         </Form.Item>
-
-//         <Form.Item label="Value" name="attribute_value_id" rules={[{ required: true }]}>
-//           <Select
-//             style={{ width: 150 }}
-//             options={filteredValues.map((v) => ({ label: v.value, value: v.id }))}
-//             disabled={!selectedAttributeId}
-//           />
-//         </Form.Item>
-
-//         <Form.Item>
-//           <Button type="primary" htmlType="submit" loading={addMutation.isLoading}>
-//             Add
-//           </Button>
-//         </Form.Item>
-//       </Form>
-
-//       {/* Table showing variant attributes */}
-//       <Table
-//         style={{ marginTop: 16 }}
-//         rowKey="id"
-//         dataSource={valuesArray}
-//         loading={isLoading || deleteMutation.isLoading}
-//         columns={[
-//           { title: "Attribute", dataIndex: "attribute_name" },
-//           { title: "Value", dataIndex: "attribute_value_name" },
-//           {
-//             title: "Actions",
-//             render: (_, record) => (
-//               <Button
-//                 danger
-//                 loading={deleteMutation.isLoading}
-//                 onClick={() => deleteMutation.mutate(record.id)}
-//               >
-//                 Delete
-//               </Button>
-//             ),
-//           },
-//         ]}
-//         locale={{ emptyText: "No variant attributes yet" }}
-//       />
-//     </div>
-//   );
-// };
-
-// export default VariantAttributesSection;
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -134,7 +10,9 @@ import {
   deleteVariantAttributeValue,
   updateVariantAttributeValue,
 } from "../../service/productvarientsetupApiService";
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from "../ui/toaster";
 interface Props {
   variant: Variant;
   attributes: Attribute[];
@@ -164,6 +42,7 @@ const VariantAttributesSection: React.FC<Props> = ({ variant, attributes, attrib
       form.resetFields();
       setSelectedAttributeId(null);
       setEditingItem(null);
+      toast.success(res?.message || "Attribute added successfully");
     },
   });
 
@@ -179,6 +58,7 @@ const VariantAttributesSection: React.FC<Props> = ({ variant, attributes, attrib
       form.resetFields();
       setSelectedAttributeId(null);
       setEditingItem(null);
+      toast.success(res?.message || "Updated successfully");
     },
     onError: (error) => {
       console.error("Update failed:", error);
@@ -190,6 +70,7 @@ const VariantAttributesSection: React.FC<Props> = ({ variant, attributes, attrib
     mutationFn: (id: string) => deleteVariantAttributeValue(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variantAttributeValues", variant.id] });
+      toast.success("Deleted successfully");
     },
   });
 
@@ -377,6 +258,7 @@ const VariantAttributesSection: React.FC<Props> = ({ variant, attributes, attrib
           ))}
         </div>
       )}
+       <Toaster />
     </div>
   );
 };

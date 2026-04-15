@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   FileCheck, ShoppingBag, ArrowLeft, CheckCircle, Package,
@@ -7,8 +7,15 @@ import {
   FileImage, Clock,
 } from "lucide-react";
 import api from "../../service/api";
+import { getUserId } from "../../utils/authStorage";
 
-// ─── Main component ────────────────────────────────────────────────────────────────
+// Helper function to create stable blob URLs from File objects
+const createStableBlobUrl = (file: File | null): string | null => {
+  if (!file) return null;
+  // Revoke any existing URL for this file to avoid memory leaks
+  // Note: This is a simplified approach - in production, you'd want to track URLs
+  return URL.createObjectURL(file);
+};
 
 export function DesignReviewPage() {
   const navigate = useNavigate();
@@ -19,55 +26,199 @@ export function DesignReviewPage() {
   const [error, setError] = useState("");
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
 
+  // Store actual File objects
+  const [frontFileObj, setFrontFileObj] = useState<File | null>(null);
+  const [backFileObj, setBackFileObj] = useState<File | null>(null);
+
+  // Store stable preview URLs created from File objects
+  const [frontPreviewUrl, setFrontPreviewUrl] = useState<string | null>(null);
+  const [backPreviewUrl, setBackPreviewUrl] = useState<string | null>(null);
+
   const showToast = (type: "success" | "error" | "info", text: string) => {
     setToastMsg({ type, text });
     setTimeout(() => setToastMsg(null), 3500);
   };
 
+  // Extract and preserve File objects from state
+  useEffect(() => {
+    if (!state) return;
+
+    const { uploadedFiles = {} } = state;
+    const { frontFile, backFile } = uploadedFiles;
+
+    // Clean up old URLs
+    if (frontPreviewUrl) URL.revokeObjectURL(frontPreviewUrl);
+    if (backPreviewUrl) URL.revokeObjectURL(backPreviewUrl);
+
+    // Store File objects
+    if (frontFile && frontFile instanceof File) {
+      console.log("✅ Front file found in state:", frontFile.name);
+      setFrontFileObj(frontFile);
+      // Create a new stable blob URL
+      const newFrontUrl = URL.createObjectURL(frontFile);
+      setFrontPreviewUrl(newFrontUrl);
+    } else if (state.previews?.front) {
+      // Fallback: if only preview URL exists, fetch and convert to File
+      console.log("⚠️ Only preview URL found, converting to File...");
+      fetch(state.previews.front)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "front-design.png", { type: blob.type });
+          setFrontFileObj(file);
+          const newUrl = URL.createObjectURL(file);
+          setFrontPreviewUrl(newUrl);
+        })
+        .catch(err => console.error("Failed to convert front preview:", err));
+    }
+
+    if (backFile && backFile instanceof File) {
+      console.log("✅ Back file found in state:", backFile.name);
+      setBackFileObj(backFile);
+      const newBackUrl = URL.createObjectURL(backFile);
+      setBackPreviewUrl(newBackUrl);
+    } else if (sides === "2" && state.previews?.back) {
+      console.log("⚠️ Only back preview URL found, converting to File...");
+      fetch(state.previews.back)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "back-design.png", { type: blob.type });
+          setBackFileObj(file);
+          const newUrl = URL.createObjectURL(file);
+          setBackPreviewUrl(newUrl);
+        })
+        .catch(err => console.error("Failed to convert back preview:", err));
+    }
+  }, [state]);
+
+  // Cleanup blob URLs on component unmount
+  useEffect(() => {
+    return () => {
+      if (frontPreviewUrl) URL.revokeObjectURL(frontPreviewUrl);
+      if (backPreviewUrl) URL.revokeObjectURL(backPreviewUrl);
+    };
+  }, [frontPreviewUrl, backPreviewUrl]);
+
+  // Comprehensive state validation
+  const isStateValid = useMemo(() => {
+    if (!state) {
+      console.error("No state found in location");
+      return false;
+    }
+
+    const hasFront = !!frontFileObj || !!state.uploadedFiles?.frontFile || !!state.previews?.front;
+    if (!hasFront) {
+      console.error("Front design is missing");
+      return false;
+    }
+
+    if (!state.product_id) {
+      console.error("Product ID is missing");
+      return false;
+    }
+
+    if (!state.variant_id) {
+      console.error("Variant ID is missing");
+      return false;
+    }
+
+    if (!state.attributes || state.attributes.length === 0) {
+      console.error("Attributes are missing or empty");
+      return false;
+    }
+
+    if (!state.quantity || state.quantity < 1) {
+      console.error("Quantity is invalid", state.quantity);
+      return false;
+    }
+
+    if (!state.price) {
+      console.error("Price information is missing");
+      return false;
+    }
+
+    return true;
+  }, [state, frontFileObj]);
+
+  // Extract validated state data
+  const {
+    product_id,
+    variant_id,
+    attributes = [],
+    quantity: selectedQuantity,
+    price,
+    uploadedFiles = {},
+    sides = "1",
+    previews = {},
+  } = state || {};
+
+  // Use our stable preview URLs instead of the ones from state
+  const frontPreview = frontPreviewUrl || previews.front || uploadedFiles.frontPreview;
+  const backPreview = backPreviewUrl || previews.back || uploadedFiles.backPreview;
+
+  const accessToken = sessionStorage.getItem("access_token");
+
+  // Debug logging
+  useEffect(() => {
+    console.log("DesignReviewPage - State:", {
+      sides,
+      hasBackFileObj: !!backFileObj,
+      hasBackPreview: !!backPreview,
+      hasFrontFileObj: !!frontFileObj,
+      hasFrontPreview: !!frontPreview,
+      frontPreviewUrl,
+      backPreviewUrl,
+    });
+  }, [sides, backFileObj, backPreview, frontFileObj, frontPreview, frontPreviewUrl, backPreviewUrl]);
+
   // Safety check
-  if (!state || !state.frontDesign) {
+  if (!isStateValid) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-10">
+        <div className="text-center p-10 max-w-md">
           <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
             <AlertCircle size={28} color="#C8352A" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">No Design Data Found</h2>
-          <p className="text-gray-400 mb-6 text-sm">Please configure your product and upload a design first.</p>
-          <button 
-            className="bg-gradient-to-r from-red-600 to-red-500 text-white font-bold py-3 px-7 rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 mx-auto" 
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid Order Data</h2>
+          <p className="text-gray-500 mb-6 text-sm">
+            {!state ? "No order data found. Please configure your product first." :
+              !frontFileObj && !state.uploadedFiles?.frontFile && !state.previews?.front ? "Front design is missing. " :
+                !state.product_id ? "Product not selected. " :
+                  !state.variant_id ? "Variant not selected. " :
+                    !state.quantity ? "Quantity not set. " :
+                      "Some required information is missing. "}
+            Please go back and complete all required steps.
+          </p>
+          <button
+            className="bg-gradient-to-r from-red-600 to-red-500 text-white font-bold py-3 px-7 rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 mx-auto"
             onClick={() => navigate(-1)}
           >
-            <ArrowLeft size={15} /> Go Back
+            <ArrowLeft size={15} /> Go Back to Configure
           </button>
         </div>
       </div>
     );
   }
 
-  const {
-    product, variant, quantity: selectedQuantity, priceId,
-    selected_options, frontDesign, backDesign,
-    frontPreview, backPreview, sides,
-  } = state;
-
-  const accessToken = sessionStorage.getItem("access_token");
-
-  // ── Helpers ─────────────────────────────────────────────────────────────────────
-
+  // Helper functions
   const getCartId = async (userId: string): Promise<string> => {
     try {
       const response = await api.get(`/cart/user/${userId}`);
       const carts = response.data;
       if (Array.isArray(carts) && carts.length > 0) return String(carts[0].id);
       const createResponse = await api.post("/cart", {
-        user_id: userId, status: "active", total_amount: 0, total_discount: 0,
+        user_id: userId,
+        status: "active",
+        total_amount: 0,
+        total_discount: 0,
       });
       return String(createResponse.data.id);
     } catch (err: any) {
       if (err.response?.status === 404) {
         const createResponse = await api.post("/cart", {
-          user_id: userId, status: "active", total_amount: 0, total_discount: 0,
+          user_id: userId,
+          status: "active",
+          total_amount: 0,
+          total_discount: 0,
         });
         return String(createResponse.data.id);
       }
@@ -75,13 +226,13 @@ export function DesignReviewPage() {
     }
   };
 
-  // ── Add to cart ──────────────────────────────────────────────────────────────────
-
+  // Add to cart handler
+  // Add to cart handler
   const handleAddToCart = async () => {
-    const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+    const userId = getUserId();
     if (!userId) {
       showToast("info", "Please log in to continue");
-      navigate("/login");
+      setTimeout(() => navigate("/login"), 500);
       return;
     }
 
@@ -91,32 +242,75 @@ export function DesignReviewPage() {
       showToast("info", "Processing your order…");
 
       const cartId = await getCartId(userId);
-      const quantityNumber = Number(selectedQuantity || variant.prices?.[0]?.min_qty || 1);
+      const quantityNumber = Number(selectedQuantity || 1);
+
+      // Build selected_attributes as a standard JSON array
+      const selectedAttributesArray = attributes.map((attr: any) => ({
+        attribute_id: attr.attribute_id,
+        attribute_value_id: attr.attribute_value_id,
+        attribute_name: attr.attribute_name,
+        attribute_value_name: attr.attribute_value_name
+      }));
 
       const formData = new FormData();
       formData.append("cart_id", String(cartId));
-      formData.append("product_id", String(product.id));
-      formData.append("variant_id", String(variant.id));
+      formData.append("product_id", String(product_id));
+      formData.append("variant_id", String(variant_id));
       formData.append("quantity", String(quantityNumber));
-      formData.append("product_variant_price_id", String(priceId));
-      formData.append("customize_qty", String(quantityNumber));
-      formData.append("selected_options", JSON.stringify(selected_options || {}));
+      formData.append("selected_attributes", JSON.stringify(selectedAttributesArray));
 
-      if (frontDesign) formData.append("front_file", frontDesign);
-      if (sides === "2" && backDesign) formData.append("back_file", backDesign);
+      // Use the stored File objects directly
+      let frontFileToUpload: File | null = frontFileObj;
 
-      await api.post("/cartitems/with-files", formData, {
-        headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${accessToken}` },
+      if (!frontFileToUpload && uploadedFiles.frontFile instanceof File) {
+        frontFileToUpload = uploadedFiles.frontFile;
+      }
+
+      if (!frontFileToUpload) {
+        throw new Error("Front design file is invalid or missing. Please upload again.");
+      }
+
+      formData.append("front_file", frontFileToUpload);
+
+      // Handle back file for double-sided
+      if (sides === "2") {
+        let backFileToUpload: File | null = backFileObj;
+
+        if (!backFileToUpload && uploadedFiles.backFile instanceof File) {
+          backFileToUpload = uploadedFiles.backFile;
+        }
+
+        if (!backFileToUpload) {
+          throw new Error("Back design file is invalid or missing for double-sided printing. Please upload again.");
+        }
+
+        formData.append("back_file", backFileToUpload);
+      }
+
+      const response = await api.post("/cartitems/with-files", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${accessToken}`
+        },
       });
 
-      showToast("success", "Item added to cart!");
-      navigate("/cart");
+      console.log("✅ Item added to cart successfully:", response.data);
+      showToast("success", "Item added to cart successfully!");
+
+      setTimeout(() => {
+        navigate("/cart");
+      }, 1000);
     } catch (err: any) {
-      const msg = err?.response?.data?.detail
-        ? typeof err.response.data.detail === "string"
+      console.error("❌ Error adding to cart:", err);
+
+      let msg = "Failed to add item to cart";
+      if (err?.response?.data?.detail) {
+        msg = typeof err.response.data.detail === "string"
           ? err.response.data.detail
-          : JSON.stringify(err.response.data.detail, null, 2)
-        : err?.message || "Failed to add item to cart";
+          : JSON.stringify(err.response.data.detail, null, 2);
+      } else if (err?.message) {
+        msg = err.message;
+      }
 
       showToast("error", msg);
       setError(msg);
@@ -125,40 +319,80 @@ export function DesignReviewPage() {
     }
   };
 
-  // ── Price calc ────────────────────────────────────────────────────────────────────
-
-  const quantityNumber = Number(selectedQuantity || variant?.prices?.[0]?.min_qty || 1);
-  const price = variant?.prices?.find((p: any) => String(p.id) === String(priceId))?.price || 0;
-  const subtotal = price;
+  // Price calculations
+  const quantityNumber = Number(selectedQuantity || 1);
+  const unitPrice = price?.unit_price || price?.price || 0;
+  const subtotal = unitPrice * quantityNumber;
   const gst = +(subtotal * 0.18).toFixed(2);
   const total = +(subtotal + gst).toFixed(2);
 
-  // ─── Render ───────────────────────────────────────────────────────────────────────
+  // Build attribute display items
+  const attributeItems = useMemo(() => {
+    const items: Array<{ label: string; value: string; icon: any; color: string }> = [];
 
+    items.push({
+      label: "Printing Sides",
+      value: sides === "2" ? "Double Sided" : "Single Sided",
+      icon: FileCheck,
+      color: "#2563EB"
+    });
+
+    attributes.forEach((attr: any, index: number) => {
+      const displayName = attr.attribute_name || attr.label || `Attribute ${index + 1}`;
+      const displayValue = attr.attribute_value_name || attr.value || attr.attribute_value_id || "N/A";
+
+      items.push({
+        label: displayName,
+        value: displayValue,
+        icon: Package,
+        color: "#EF4444",
+      });
+    });
+
+    items.push({
+      label: "Quantity",
+      value: `${quantityNumber.toLocaleString()} pcs`,
+      icon: Package,
+      color: "#EF4444",
+    });
+
+    return items;
+  }, [sides, attributes, quantityNumber]);
+
+  // Render component
   return (
     <div className="bg-white min-h-screen">
-
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-6 h-11 flex items-center gap-1.5 text-xs text-gray-400">
-          <button onClick={() => navigate("/")} className="bg-none border-none cursor-pointer text-gray-600 font-medium text-xs p-0">Home</button>
+          <button
+            onClick={() => navigate("/")}
+            className="bg-none border-none cursor-pointer text-gray-600 font-medium text-xs p-0 hover:text-gray-900"
+          >
+            Home
+          </button>
           <ChevronRight size={12} color="#D4D4D8" />
-          <button onClick={() => navigate("/products")} className="bg-none border-none cursor-pointer text-gray-600 font-medium text-xs p-0">Products</button>
-          <ChevronRight size={12} color="#D4D4D8" />
-          <button onClick={() => navigate(-1)} className="bg-none border-none cursor-pointer text-gray-600 font-medium text-xs p-0 overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">{product?.name}</button>
+          <button
+            onClick={() => navigate("/products")}
+            className="bg-none border-none cursor-pointer text-gray-600 font-medium text-xs p-0 hover:text-gray-900"
+          >
+            Products
+          </button>
           <ChevronRight size={12} color="#D4D4D8" />
           <span className="text-gray-900 font-semibold">Design Review</span>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8 pb-16 bg-white">
-
         {/* Header */}
         <div className="animate-[fade-up_0.5s_ease_both] mb-8">
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-2.5 mb-2">
-                <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg py-1.5 px-3 cursor-pointer text-xs font-semibold text-gray-600 transition-all duration-200">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg py-1.5 px-3 cursor-pointer text-xs font-semibold text-gray-600 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50"
+                >
                   <ArrowLeft size={13} /> Back
                 </button>
               </div>
@@ -169,16 +403,13 @@ export function DesignReviewPage() {
                 Confirm your design and specifications before adding to cart.
               </p>
             </div>
-
           </div>
         </div>
 
         {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-7 items-start">
-
-          {/* Left */}
+          {/* Left Column */}
           <div className="flex flex-col gap-5">
-
             {/* Design Preview */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 animate-[fade-up_0.5s_ease_both]">
               <div className="flex items-center gap-2 mb-5">
@@ -187,12 +418,20 @@ export function DesignReviewPage() {
               </div>
 
               <div className="flex gap-5 flex-wrap">
-                {/* Front */}
+                {/* Front Side */}
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Front Side</p>
                   <div className="rounded-xl overflow-hidden border border-gray-200 transition-shadow duration-200 hover:shadow-md w-36 h-36 md:w-44 md:h-44 bg-gray-50">
                     {frontPreview ? (
-                      <img src={frontPreview} alt="Front" className="w-full h-full object-contain" />
+                      <img
+                        src={frontPreview}
+                        alt="Front Design"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          console.error("Front preview image failed to load:", frontPreview);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                         <FileImage size={28} color="#D4D4D8" />
@@ -206,13 +445,21 @@ export function DesignReviewPage() {
                   </div>
                 </div>
 
-                {/* Back */}
+                {/* Back Side */}
                 {sides === "2" && (
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Back Side</p>
                     <div className="rounded-xl overflow-hidden border border-gray-200 transition-shadow duration-200 hover:shadow-md w-36 h-36 md:w-44 md:h-44 bg-gray-50">
                       {backPreview ? (
-                        <img src={backPreview} alt="Back" className="w-full h-full object-contain" />
+                        <img
+                          src={backPreview}
+                          alt="Back Design"
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            console.error("Back preview image failed to load:", backPreview);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                           <FileImage size={28} color="#D4D4D8" />
@@ -228,62 +475,33 @@ export function DesignReviewPage() {
                     )}
                   </div>
                 )}
-
-                {/* Product info */}
-                <div className="flex-1 min-w-[200px]">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Product</p>
-                  <h3 className="font-['Playfair_Display'] text-xl font-bold text-gray-900 mb-1.5 leading-tight">{product.name}</h3>
-                  <div className="flex gap-1.5 flex-wrap mb-4">
-                    <span className="text-[10px] font-bold uppercase tracking-wide py-0.5 px-2 rounded-md bg-red-50 text-red-600 border border-red-100/80">
-                      {variant.size?.name}
-                    </span>
-                    <span className="text-[10px] font-bold uppercase tracking-wide py-0.5 px-2 rounded-md bg-gray-100 text-gray-600 border border-gray-200">
-                      {sides === "1" ? "Single-Sided" : "Double-Sided"}
-                    </span>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3.5">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs text-gray-400 font-medium">Unit price</span>
-                      <span className="text-xl font-extrabold text-red-600">₹{price.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-gray-400 font-medium">Quantity</span>
-                      <span className="text-sm font-bold text-gray-800">{quantityNumber.toLocaleString()} pieces</span>
-                    </div>
-                  </div>
-                </div>
               </div>
+
+              {/* Debug info */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 p-2 bg-gray-50 rounded text-xs text-gray-500">
+                  <p>Debug: sides={sides}, hasBackPreview={!!backPreview}, hasBackFile={!!backFileObj}</p>
+                  <p>Front: hasFile={!!frontFileObj}, hasPreview={!!frontPreview}</p>
+                </div>
+              )}
             </div>
 
-            {/* Specifications */}
-            <div
-              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 animate-[fade-up_0.5s_ease_both] bg-gradient-to-b from-white to-gray-50 border-opacity-50 shadow-md"
-            >
-              <h2
-                className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2"
-              >
+            {/* Product Specifications */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 animate-[fade-up_0.5s_ease_both]">
+              <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Package size={16} color="#C8352A" />
                 Product Specifications
               </h2>
 
-              <div
-                className="grid grid-cols-1 md:grid-cols-2 rounded-xl overflow-hidden border border-gray-200"
-              >
-                {[
-                  { Icon: Layers, label: "Size", value: variant.size?.name, color: "#6366F1" },
-                  { Icon: Package, label: "Paper", value: variant.paperType?.name, color: "#10B981" },
-                  { Icon: Printer, label: "Lamination", value: selected_options?.lamination || "Standard", color: "#F59E0B" },
-                  { Icon: Scissors, label: "Cut Type", value: variant.cutType?.name, color: "#EC4899" },
-                  { Icon: FileCheck, label: "Printing Sides", value: sides === "1" ? "Single Sided" : "Double Sided", color: "#2563EB" },
-                  { Icon: Package, label: "Quantity", value: `${quantityNumber.toLocaleString()} pcs`, color: "#EF4444" },
-                ].map(({ Icon, label, value, color }, i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 rounded-xl overflow-hidden border border-gray-200">
+                {attributeItems.map(({ label, value, icon: Icon, color }, i) => (
                   <div
-                    key={label}
+                    key={`${label}-${i}`}
                     className={`
                       flex items-center gap-3 p-3.5 px-4
                       ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                      ${i < 4 ? 'border-b border-gray-200' : ''}
-                      ${i % 2 === 0 ? 'border-r border-gray-200' : ''}
+                      ${i < attributeItems.length - 1 ? 'border-b border-gray-200' : ''}
+                      ${i % 2 === 0 && i !== attributeItems.length - 1 ? 'border-r border-gray-200' : ''}
                       transition-all duration-200
                     `}
                   >
@@ -293,17 +511,11 @@ export function DesignReviewPage() {
                     >
                       <Icon size={14} color={color} />
                     </div>
-
                     <div>
-                      <p
-                        className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5"
-                      >
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">
                         {label}
                       </p>
-
-                      <p
-                        className="text-[13px] font-semibold text-gray-900"
-                      >
+                      <p className="text-[13px] font-semibold text-gray-900">
                         {value}
                       </p>
                     </div>
@@ -331,7 +543,7 @@ export function DesignReviewPage() {
               ))}
             </div>
 
-            {/* Error */}
+            {/* Error Message */}
             {error && (
               <div className="p-3.5 pl-5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5">
                 <AlertCircle size={15} color="#DC2626" className="shrink-0 mt-0.5" />
@@ -340,20 +552,19 @@ export function DesignReviewPage() {
             )}
           </div>
 
-          {/* Right: Order Summary */}
+          {/* Right Column - Order Summary */}
           <div className="lg:sticky lg:top-16">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-[fade-up_0.5s_ease_both]">
-
               <div className="flex items-center gap-2 mb-5">
                 <ShoppingBag size={16} color="#C8352A" />
                 <h2 className="text-base font-bold text-gray-900 m-0">Order Summary</h2>
               </div>
 
-              {/* Price breakdown */}
+              {/* Price Breakdown */}
               <div>
                 <div className="flex justify-between items-center text-[13px] py-2">
                   <span className="text-gray-500 font-medium">
-                    {quantityNumber.toLocaleString()} pcs × ₹{price.toFixed(2)}
+                    {quantityNumber.toLocaleString()} pcs × ₹{unitPrice.toFixed(2)}
                   </span>
                   <span className="text-gray-800 font-semibold">₹{subtotal.toLocaleString()}</span>
                 </div>
@@ -366,11 +577,11 @@ export function DesignReviewPage() {
                   </span>
                   <span className="text-gray-800 font-semibold">₹{gst.toLocaleString()}</span>
                 </div>
-
               </div>
 
               <div className="h-px bg-gray-100 my-4" />
 
+              {/* Total */}
               <div className="flex justify-between items-baseline">
                 <span className="text-[15px] font-bold text-gray-900">Total</span>
                 <div className="text-right">
@@ -383,13 +594,13 @@ export function DesignReviewPage() {
 
               <div className="h-px bg-gray-100 my-5" />
 
-              {/* GST Invoice note */}
+              {/* GST Invoice Note */}
               <div className="p-2.5 pl-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2 mb-4 text-xs text-green-600 font-medium">
                 <BadgeCheck size={14} color="#16A34A" className="shrink-0" />
                 GST invoice will be provided with your order
               </div>
 
-              {/* CTA */}
+              {/* Add to Cart Button */}
               <button
                 className="w-full py-3.5 px-6 bg-gradient-to-r from-red-600 to-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:bg-gray-400"
                 onClick={handleAddToCart}
@@ -398,7 +609,7 @@ export function DesignReviewPage() {
                 {loading ? (
                   <>
                     <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
-                    Processing…
+                    Processing...
                   </>
                 ) : (
                   <>
@@ -409,6 +620,7 @@ export function DesignReviewPage() {
                 )}
               </button>
 
+              {/* Continue Shopping Button */}
               <div className="mt-3">
                 <Link to="/products" className="no-underline">
                   <button className="w-full py-3 px-6 bg-white text-gray-700 font-semibold text-sm rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2">
@@ -420,7 +632,7 @@ export function DesignReviewPage() {
 
               <div className="h-px bg-gray-100 my-4" />
 
-              {/* Trust */}
+              {/* Trust Indicators */}
               <div className="flex flex-col gap-2">
                 {[
                   { icon: Shield, text: "256-bit SSL encrypted checkout" },
@@ -438,7 +650,7 @@ export function DesignReviewPage() {
         </div>
       </div>
 
-      {/* Toast */}
+      {/* Toast Notifications */}
       {toastMsg && (
         <div className="fixed bottom-6 right-6 z-[999] animate-[fade-up_0.3s_ease_both]">
           <div className="bg-white rounded-xl shadow-lg p-3 px-4 flex items-center gap-2.5 text-[13px] font-medium text-gray-800 max-w-xs">
@@ -451,7 +663,7 @@ export function DesignReviewPage() {
         </div>
       )}
 
-      {/* Add keyframe animations to the page */}
+      {/* CSS Animations */}
       <style>{`
         @keyframes fade-up {
           from { opacity: 0; transform: translateY(16px); }
@@ -462,6 +674,12 @@ export function DesignReviewPage() {
         }
         .animate-spin {
           animation: spin 0.8s linear infinite;
+        }
+        .animate-\\[fade-up_0\\.5s_ease_both\\] {
+          animation: fade-up 0.5s ease both;
+        }
+        .animate-\\[fade-up_0\\.3s_ease_both\\] {
+          animation: fade-up 0.3s ease both;
         }
       `}</style>
     </div>
