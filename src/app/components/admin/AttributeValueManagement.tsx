@@ -29,6 +29,7 @@ import { getAllAttributes } from "../../service/attributeApiService";
 import { AttributeValue } from "../../types/attributeValue";
 import { Attribute } from "../../types/attribute";
 import { AttributeValueForm } from "../forms/AttributeValueForm";
+import { Toaster } from "../ui/toaster";
 
 export function AttributeValueManagement() {
   const [values, setValues] = useState<AttributeValue[]>([]);
@@ -151,6 +152,7 @@ export function AttributeValueManagement() {
       <Card>
         <CustomTable data={values} columns={columns} />
       </Card>
+      <Toaster />
     </div>
   );
 }

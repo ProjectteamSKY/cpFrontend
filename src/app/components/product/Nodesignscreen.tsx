@@ -15,33 +15,51 @@ export interface NoDesignFormData {
     phone: string;
     email: string;
     designNotes: string;
+
     hasLogo: boolean;
     logoNotes: string;
     logoFile?: File;
     logoPreview?: string;
+
+    // ✅ REQUIRED for API
+    variantId?: string;
+    variantPriceId?: string;
+    selectedAttributesArray?: any[];
+}
+// FIX: Add proper metadata type
+interface AttributeMetadata {
+    attribute_id: string;
+    attribute_value_id: string;
+    attribute_value_name: string;
+}
+
+interface VariantPrice {
+    min_qty: number;
+    max_qty?: number;
+    price: number;
+    id?: string;
+}
+
+interface SelectedVariant {
+    id: string;
+    name: string;
+    prices: VariantPrice[];
 }
 
 export interface NoDesignScreenProps {
     open: boolean;
     onClose: () => void;
     product: Product;
-    selectedAttributes: Record<string, string>; // Dynamic attributes
+    selectedAttributes: Record<string, string>; // String values only
+    attributeMetadata?: Record<string, AttributeMetadata>; // ✅ NEW: Metadata separate
     sidesMultiplier: number; // Dynamic number of sides
     selectedTierLabel: string;
     total: number;
     userId?: string;
-    selectedVariant: {
-        id: string;
-        name: string;
-        prices: Array<{
-            min_qty: number;
-            max_qty?: number;
-            price: number;
-            id?: string;
-        }>;
-    } | null;
+    selectedVariant: any;
+    selectedTierId?: string; // ✅ NEW: Current tier ID
     selectedQuantity: string;
-    onSubmit: (data: NoDesignFormData) => void;
+    onSubmit: (data: NoDesignFormData) => void; 
 }
 
 // ---------------------------------------------------------------------------
@@ -52,14 +70,20 @@ export default function NoDesignScreen({
     onClose,
     product,
     selectedAttributes,
+    attributeMetadata, // ✅ NEW: Accept metadata
     sidesMultiplier,
     selectedTierLabel,
     total,
     userId,
     selectedVariant,
+    selectedTierId, // ✅ NEW
     selectedQuantity,
     onSubmit,
 }: NoDesignScreenProps) {
+    console.log("🚀 NoDesignScreen rendered with:", {
+        selectedVariant,
+        selectedTierId,
+    });
 
     const [form, setForm] = useState<NoDesignFormData>({
         name: "",
@@ -127,64 +151,151 @@ export default function NoDesignScreen({
         return Object.keys(newErrors).length === 0;
     };
 
+    const buildPayload = (formData: NoDesignFormData) => {
+        console.log("🧪 Building payload with:", {
+            formData,
+            selectedVariant,
+            selectedAttributes,
+            attributeMetadata,
+            selectedQuantity
+        });
+
+        // -------------------------
+        // ✅ VARIANT ID (FIXED)
+        // -------------------------
+        const variantId =
+            selectedVariant?.variant_id ||
+            selectedVariant?.id ||
+            "";
+
+        if (!variantId) {
+            console.error("❌ Variant missing:", selectedVariant);
+            throw new Error("Variant missing. Please reselect.");
+        }
+
+        // -------------------------
+        // ✅ VARIANT PRICE (FIXED - RANGE SUPPORT)
+        // -------------------------
+        let variantPriceId = "";
+
+        if (selectedVariant?.prices?.length) {
+            const qty = Number(selectedQuantity);
+
+            const matched = selectedVariant.prices.find((p: any) => {
+                const min = Number(p.min_qty);
+                const max = Number(p.max_qty ?? Infinity);
+
+                return qty >= min && qty <= max;
+            });
+
+            if (matched?.id) {
+                variantPriceId = matched.id; // ✅ ONLY DB ID
+            }
+        }
+
+        if (!variantPriceId) {
+            console.error("❌ Invalid variant_price_id selection", {
+                selectedQuantity,
+                prices: selectedVariant?.prices,
+            });
+
+            throw new Error("Please select valid quantity tier");
+        }
+
+        // -------------------------
+        // ✅ SELECTED ATTRIBUTES (FIXED + SAFE)
+        // -------------------------
+        const selectedAttributesArray = Object.entries(selectedAttributes || {}).map(
+            ([key, value]) => {
+                // handle case mismatch
+                const meta =
+                    attributeMetadata?.[key] ||
+                    attributeMetadata?.[key.toLowerCase()] ||
+                    attributeMetadata?.[key.toUpperCase()];
+
+                if (!meta) {
+                    console.warn("⚠️ Missing metadata for:", key);
+                }
+
+                return {
+                    attribute_id: meta?.attribute_id || "",
+                    attribute_name: key,
+                    attribute_value_id: meta?.attribute_value_id || "",
+                    attribute_value_name: String(value || ""),
+                };
+            }
+        );
+
+        console.log("✅ Final computed:", {
+            variantId,
+            variantPriceId,
+            selectedAttributesArray
+        });
+
+        // -------------------------
+        // ✅ FINAL PAYLOAD
+        // -------------------------
+        return {
+            user_id: userId || "guest",
+
+            name: formData.name?.trim() || "",
+            phone: formData.phone?.trim() || "",
+            email: formData.email?.trim() || "",
+
+            product_id: product?.id || "",
+            product_name: product?.name || "",
+
+            variant_id: variantId,                     // ✅ FIXED
+            variant_price_id: variantPriceId,          // ✅ FIXED
+
+            selected_attributes: selectedAttributesArray, // ✅ FIXED
+
+            design_notes: formData.designNotes?.trim() || "",
+            design_price: total || 0,
+
+            quantity: selectedQuantity, // optional but useful
+        };
+    };
+
+    // ✅ FIX: Build API payload with proper metadata
     const submitToAPI = async (formData: NoDesignFormData) => {
+        const payload = buildPayload(formData); // ✅ build here
+
         const fd = new FormData();
 
-        // User details
-        fd.append("user_id", userId || "guest");
-        fd.append("name", formData.name);
-        fd.append("phone", formData.phone);
-        fd.append("email", formData.email || "");
-
-        // Product details
-        fd.append("product_id", product.id || "");
-        fd.append("product_name", product.name);
-
-        // Variant and pricing
-        const variantId = selectedVariant?.id || "";
-        fd.append("variant_id", variantId);
-        fd.append("variant_name", selectedVariant?.name || "");
-
-        // Find price ID from selected quantity tier
-        const priceTier = selectedVariant?.prices?.find((p) => {
-            if (selectedQuantity === String(p.min_qty)) return true;
-            if (p.id === selectedQuantity) return true;
-            return false;
-        });
-        
-        fd.append("product_variant_price_id", priceTier?.id || "");
-        fd.append("selected_quantity", selectedQuantity);
-
-        // Configuration details - dynamic sides multiplier
-        fd.append("sides_multiplier", String(sidesMultiplier));
-        fd.append("total_price", String(total));
-
-        // Add all dynamic attributes
-        Object.entries(selectedAttributes).forEach(([key, value]) => {
-            fd.append(`attribute_${key.toLowerCase().replace(/\s/g, "_")}`, value);
+        Object.entries(payload).forEach(([key, value]) => {
+            if (key === "selected_attributes") {
+                fd.append(key, JSON.stringify(value));
+            } else {
+                fd.append(key, String(value ?? ""));
+            }
         });
 
-        // Design brief
-        fd.append("design_notes", formData.designNotes);
-        fd.append("has_logo", String(formData.hasLogo));
-        
-        if (formData.logoNotes) {
-            fd.append("logo_notes", formData.logoNotes);
+        // ✅ IMPORTANT: logo file comes ONLY from formData
+        if (formData.hasLogo && formData.logoFile instanceof File) {
+            fd.append("logo_files", formData.logoFile);
         }
 
-        // Logo file
-        if (formData.hasLogo && formData.logoFile) {
-            fd.append("logo_file", formData.logoFile);
-        }
-
-        const response = await fetch("http://54.206.3.97/api/design_request/create", {
-            method: "POST",
-            body: fd,
-        });
+        const response = await fetch(
+            "http://54.206.3.97/api/design_request/create",
+            {
+                method: "POST",
+                body: fd,
+            }
+        );
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || "Failed to submit design request");
+            let errorMessage = "Failed to submit";
+
+            try {
+                const errorData = await response.json();
+                errorMessage =
+                    errorData?.detail ||
+                    errorData?.message ||
+                    JSON.stringify(errorData);
+            } catch { }
+
+            throw new Error(errorMessage);
         }
 
         return response.json();
@@ -199,12 +310,17 @@ export default function NoDesignScreen({
         setApiError(null);
 
         try {
+            // ✅ Just pass form
             await submitToAPI(form);
-            onSubmit(form);
+
+            // ✅ UI success
             setSubmitted(true);
+
+            // optional callback
+            onSubmit(form);
+
         } catch (err: any) {
-            setApiError(err.message || "Something went wrong. Please try again.");
-            console.error("Submission error:", err);
+            setApiError(err.message || "Something went wrong");
         } finally {
             setIsSubmitting(false);
         }
@@ -260,23 +376,27 @@ export default function NoDesignScreen({
         return `${sidesMultiplier}-Sided`;
     };
 
-    // Build configuration items dynamically
+    // ✅ FIX: Build configuration items dynamically from string values
     const configItems = [
         { label: "Product", value: product.name },
-        ...Object.entries(selectedAttributes).map(([key, value]) => ({ label: key, value })),
+        ...Object.entries(selectedAttributes).map(([key, value]) => ({
+            label: key,
+            // ✅ Value is now a string, safe to render
+            value: String(value)
+        })),
         { label: "Sides", value: `${getSidesLabel()} (×${sidesMultiplier} multiplier)` },
         { label: "Quantity", value: selectedTierLabel },
         { label: "Total", value: `₹${fmt(total)}` },
     ];
 
-    function toggleLogoStatus(event: React.MouseEvent<HTMLButtonElement>): void {
+    const toggleLogoStatus = (event: React.MouseEvent<HTMLButtonElement>): void => {
         event.preventDefault();
         const nextValue = !form.hasLogo;
         if (!nextValue) {
             removeLogo();
         }
         setField("hasLogo", nextValue);
-    }
+    };
 
     return (
         <div
@@ -353,6 +473,7 @@ export default function NoDesignScreen({
                                                     }`}
                                             >
                                                 <span className="text-xs text-neutral-500">{item.label}</span>
+                                                {/* ✅ FIX: Value is now a string, safe to render */}
                                                 <span className={`text-xs font-semibold text-neutral-800 text-right ${item.label === "Total" ? "text-[#D73D32] text-sm" : ""
                                                     }`}>
                                                     {item.value}

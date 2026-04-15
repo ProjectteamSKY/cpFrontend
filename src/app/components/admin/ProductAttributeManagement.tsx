@@ -25,6 +25,7 @@ import {
 
 import { ProductAttribute } from "../../types/productAttribute";
 import { ProductAttributeForm } from "../forms/ProductAttributeForm";
+import { Toaster } from "../ui/toaster";
 
 export function ProductAttributeManagement({ productId }: { productId: string }) {
     const [data, setData] = useState<ProductAttribute[]>([]);
@@ -105,8 +106,8 @@ export function ProductAttributeManagement({ productId }: { productId: string })
             cell: ({ row }) => (
                 <span
                     className={`text-xs px-2 py-1 rounded-full ${row.original.is_required
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-600"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-600"
                         }`}
                 >
                     {row.original.is_required ? "Required" : "Optional"}
@@ -210,6 +211,9 @@ export function ProductAttributeManagement({ productId }: { productId: string })
                     />
                 </DialogContent>
             </Dialog>
+
+            <Toaster />
+
         </div>
     );
 }

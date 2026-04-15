@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+
 // ── Custom Tooltip ────────────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -22,7 +23,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       }}>
         <p style={{ color: "#9CA3AF", marginBottom: 4 }}>{label}</p>
         <p style={{ color: "#D73D32", fontWeight: 700, fontSize: 16 }}>
-          {payload[0].name === "revenue"
+          {payload[0].name === "revenue" || payload[0].name === "orders"
             ? `₹${payload[0].value?.toLocaleString()}`
             : payload[0].value}
         </p>
@@ -81,7 +82,6 @@ const StatCard = ({ title, value, icon: Icon, accent, change }: any) => (
       (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(0,0,0,0.05)";
     }}
   >
-    {/* Top accent bar */}
     <div style={{
       position: "absolute", top: 0, left: 0, right: 0,
       height: 3, background: accent, borderRadius: "20px 20px 0 0"
@@ -136,12 +136,98 @@ export function AdminDashboard() {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState({
+    summary: true,
+    revenue: true,
+    products: true,
+    orders: true
+  });
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
   useEffect(() => {
-    fetch("http://54.206.3.97/api/orders_routes/summary").then(r => r.json()).then(setSummary);
-    fetch("http://54.206.3.97/api/orders_routes/revenue/monthly").then(r => r.json()).then(setRevenueData);
-    fetch("http://54.206.3.97/api/orders_routes/top-products").then(r => r.json()).then(setTopProducts);
-    fetch("http://54.206.3.97/api/orders_routes/recent-orders").then(r => r.json()).then(setRecentOrders);
+    // Fetch summary
+    fetch("http://54.206.3.97/api/orders_routes/summary")
+      .then(r => r.json())
+      .then(data => {
+        setSummary(data);
+        setLoading(prev => ({ ...prev, summary: false }));
+      })
+      .catch(err => {
+        console.error("Error fetching summary:", err);
+        setLoading(prev => ({ ...prev, summary: false }));
+        setError("Failed to load summary data");
+      });
+
+    // Fetch revenue data
+    fetch("http://54.206.3.97/api/orders_routes/revenue/monthly")
+      .then(r => r.json())
+      .then(data => {
+        // Ensure data is an array and has the correct structure
+        const formattedData = Array.isArray(data) ? data.map(item => ({
+          month: item.month || item.name || "",
+          revenue: item.revenue || item.amount || item.total || 0
+        })) : [];
+        setRevenueData(formattedData);
+        setLoading(prev => ({ ...prev, revenue: false }));
+      })
+      .catch(err => {
+        console.error("Error fetching revenue:", err);
+        setLoading(prev => ({ ...prev, revenue: false }));
+        setError("Failed to load revenue data");
+      });
+
+    // Fetch top products
+    fetch("http://54.206.3.97/api/orders_routes/top-products")
+      .then(r => r.json())
+      .then(data => {
+        // Transform data to match expected format
+        let products = [];
+        
+        if (Array.isArray(data)) {
+          products = data.map(item => ({
+            name: item.name || item.product_name || item.title || "Unknown",
+            orders: item.orders || item.count || item.total_orders || item.sales || 0
+          }));
+        } else if (data && typeof data === 'object') {
+          // Handle case where API returns an object
+          products = Object.entries(data).map(([key, value]: [string, any]) => ({
+            name: key,
+            orders: value.orders || value.count || value || 0
+          }));
+        }
+        
+        // Sort by orders descending and take top 5
+        products = products.sort((a, b) => b.orders - a.orders).slice(0, 5);
+        
+        setTopProducts(products);
+        setLoading(prev => ({ ...prev, products: false }));
+      })
+      .catch(err => {
+        console.error("Error fetching top products:", err);
+        setLoading(prev => ({ ...prev, products: false }));
+        setError("Failed to load top products data");
+      });
+
+    // Fetch recent orders
+    fetch("http://54.206.3.97/api/orders_routes/recent-orders")
+      .then(r => r.json())
+      .then(data => {
+        const orders = Array.isArray(data) ? data.map(order => ({
+          id: order.id,
+          order_number: order.order_number || order.order_id || `#${order.id}`,
+          customer: order.customer || order.customer_name || "Unknown",
+          amount: order.amount || order.total_amount || 0,
+          status: order.status || "pending"
+        })) : [];
+        setRecentOrders(orders);
+        setLoading(prev => ({ ...prev, orders: false }));
+      })
+      .catch(err => {
+        console.error("Error fetching recent orders:", err);
+        setLoading(prev => ({ ...prev, orders: false }));
+        setError("Failed to load recent orders");
+      });
   }, []);
 
   const stats = [
@@ -151,16 +237,29 @@ export function AdminDashboard() {
     { title: "Shipped", value: summary?.shipment_orders, icon: Truck, accent: "#F59E0B", change: 21 },
   ];
 
+  // Check if top products data is empty
+  const hasTopProducts = topProducts.length > 0;
+
   return (
-    <div style={{
+    <div style={{ padding: "32px", background: "#F9FAFB", minHeight: "100vh" }}>
 
-    }}>
-
+      {error && (
+        <div style={{
+          background: "#FEF2F2",
+          border: "1px solid #FEE2E2",
+          borderRadius: 12,
+          padding: "12px 20px",
+          marginBottom: 24,
+          color: "#991B1B",
+          fontSize: 14
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 36 }}>
         <div>
-
           <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.03em", margin: 0, color: "#111827" }}>
             Dashboard Overview
           </h1>
@@ -168,8 +267,6 @@ export function AdminDashboard() {
             Welcome back! Here's what's happening today.
           </p>
         </div>
-
-
       </div>
 
       {/* ── Stat Cards ── */}
@@ -198,23 +295,29 @@ export function AdminDashboard() {
             </div>
           </div>
           <div style={{ padding: "0 12px 24px" }}>
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#D73D32" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#D73D32" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="month" tick={{ fill: "#9CA3AF", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="revenue" stroke="#D73D32" strokeWidth={2.5}
-                  fill="url(#revGrad)" dot={false}
-                  activeDot={{ r: 5, fill: "#D73D32", stroke: "#fff", strokeWidth: 2 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {revenueData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={revenueData}>
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#D73D32" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#D73D32" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                  <XAxis dataKey="month" tick={{ fill: "#9CA3AF", fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="revenue" stroke="#D73D32" strokeWidth={2.5}
+                    fill="url(#revGrad)" dot={false}
+                    activeDot={{ r: 5, fill: "#D73D32", stroke: "#fff", strokeWidth: 2 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 250, display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF" }}>
+                {loading.revenue ? "Loading revenue data..." : "No revenue data available"}
+              </div>
+            )}
           </div>
         </SectionCard>
 
@@ -225,15 +328,49 @@ export function AdminDashboard() {
             <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, marginBottom: 20 }}>Top Sellers</h2>
           </div>
           <div style={{ padding: "0 12px 24px" }}>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={topProducts} barSize={22}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="orders" fill="#D73D32" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasTopProducts ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart 
+                  data={topProducts} 
+                  layout="vertical"
+                  margin={{ left: 20, right: 30, top: 20, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={true} vertical={false} />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fill: "#9CA3AF", fontSize: 11 }} 
+                    axisLine={false} 
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    tick={{ fill: "#9CA3AF", fontSize: 11 }} 
+                    axisLine={false} 
+                    tickLine={false}
+                    width={100}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar 
+                    dataKey="orders" 
+                    fill="#D73D32" 
+                    radius={[0, 6, 6, 0]}
+                    barSize={30}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 250, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", color: "#9CA3AF" }}>
+                {loading.products ? (
+                  "Loading top products..."
+                ) : (
+                  <>
+                    <ShoppingBag size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
+                    "No product data available"
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </SectionCard>
       </div>
@@ -278,7 +415,7 @@ export function AdminDashboard() {
           </thead>
           <tbody>
             {recentOrders.map((order) => (
-              <tr key={order.id} className="trow" style={{ borderTop: "1px solid #F9FAFB" }}>
+              <tr key={order.id} style={{ borderTop: "1px solid #F9FAFB" }}>
                 <td style={{ padding: "15px 28px" }}>
                   <span style={{
                     fontFamily: "'DM Mono', monospace",
@@ -302,9 +439,15 @@ export function AdminDashboard() {
           </tbody>
         </table>
 
-        {recentOrders.length === 0 && (
+        {recentOrders.length === 0 && !loading.orders && (
           <div style={{ padding: "48px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
             No recent orders found.
+          </div>
+        )}
+
+        {loading.orders && (
+          <div style={{ padding: "48px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
+            Loading orders...
           </div>
         )}
       </SectionCard>

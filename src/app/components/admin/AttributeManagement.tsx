@@ -27,6 +27,7 @@ import {
 
 import { Attribute } from "../../types/attribute";
 import { AttributeForm } from "../forms/AttributeForm";
+import { Toaster } from "../ui/toaster";
 
 export function AttributeManagement() {
   const [attributes, setAttributes] = useState<Attribute[]>([]);
@@ -215,6 +216,8 @@ export function AttributeManagement() {
       <Card className="p-4">
         <CustomTable data={attributes} columns={columns} />
       </Card>
+
+       <Toaster />
     </div>
   );
 }

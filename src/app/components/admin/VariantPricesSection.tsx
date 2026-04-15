@@ -190,7 +190,9 @@ import {
   getVariantPrices,
   deleteVariantPrice,
 } from "../../service/productvarientsetupApiService";
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from "../ui/toaster";
 interface Props {
   variant: Variant;
 }
@@ -212,12 +214,16 @@ const VariantPricesSection: React.FC<Props> = ({ variant }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["variantPrices", variant.id] });
       form.resetFields();
+      toast.success(res?.message || "Price tier added");
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteVariantPrice(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["variantPrices", variant.id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["variantPrices", variant.id] });
+      toast.success("Deleted successfully");
+    },
   });
 
   return (
@@ -429,6 +435,7 @@ const VariantPricesSection: React.FC<Props> = ({ variant }) => {
           </div>
         )}
       </div>
+       <Toaster />
     </div>
   );
 };
