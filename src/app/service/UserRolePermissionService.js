@@ -83,24 +83,27 @@ export const fetchUsers = async () => {
 };
 
 // Assign Role to User
-export const assignRoleToUser = async (assignmentData) => {
+export const assignRoleToUser = async ({ user_id, role_id }) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/user_role/assign`, {
+        const response = await fetch(`${API_BASE_URL}/api/user_role/assign`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(assignmentData)
+            body: JSON.stringify({
+                user_id,
+                role_id
+            })
         });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Failed to assign role to user');
+            throw new Error(errorData.detail || 'Failed to assign role to user');
         }
 
         return await response.json();
     } catch (error) {
-        console.error('Error assigning role to user: - UserRolePermissionService.js:107', error);
+        console.error('Error assigning role to user:', error);
         throw error;
     }
 };
