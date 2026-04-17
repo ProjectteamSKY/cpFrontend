@@ -5,20 +5,16 @@ const API_BASE_URL = 'http://54.206.3.97/api';
 
 // create role
 export const createRole = async (roleData) => {
-
     try {
-        const formData = new URLSearchParams();
-        formData.append('name', roleData.name);
-        if (roleData.description) {
-            formData.append('description', roleData.description);
-        }
-
         const response = await fetch(`${API_BASE_URL}/role/create`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
             },
-            body: formData.toString()
+            body: JSON.stringify({
+                name: roleData.name,
+                description: roleData.description
+            })
         });
 
         if (!response.ok) {
@@ -28,7 +24,7 @@ export const createRole = async (roleData) => {
 
         return await response.json();
     } catch (error) {
-        console.error('Error creating role: - UserRolePermissionService.js:31', error);
+        console.error('Error creating role:', error);
         throw error;
     }
 };
