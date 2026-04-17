@@ -35,7 +35,7 @@ export const deleteRole = async (roleId) => {
         const formData = new URLSearchParams();
         formData.append('role_id', roleId);
 
-        const response = await fetch(`${API_BASE_URL}/role/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/role/${roleId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
