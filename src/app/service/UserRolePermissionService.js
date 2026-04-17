@@ -13,7 +13,7 @@ export const createRole = async (roleData) => {
             formData.append('description', roleData.description);
         }
 
-        const response = await fetch(`${API_BASE_URL}/roles/create`, {
+        const response = await fetch(`${API_BASE_URL}/role/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
