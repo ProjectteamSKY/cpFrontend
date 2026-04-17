@@ -85,7 +85,7 @@ export const fetchUsers = async () => {
 // Assign Role to User
 export const assignRoleToUser = async ({ user_id, role_id }) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/user_role/assign`, {
+        const response = await fetch(`${API_BASE_URL}/user_role/assign`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
