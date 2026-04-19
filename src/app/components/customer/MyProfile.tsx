@@ -279,7 +279,7 @@ function AvatarUpload({ avatarUrl, name, userId, onUpdated }: AvatarUploadProps)
                 });
             } catch (putErr: any) {
                 if (putErr.response?.status === 404) {
-                    res = await axios.post(`${API_BASE}/user-profile/create`, formData, {
+                    res = await axios.post(`${API_BASE}/user-profile/`, formData, {
                         headers: { "Content-Type": "multipart/form-data" },
                     });
                 } else {
