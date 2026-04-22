@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRole, fetchRoles, deleteRole, assignRoleToUser, fetchUsers } from '../../service/UserRolePermissionService';
 import FormError from '../../validation/FormError';
+import { getUserId } from '../../utils/authStorage';
 
 const AddRole = () => {
   const navigate = useNavigate();
@@ -16,11 +17,11 @@ const AddRole = () => {
   const [errors, setErrors] = useState({});
   const [popup, setPopup] = useState({ open: false, message: '', type: 'success' });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, roleId: null, roleName: '' });
-  
+
   // Modal states
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  
+
   // Assign form state
   const [assignFormData, setAssignFormData] = useState({
     user_id: '',
@@ -31,7 +32,7 @@ const AddRole = () => {
   const [assignLoading, setAssignLoading] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  
+
   // Search and pagination states for roles
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,12 +44,11 @@ const AddRole = () => {
 
   // Get current user ID from localStorage or context (adjust based on your auth system)
   const getCurrentUserId = () => {
-    // Replace this with your actual auth user ID retrieval method
-    return localStorage.getItem('userId') || '5a01cb4a-a087-494a-ab2f-4a5e668630d9';
+    return getUserId() || null;
   };
 
-  useEffect(() => { 
-    loadRoles(); 
+  useEffect(() => {
+    loadRoles();
     loadUsers();
   }, []);
 
@@ -152,7 +152,7 @@ const AddRole = () => {
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
     if (!validateAssignForm()) return;
-    
+
     setAssignLoading(true);
     try {
       const assignData = {
@@ -161,7 +161,7 @@ const AddRole = () => {
       };
       await assignRoleToUser(assignData);
       setPopup({ open: true, message: 'Role assigned to user successfully!', type: 'success' });
-      
+
       // Reset assign form
       setAssignFormData({
         user_id: '',
@@ -170,7 +170,7 @@ const AddRole = () => {
       });
       setUserSearchTerm('');
       setIsAssignModalOpen(false);
-      
+
       setTimeout(() => {
         setPopup({ open: false, message: '' });
       }, 1500);
@@ -233,7 +233,7 @@ const AddRole = () => {
     const name = (user.full_name || '').toLowerCase();
     const email = (user.email || '').toLowerCase();
     const search = searchTerm.toLowerCase();
-    
+
     // Exact name match gets highest priority
     if (name === search) return 4;
     // Name starts with search term
@@ -275,7 +275,7 @@ const AddRole = () => {
     role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (role.description && role.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-  
+
   const totalPages = Math.ceil(filteredRoles.length / itemsPerPage);
   const paginatedRoles = filteredRoles.slice(
     (currentPage - 1) * itemsPerPage,
@@ -328,8 +328,8 @@ const AddRole = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        
-        {/* Header */}  
+
+        {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/admin/Role')}
@@ -340,7 +340,7 @@ const AddRole = () => {
             </svg>
             <span>Back to Dashboard</span>
           </button>
-          
+
           <div className="border-l-4 border-[#D73D32] pl-4">
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
               Role Management
@@ -358,7 +358,7 @@ const AddRole = () => {
               <h2 className="text-xl font-semibold text-gray-900">Roles List</h2>
               <p className="text-gray-500 text-sm mt-1">Manage all user roles in one place</p>
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={openAssignModal}
@@ -367,7 +367,7 @@ const AddRole = () => {
                 <UserPlusIcon />
                 <span>Assign Role to User</span>
               </button>
-              
+
               <button
                 onClick={openRoleModal}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[#D73D32] hover:bg-[#c0342a] text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -395,7 +395,7 @@ const AddRole = () => {
                   </span>
                 </div>
               </div>
-              
+
               {/* Search Input */}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -491,7 +491,7 @@ const AddRole = () => {
                             >
                               <TrashIcon />
                             </button>
-                           </td>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -531,11 +531,10 @@ const AddRole = () => {
                           <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
-                              currentPage === pageNum
-                                ? 'bg-[#D73D32] text-white'
-                                : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-                            }`}
+                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === pageNum
+                              ? 'bg-[#D73D32] text-white'
+                              : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+                              }`}
                           >
                             {pageNum}
                           </button>
@@ -567,7 +566,7 @@ const AddRole = () => {
           >
             <div className="relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D73D32] to-[#e86860]"></div>
-              
+
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold text-gray-900">Create New Role</h2>
@@ -578,7 +577,7 @@ const AddRole = () => {
                     <CloseIcon />
                   </button>
                 </div>
-                
+
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -651,7 +650,7 @@ const AddRole = () => {
           >
             <div className="relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D73D32] to-[#e86860]"></div>
-              
+
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold text-gray-900">Assign Role to User</h2>
@@ -662,7 +661,7 @@ const AddRole = () => {
                     <CloseIcon />
                   </button>
                 </div>
-                
+
                 <form onSubmit={handleAssignSubmit} className="space-y-5">
                   {/* User Selection with Search - Prioritizing Name */}
                   <div>
@@ -690,7 +689,7 @@ const AddRole = () => {
                           className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200"
                         />
                       </div>
-                      
+
                       {/* Dropdown with scroll and name-first display */}
                       {showUserDropdown && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
@@ -710,9 +709,8 @@ const AddRole = () => {
                                   key={user.id}
                                   type="button"
                                   onClick={() => handleSelectUser(user)}
-                                  className={`w-full px-4 py-3 text-left hover:bg-green-50 transition-colors ${
-                                    index !== filteredUsers.length - 1 ? 'border-b border-gray-100' : ''
-                                  }`}
+                                  className={`w-full px-4 py-3 text-left hover:bg-green-50 transition-colors ${index !== filteredUsers.length - 1 ? 'border-b border-gray-100' : ''
+                                    }`}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="font-medium text-gray-900">{user.full_name}</div>
@@ -730,7 +728,7 @@ const AddRole = () => {
                               ))}
                             </div>
                           )}
-                          
+
                           {/* Scroll indicator */}
                           {filteredUsers.length > 5 && (
                             <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
@@ -739,7 +737,7 @@ const AddRole = () => {
                       )}
                     </div>
                     <FormError message={assignErrors.user_id} />
-                    
+
                     {/* Selected user display - shows name prominently */}
                     {assignFormData.user_id && userSearchTerm && (
                       <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
@@ -833,31 +831,31 @@ const AddRole = () => {
           >
             <div className="relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D73D32] to-[#e86860]"></div>
-              
+
               <div className="p-6">
                 <div className="flex justify-end">
-                  <button 
-                    onClick={handleCancelDelete} 
+                  <button
+                    onClick={handleCancelDelete}
                     className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     <CloseIcon />
                   </button>
                 </div>
-                
+
                 <div className="text-center">
                   <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
                     <svg className="w-10 h-10 text-[#D73D32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Confirmation</h3>
                   <p className="text-gray-500 mb-6">
                     Are you sure you want to delete <span className="font-semibold text-gray-900">"{deleteConfirm.roleName}"</span>?
                     <br />
                     <span className="text-sm">This action cannot be undone.</span>
                   </p>
-                  
+
                   <div className="flex gap-3">
                     <button
                       onClick={handleCancelDelete}
@@ -882,9 +880,8 @@ const AddRole = () => {
       {/* Success/Error Popup */}
       {popup.open && (
         <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
-          <div className={`rounded-lg shadow-lg p-4 ${
-            popup.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-          }`}>
+          <div className={`rounded-lg shadow-lg p-4 ${popup.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+            }`}>
             <div className="flex items-center gap-3">
               {popup.type === 'success' ? (
                 <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

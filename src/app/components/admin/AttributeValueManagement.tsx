@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -38,6 +38,7 @@ export function AttributeValueManagement() {
   const [open, setOpen] = useState(false);
 
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const attributeId = searchParams.get("attribute_id");
 
   const fetchData = async () => {
@@ -88,6 +89,11 @@ export function AttributeValueManagement() {
     fetchData();
   };
 
+  const handleBack = () => {
+    navigate("/admin/attribute"); // Go back to previous page
+    // Alternatively: navigate('/attributes') to go to a specific route
+  };
+
   const columns: ColumnDef<AttributeValue>[] = [
     { header: "Attribute", accessorKey: "attribute_name" },
     { header: "Value", accessorKey: "value" },
@@ -111,7 +117,7 @@ export function AttributeValueManagement() {
             <Button onClick={() => { setEditing(v); setOpen(true); }}>
               <Edit size={16} />
             </Button>
-            <Button onClick={() => deleteAttributeValue(v.id).then(fetchData)}>
+            <Button variant="destructive" onClick={() => deleteAttributeValue(v.id).then(fetchData)}>
               <Trash2 size={16} />
             </Button>
           </div>
@@ -120,12 +126,31 @@ export function AttributeValueManagement() {
     },
   ];
 
+  // Get attribute name for the title when filtered
+  const filteredAttributeName = attributeId 
+    ? attributes.find(attr => attr.id === attributeId)?.name 
+    : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between">
-        <h1 className="text-2xl font-bold">
-          {attributeId ? "Filtered Attribute Values" : "Attribute Values"}
-        </h1>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          {attributeId && (
+            <Button 
+              variant="outline" 
+              onClick={handleBack}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </Button>
+          )}
+          <h1 className="text-2xl font-bold">
+            {attributeId 
+              ? `Attribute Values: ${filteredAttributeName || 'Loading...'}` 
+              : "All Attribute Values"}
+          </h1>
+        </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
