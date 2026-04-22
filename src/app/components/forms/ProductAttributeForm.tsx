@@ -34,23 +34,22 @@ export function ProductAttributeForm({
 }: Props) {
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProductAttributeFormData>({
     mode: "onTouched",
-    defaultValues: {
-      product_id: defaultValues?.product_id ?? "",
-      attribute_id: defaultValues?.attribute_id ?? "",
-      is_required: defaultValues?.is_required ?? true,
-      sort_order: defaultValues?.sort_order ?? 0,
-    },
   });
 
-  // 🔥 Fetch dropdown data
+  const selectedProduct = watch("product_id");
+  const selectedAttribute = watch("attribute_id");
+
+  // 🔥 Load dropdown data FIRST
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -59,47 +58,53 @@ export function ProductAttributeForm({
           getAllProductsActive(),
         ]);
 
-        setAttributes(attrRes);
-        setProducts(prodRes);
-      } catch {
-        console.error("Failed to load dropdown data");
+        setAttributes(attrRes || []);
+        setProducts(prodRes || []);
+
+        // ✅ AFTER data loaded → set form values
+        if (defaultValues) {
+          reset({
+            product_id: defaultValues.product_id || "",
+            attribute_id: defaultValues.attribute_id || "",
+            is_required: defaultValues.is_required ?? true,
+            sort_order: defaultValues.sort_order ?? 0,
+          });
+        } else {
+          reset({
+            product_id: "",
+            attribute_id: "",
+            is_required: true,
+            sort_order: 0,
+          });
+        }
+      } catch (err) {
+        console.error("Dropdown load failed", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadData();
-  }, []);
-
-  // 🔥 Reset on edit
-  useEffect(() => {
-    if (defaultValues) {
-      reset({
-        product_id: defaultValues.product_id,
-        attribute_id: defaultValues.attribute_id,
-        is_required: defaultValues.is_required,
-        sort_order: defaultValues.sort_order,
-      });
-    }
   }, [defaultValues, reset]);
 
   const submitHandler = async (data: ProductAttributeFormData) => {
     await onSubmit(data);
   };
 
-  return (
-    <form onSubmit={handleSubmit(submitHandler)} className="w-full space-y-6">
-      {/* Product */}
-      <div className="flex flex-col px-3">
-        <label className="text-sm font-medium text-gray-800 mb-2">
-          Product <span className="text-red-500">*</span>
-        </label>
+  if (loading) {
+    return <p className="text-center py-6">Loading...</p>;
+  }
 
+  return (
+    <form onSubmit={handleSubmit(submitHandler)} className="space-y-6">
+
+      {/* Product */}
+      <div>
+        <label className="text-sm font-medium">Product *</label>
         <select
+          value={selectedProduct || ""}
           {...register("product_id", productAttributeValidation.product_id)}
-          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition ${
-            errors.product_id
-              ? "border-red-500 ring-1 ring-red-200"
-              : "border-gray-300 focus:border-[#D73D32] focus:ring-2 focus:ring-[#D73D32]/20"
-          }`}
+          className="w-full border rounded-xl px-3 py-2"
         >
           <option value="">Select Product</option>
           {products.map((p) => (
@@ -108,25 +113,16 @@ export function ProductAttributeForm({
             </option>
           ))}
         </select>
-
-        <p className="mt-1.5 text-xs text-red-500 min-h-[18px]">
-          {errors.product_id?.message || ""}
-        </p>
+        <p className="text-xs text-red-500">{errors.product_id?.message}</p>
       </div>
 
       {/* Attribute */}
-      <div className="flex flex-col px-3">
-        <label className="text-sm font-medium text-gray-800 mb-2">
-          Attribute <span className="text-red-500">*</span>
-        </label>
-
+      <div>
+        <label className="text-sm font-medium">Attribute *</label>
         <select
+          value={selectedAttribute || ""}
           {...register("attribute_id", productAttributeValidation.attribute_id)}
-          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition ${
-            errors.attribute_id
-              ? "border-red-500 ring-1 ring-red-200"
-              : "border-gray-300 focus:border-[#D73D32] focus:ring-2 focus:ring-[#D73D32]/20"
-          }`}
+          className="w-full border rounded-xl px-3 py-2"
         >
           <option value="">Select Attribute</option>
           {attributes.map((a) => (
@@ -135,57 +131,32 @@ export function ProductAttributeForm({
             </option>
           ))}
         </select>
-
-        <p className="mt-1.5 text-xs text-red-500 min-h-[18px]">
-          {errors.attribute_id?.message || ""}
-        </p>
+        <p className="text-xs text-red-500">{errors.attribute_id?.message}</p>
       </div>
 
       {/* Sort Order */}
-      <div className="flex flex-col px-3">
-        <label className="text-sm font-medium text-gray-800 mb-2">
-          Sort Order <span className="text-red-500">*</span>
-        </label>
-
+      <div>
+        <label className="text-sm font-medium">Sort Order *</label>
         <input
           type="number"
           {...register("sort_order", productAttributeValidation.sort_order)}
-          placeholder="0"
-          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition ${
-            errors.sort_order
-              ? "border-red-500 ring-1 ring-red-200"
-              : "border-gray-300 focus:border-[#D73D32] focus:ring-2 focus:ring-[#D73D32]/20"
-          }`}
+          className="w-full border rounded-xl px-3 py-2"
         />
-
-        <p className="mt-1.5 text-xs text-red-500 min-h-[18px]">
-          {errors.sort_order?.message || ""}
-        </p>
+        <p className="text-xs text-red-500">{errors.sort_order?.message}</p>
       </div>
 
-      {/* Required Toggle */}
-      <div className="flex items-center justify-between px-3">
-        <span className="text-sm font-medium text-gray-800">
-          Is Required
-        </span>
-
-        <input
-          type="checkbox"
-          {...register("is_required")}
-          className="h-5 w-5 accent-[#D73D32]"
-        />
+      {/* Required */}
+      <div className="flex justify-between">
+        <span>Is Required</span>
+        <input type="checkbox" {...register("is_required")} />
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2 px-3">
+      <div className="flex gap-3">
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`flex-1 rounded-xl bg-[#D73D32] text-white py-2.5 text-sm font-semibold transition ${
-            isSubmitting
-              ? "opacity-70 cursor-not-allowed"
-              : "hover:bg-[#c2341f]"
-          }`}
+          className="flex-1 bg-red-500 text-white py-2 rounded-xl"
         >
           {isSubmitting ? "Saving..." : "Save"}
         </button>
@@ -193,8 +164,7 @@ export function ProductAttributeForm({
         <button
           type="button"
           onClick={onCancel}
-          disabled={isSubmitting}
-          className="flex-1 rounded-xl border border-gray-300 text-gray-700 py-2.5 text-sm font-medium hover:bg-gray-50"
+          className="flex-1 border py-2 rounded-xl"
         >
           Cancel
         </button>

@@ -81,7 +81,7 @@ function AddressModal({ open, editingId, form, saving, onChange, onSave, onClose
           <div>
             <label className={labelClass}>Address Type</label>
             <div className="flex gap-2">
-              {["home", "work", "other"].map((type) => (
+              {["home", "work"].map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -93,7 +93,6 @@ function AddressModal({ open, editingId, form, saving, onChange, onSave, onClose
                 >
                   {type === "home" && <Home className="w-3.5 h-3.5" />}
                   {type === "work" && <Briefcase className="w-3.5 h-3.5" />}
-                  {type === "other" && <MapPin className="w-3.5 h-3.5" />}
                   {type}
                 </button>
               ))}
@@ -394,9 +393,9 @@ export function AddressPage({ isEmbedded = false }: { isEmbedded?: boolean }) {
     try {
       const payload = {
         user_id: userId, first_name: form.first_name, last_name: form.last_name,
-        address: form.street, landmark: form.landmark, city: form.city,
+        address: form.street,address_type: form.address_type || "home", landmark: form.landmark, city: form.city,
         state: form.state, country: form.country, postal_code: form.postal_code,
-        phone: form.phone, email: form.email, address_type: form.address_type, is_default: false,
+        phone: form.phone, email: form.email,is_default: false,
       };
       if (editingId) {
         await axios.put(`${API_BASE}/api/user_address/update/${editingId}`, payload, { withCredentials: true });
@@ -497,8 +496,6 @@ export function AddressPage({ isEmbedded = false }: { isEmbedded?: boolean }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
-        * { font-family: 'Sora', sans-serif; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #f0f0f0; }
         ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }

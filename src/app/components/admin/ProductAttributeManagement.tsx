@@ -60,11 +60,22 @@ export function ProductAttributeManagement({ productId }: { productId: string })
         }
     };
 
+
+
     const handleDelete = async (id: string) => {
         if (!confirm("Delete?")) return;
-        await deleteProductAttribute(id);
-        fetchData();
-    };
+    
+        try {
+          await deleteProductAttribute(id);
+          toast.success("Deleted successfully");
+          fetchData();
+        } catch {
+          toast.error("Failed to delete");
+        }
+      };
+    
+
+    
 
     const toggle = async (row: ProductAttribute) => {
         if (row.is_active) {
