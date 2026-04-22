@@ -18,6 +18,7 @@ export interface VariantPrice {
   min_qty: number;
   max_qty?: number;
   price: number;
+  weight: number;
 }
 
 export interface Attribute {
