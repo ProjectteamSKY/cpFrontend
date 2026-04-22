@@ -44,16 +44,30 @@ export const deleteVariantAttributeValue = (id: string) =>
   api.delete(`/variant_attribute_value/${id}`);
 
 // ------------------ VARIANT PRICES ------------------
-export const createVariantPrice = (payload: Partial<VariantPrice>) =>
-  api.post("/variant_price/create", payload);
+export const createVariantPrice = async (payload: Partial<VariantPrice>) => {
+  const res = await api.post("/variant_price/create", payload);
+  return res.data; // ✅ FIXED
+};
+
+// ------------------ VARIANT PRICES ------------------
+
+export const updateVariantPrice = async (
+  id: string,
+  payload: Partial<VariantPrice>
+) => {
+  const res = await api.put(`/variant_price/${id}`, payload);
+  return res.data; // ✅ important
+};
 
 export const getVariantPrices = async (variantId: string) => {
   const res = await api.get(`/variant_price/variant/${variantId}`);
   return res.data.data;
 };
 
-export const deleteVariantPrice = (id: string) =>
-  api.delete(`/variant_price/${id}`);
+export const deleteVariantPrice = async (id: string) => {
+  const res = await api.delete(`/variant_price/${id}`);
+  return res.data;
+};
 
 // ------------------ ATTRIBUTES ------------------
 // API returns { status, data: [...] }
