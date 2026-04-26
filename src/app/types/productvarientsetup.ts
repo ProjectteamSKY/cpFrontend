@@ -19,6 +19,10 @@ export interface VariantPrice {
   max_qty?: number;
   price: number;
   weight: number;
+  length: number;
+  breadth: number;
+  height: number;
+  custom_qty: boolean; 
 }
 
 export interface Attribute {

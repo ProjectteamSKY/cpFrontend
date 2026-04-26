@@ -71,8 +71,8 @@ export const deleteVariantPrice = async (id: string) => {
 
 // ------------------ ATTRIBUTES ------------------
 // API returns { status, data: [...] }
-export const getAttributes = () =>
-  api.get<{ status: string; data: Attribute[] }>("/attribute/list");
+export const getAttributes = (productId: string) =>
+  api.get<{ status: string; data: Attribute[] }>(`/product_attribute/product/${productId}`);
 
 export const getAttributeValues = () =>
   api.get<{ status: string; data: AttributeValue[] }>("/attribute_value/list");

@@ -1,4 +1,4 @@
-import { Product, ProductImage } from "../types/productlist";
+import { FilterState, Product, ProductImage } from "../types/productlist";
 
 export const processProductImages = (product: any): ProductImage[] => {
   let processedImages: ProductImage[] = [];
@@ -72,17 +72,31 @@ export const enrichProductData = (product: any): Product => {
 };
 
 export const getImageUrl = (image: any): string => {
-  if (!image) return '';
-  
-  const imagePath = image.image_url || image.url || image;
-  if (typeof imagePath === 'string') {
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
-    const cleanPath = imagePath.replace(/\\/g, '/');
-    return `http://54.206.3.97/${cleanPath}`;
+  if (!image) return "";
+
+  let path = "";
+
+  // ✅ handle object
+  if (typeof image === "object") {
+    path = image.url || image.image_url || "";
+  } else {
+    path = image;
   }
-  return '';
+
+  if (!path) return "";
+
+  // ✅ already full URL
+  if (path.startsWith("http")) return path;
+
+  // ✅ clean path
+  path = path.replace(/\\/g, "/");
+
+  // ✅ remove leading slash duplication
+  if (path.startsWith("/")) {
+    path = path.substring(1);
+  }
+
+  return `http://54.206.3.97/${path}`;
 };
 
 export const applyFilters = (

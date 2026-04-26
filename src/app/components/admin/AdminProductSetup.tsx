@@ -36,8 +36,8 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
 
   // Fetch data
   const { data: attributesData, isLoading: loadingAttributes } = useQuery({
-    queryKey: ["attributes"],
-    queryFn: () => getAttributes().then((res) => res.data.data),
+    queryKey: ["attributes", productId],
+    queryFn: () => getAttributes(productId).then((res) => res.data.data),
   });
   const attributes = Array.isArray(attributesData) ? attributesData : [];
 
@@ -161,6 +161,9 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
 
   const isLoading = loadingVariants || loadingAttributes || loadingAttributeValues;
 
+  // Check if product already has at least one variant
+  const hasExistingVariant = variants.length > 0;
+
   return (
     <div className="w-full">
       {/* Stats Cards - Full Width */}
@@ -196,7 +199,8 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
                 <p className="text-xs text-gray-500">Manage variants, attributes, and pricing</p>
               </div>
             </div>
-            {activeTab === "variants" && (
+            {/* New Variant button - Only show when no variant exists */}
+            {activeTab === "variants" && !hasExistingVariant && (
               <button
                 onClick={handleOpenCreate}
                 className="flex items-center gap-2 px-4 py-2 bg-[#D73D32] hover:bg-[#c0342a] rounded-lg text-white font-medium transition-all shadow-sm"
@@ -473,7 +477,7 @@ const AdminProductSetup: React.FC<AdminProductSetupProps> = ({ productId }) => {
           </div>
         </div>
       )}
-       <Toaster />
+      <Toaster />
     </div>
   );
 };
