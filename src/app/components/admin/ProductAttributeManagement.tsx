@@ -51,12 +51,19 @@ export function ProductAttributeManagement({ productId }: { productId: string })
                 await createProductAttribute(form);
                 toast.success("Created successfully");
             }
+
             setShowAdd(false);
             setShowEdit(false);
             setEditing(null);
             fetchData();
-        } catch {
-            toast.error("Error saving");
+
+        } catch (err: any) {
+            const message =
+                err?.response?.data?.detail ||   // ✅ FastAPI error
+                err?.message ||                 // fallback
+                "Something went wrong";
+
+            toast.error(message);             // 🔥 REAL ERROR SHOWN
         }
     };
 
@@ -64,18 +71,18 @@ export function ProductAttributeManagement({ productId }: { productId: string })
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete?")) return;
-    
-        try {
-          await deleteProductAttribute(id);
-          toast.success("Deleted successfully");
-          fetchData();
-        } catch {
-          toast.error("Failed to delete");
-        }
-      };
-    
 
-    
+        try {
+            await deleteProductAttribute(id);
+            toast.success("Deleted successfully");
+            fetchData();
+        } catch {
+            toast.error("Failed to delete");
+        }
+    };
+
+
+
 
     const toggle = async (row: ProductAttribute) => {
         if (row.is_active) {
