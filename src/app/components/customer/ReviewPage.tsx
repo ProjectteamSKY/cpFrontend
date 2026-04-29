@@ -154,7 +154,7 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
             {/* Review image */}
             {review.image_url && (
                 <img
-                    src={`http://54.206.3.97/${review.image_url}`}
+                    src={`http://127.0.0.1:8000/${review.image_url}`}
                     alt="Review"
                     className="mt-3 max-w-[120px] rounded-xl border border-neutral-100 object-cover"
                 />
@@ -194,7 +194,7 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
 // Does NOT include page-level wrappers (min-h-screen, bg-gray-50, max-w, py-12).
 
 const ProductReviews = ({ PRODUCT_ID }: { PRODUCT_ID: string }) => {
-    const API_URL = `http://54.206.3.97/api/review/product/${PRODUCT_ID}/latest`;
+    const API_URL = `http://127.0.0.1:8000/api/review/product/${PRODUCT_ID}/latest`;
 
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);

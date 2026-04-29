@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { AlertCircle, Upload, X, Loader2, Image as ImageIcon, FileUp } from "lucide-react";
 import { designValidation } from "../../validation/designValidation";
 
-const BASE_URL = "http://54.206.3.97";
+const BASE_URL = "http://127.0.0.1:8000";
 
 interface Props {
     defaultValues?: DesignRequest | null;
@@ -93,11 +93,12 @@ export function DesignForm({ defaultValues, onSubmit, onCancel }: Props) {
     useEffect(() => {
         if (!defaultValues) return;
 
+        // First reset basic fields
         reset({
-            name: defaultValues.name,
-            email: defaultValues.email,
-            phone: defaultValues.phone,
-            product_id: defaultValues.product_id,
+            name: defaultValues.name || "",
+            email: defaultValues.email || "",
+            phone: defaultValues.phone || "",
+            product_id: "", // set later after products load
             design_notes: defaultValues.design_notes || "",
             logo_images: [],
             designed_images: [],
@@ -115,6 +116,16 @@ export function DesignForm({ defaultValues, onSubmit, onCancel }: Props) {
         );
     }, [formKey, defaultValues, reset, getFullImageUrl]);
 
+    useEffect(() => {
+        if (!defaultValues || products.length === 0) return;
+
+        // Ensure product exists in list
+        const exists = products.find(p => p.id === defaultValues.product_id);
+
+        if (exists) {
+            setValue("product_id", String(defaultValues.product_id));
+        }
+    }, [products, defaultValues, setValue]);
     // Image Handlers
     const validateAndAddFiles = (files: File[], setPreviews: any, fieldOnChange: any) => {
         const validFiles: File[] = [];
@@ -203,8 +214,8 @@ export function DesignForm({ defaultValues, onSubmit, onCancel }: Props) {
                                 {...register("name", designValidation.name)}
                                 placeholder="Enter client name"
                                 className={`${errors.name
-                                        ? "border-red-500 focus:ring-red-500"
-                                        : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                                    ? "border-red-500 focus:ring-red-500"
+                                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
                                     }`}
                             />
                             {errors.name && (
@@ -226,8 +237,8 @@ export function DesignForm({ defaultValues, onSubmit, onCancel }: Props) {
                                 {...register("email", designValidation.email)}
                                 placeholder="client@example.com"
                                 className={`${errors.email
-                                        ? "border-red-500 focus:ring-red-500"
-                                        : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                                    ? "border-red-500 focus:ring-red-500"
+                                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
                                     }`}
                             />
                             {errors.email && (
@@ -248,8 +259,8 @@ export function DesignForm({ defaultValues, onSubmit, onCancel }: Props) {
                                 {...register("phone", designValidation.phone)}
                                 placeholder="Enter phone number"
                                 className={`${errors.phone
-                                        ? "border-red-500 focus:ring-red-500"
-                                        : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                                    ? "border-red-500 focus:ring-red-500"
+                                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
                                     }`}
                             />
                             {errors.phone && (
@@ -271,8 +282,8 @@ export function DesignForm({ defaultValues, onSubmit, onCancel }: Props) {
                                 rules={designValidation.product_id}
                                 render={({ field }) => (
                                     <Select
-                                        onValueChange={field.onChange}
-                                        value={field.value || ""}
+                                        onValueChange={(val) => field.onChange(String(val))}
+                                        value={field.value ? String(field.value) : ""}
                                         disabled={isLoadingProducts}
                                     >
                                         <SelectTrigger

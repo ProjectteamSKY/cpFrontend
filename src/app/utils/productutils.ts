@@ -96,7 +96,7 @@ export const getImageUrl = (image: any): string => {
     path = path.substring(1);
   }
 
-  return `http://54.206.3.97/${path}`;
+  return `http://127.0.0.1:8000/${path}`;
 };
 
 export const applyFilters = (

@@ -184,31 +184,31 @@
 //         />
 //       ),
 //     },
-//     // {
-//     //   header: "Actions",
-//     //   cell: ({ row }) => (
-//     //     <div className="flex gap-2">
-//     //       {row.original.status !== "cancelled" && (
-//     //         <>
-//     //           <Button
-//     //             size="sm"
-//     //             className="bg-red-600 text-white"
-//     //             onClick={() => handleCancelOrder(row.original.id)}
-//     //           >
-//     //             Cancel
-//     //           </Button>
-//     //           <Button
-//     //             size="sm"
-//     //             className="bg-blue-600 text-white"
-//     //             onClick={() => handleRefundOrder(row.original.id)}
-//     //           >
-//     //             Refund
-//     //           </Button>
-//     //         </>
-//     //       )}
-//     //     </div>
-//     //   ),
-//     // },
+//     {
+//       header: "Actions",
+//       cell: ({ row }) => (
+//         <div className="flex gap-2">
+//           {row.original.status !== "cancelled" && (
+//             <>
+//               <Button
+//                 size="sm"
+//                 className="bg-red-600 text-white"
+//                 onClick={() => handleCancelOrder(row.original.id)}
+//               >
+//                 Cancel
+//               </Button>
+//               <Button
+//                 size="sm"
+//                 className="bg-blue-600 text-white"
+//                 onClick={() => handleRefundOrder(row.original.id)}
+//               >
+//                 Refund
+//               </Button>
+//             </>
+//           )}
+//         </div>
+//       ),
+//     },
 //     {
 //       header: "Created At",
 //       cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
@@ -451,6 +451,32 @@ export function OrderManagement() {
           }
           loading={loadingShipment === row.original.id} // optional spinner support
         />
+      ),
+    },
+
+{
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          {row.original.status !== "cancelled" && (
+            <>
+              <Button
+                size="sm"
+                className="bg-red-600 text-white"
+                onClick={() => handleCancelOrder(row.original.id)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-blue-600 text-white"
+                onClick={() => handleRefundOrder(row.original.id)}
+              >
+                Refund
+              </Button>
+            </>
+          )}
+        </div>
       ),
     },
     {

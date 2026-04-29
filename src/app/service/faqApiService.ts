@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = "http://54.206.3.97/api/faq";
+const API = "http://127.0.0.1:8000/api/faq";
 
 export const getAllFAQs = async () => {
   const res = await axios.get(`${API}/list`);

@@ -44,7 +44,7 @@
 // /* ─────────────────────────────────────────
 //    Constants & Helpers
 // ───────────────────────────────────────── */
-// const BASE_URL = "http://54.206.3.97";
+// const BASE_URL = "http://127.0.0.1:8000";
 
 // function getImageUrl(image?: ProductImage): string {
 //   if (!image?.url) return "https://placehold.co/600x800/f5f5f7/e5e5e8?text=No+Image";
@@ -1075,7 +1075,7 @@ interface Product {
 /* ─────────────────────────────────────────
    Constants & Helpers
 ───────────────────────────────────────── */
-const BASE_URL = "http://54.206.3.97";
+const BASE_URL = "http://127.0.0.1:8000";
 
 // Extract best image URL from the complex image object
 function getImageUrlFromImageObj(image?: ProductImage): string {

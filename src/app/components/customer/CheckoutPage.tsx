@@ -34,8 +34,8 @@ import paytm from "../../../media/icons8-paytm-50.svg";
 import phonepe from "../../../media/icons8-phone-pe-50.svg";
 import { getUserId } from "../../utils/authStorage";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -58,12 +58,12 @@ export function CheckoutPage() {
   const [hyperlocalCheck, setHyperlocalCheck] = useState(null);
   const [standardDeliveryOptions, setStandardDeliveryOptions] = useState([]);
   const [hyperlocalDeliveryOptions, setHyperlocalDeliveryOptions] = useState([]);
-  
+
   // Refs to prevent duplicate API calls
   const hasFetchedCart = useRef(false);
   const hasFetchedDelivery = useRef(false);
   const isFetchingRef = useRef(false);
-  
+
   // Read selected address from sessionStorage
   const selectedAddressId = sessionStorage.getItem("selected_address_id");
   const selectedAddress = (() => {
@@ -239,10 +239,10 @@ export function CheckoutPage() {
       const res = await axios.get(`${API_BASE}/shipping/hyperlocal/check`, {
         params: { pincode: deliveryPostcode }
       });
-      
+
       console.log("Hyperlocal check response:", res.data);
       setHyperlocalCheck(res.data);
-      
+
       if (res.data.is_chennai_surrounding) {
         setIsHyperlocal(true);
         console.log("Hyperlocal delivery available for this pincode");
@@ -265,38 +265,38 @@ export function CheckoutPage() {
     isFetchingRef.current = true;
     setIsFetchingDeliveryCharge(true);
     console.log("Fetching both standard and hyperlocal delivery options...");
-    
+
     try {
       if (cartItems.length === 0) {
         console.log("Waiting for cart items...");
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
+
       const [standardResult, hyperlocalResult] = await Promise.allSettled([
         fetchStandardDeliveryChargesInternal(),
         fetchHyperlocalDeliveryChargesInternal()
       ]);
-      
+
       let allOptions = [];
-      
+
       if (standardResult.status === 'fulfilled' && standardResult.value.length > 0) {
         setStandardDeliveryOptions(standardResult.value);
         allOptions = [...allOptions, ...standardResult.value];
       }
-      
+
       if (hyperlocalResult.status === 'fulfilled' && hyperlocalResult.value.length > 0) {
         setHyperlocalDeliveryOptions(hyperlocalResult.value);
         allOptions = [...allOptions, ...hyperlocalResult.value];
       }
-      
+
       allOptions.sort((a, b) => a.cost - b.cost);
       setDeliveryOptions(allOptions);
-      
+
       if (allOptions.length > 0) {
         setSelectedDeliveryOption(allOptions[0]);
         setDeliveryCharge(allOptions[0].cost);
       }
-      
+
     } catch (err) {
       console.error("Failed to fetch delivery options", err);
       toast.error("Failed to fetch delivery options");
@@ -313,13 +313,13 @@ export function CheckoutPage() {
     }
 
     console.log("Fetching standard delivery charges...");
-    
+
     try {
       const totalWeight = cartItems.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
       const totalLength = cartItems.reduce((sum, item) => sum + (Number(item.length) || 0), 0);
       const totalBreadth = cartItems.reduce((sum, item) => sum + (Number(item.breadth) || 0), 0);
       const totalHeight = cartItems.reduce((sum, item) => sum + (Number(item.height) || 0), 0);
-      
+
       const declaredValue = cartItems.reduce(
         (sum, i) => sum + Number(i.total_price),
         0
@@ -329,7 +329,7 @@ export function CheckoutPage() {
       const pickupPostcode = "600001";
       // Map payment method to COD flag (1 for COD, 0 for PREPAID)
       const codValue = paymentMethod === "cod" ? 1 : 0;
-      
+
       console.log("Standard Delivery Parameters:", {
         pickup_postcode: pickupPostcode,
         delivery_postcode: deliveryPostcode,
@@ -340,7 +340,7 @@ export function CheckoutPage() {
         cod: codValue,
         declared_value: declaredValue,
       });
-      
+
       const res = await axios.get(`${API_BASE}/shipping/serviceavailability`, {
         params: {
           pickup_postcode: pickupPostcode,
@@ -357,7 +357,7 @@ export function CheckoutPage() {
       console.log("Standard delivery response:", res.data);
 
       let options = [];
-      
+
       if (res.data.couriers && res.data.couriers.length > 0) {
         options = res.data.couriers.map((courier, index) => ({
           id: `standard_${index}`,
@@ -385,7 +385,7 @@ export function CheckoutPage() {
           courier_id: res.data.best_courier.courier_company_id || null, // Fixed: Use courier_company_id
         }];
       }
-      
+
       return options;
     } catch (err) {
       console.error("Standard delivery charge fetch failed", err);
@@ -400,19 +400,19 @@ export function CheckoutPage() {
     }
 
     console.log("Fetching hyperlocal delivery charges...");
-    
+
     try {
       const pickupPostcode = "600100";
       const deliveryPostcode = selectedAddress.postal_code;
       // Map payment method to COD flag (1 for COD, 0 for PREPAID)
       const codValue = paymentMethod === "cod" ? 1 : 0;
-      
+
       console.log("Hyperlocal Delivery Parameters:", {
         pickup_postcode: pickupPostcode,
         delivery_postcode: deliveryPostcode,
         cod: codValue,
       });
-      
+
       const res = await axios.get(`${API_BASE}/shipping/hyperlocal/serviceability`, {
         params: {
           pickup_postcode: pickupPostcode,
@@ -424,12 +424,12 @@ export function CheckoutPage() {
       console.log("Hyperlocal delivery response:", res.data);
 
       let options = [];
-      
+
       if (res.data.all_couriers && res.data.all_couriers.length > 0) {
         options = res.data.all_couriers.map((courier, index) => {
-          const isExpress = courier.courier_name.includes("Quick") || 
-                           courier.estimated_delivery_time_hours <= 24;
-          
+          const isExpress = courier.courier_name.includes("Quick") ||
+            courier.estimated_delivery_time_hours <= 24;
+
           return {
             id: `hyperlocal_${index}`,
             name: courier.courier_name,
@@ -441,17 +441,17 @@ export function CheckoutPage() {
             distance_km: courier.distance_km,
             etd: courier.etd,
             is_hyperlocal: true,
-            description: isExpress ? 
-              `Express delivery in ${courier.estimated_delivery_time_hours} hours` : 
+            description: isExpress ?
+              `Express delivery in ${courier.estimated_delivery_time_hours} hours` :
               `Hyperlocal delivery • ${courier.distance_km} km away`,
             courier_id: courier.courier_id || courier.courier_company_id || null, // Handle both field names
           };
         });
       } else if (res.data.best_courier) {
         const bestCourier = res.data.best_courier;
-        const isExpress = bestCourier.courier_name.includes("Quick") || 
-                         bestCourier.estimated_delivery_time_hours <= 24;
-        
+        const isExpress = bestCourier.courier_name.includes("Quick") ||
+          bestCourier.estimated_delivery_time_hours <= 24;
+
         options = [{
           id: "hyperlocal_0",
           name: bestCourier.courier_name,
@@ -463,13 +463,13 @@ export function CheckoutPage() {
           distance_km: bestCourier.distance_km,
           etd: bestCourier.etd,
           is_hyperlocal: true,
-          description: isExpress ? 
-            `Express delivery in ${bestCourier.estimated_delivery_time_hours} hours` : 
+          description: isExpress ?
+            `Express delivery in ${bestCourier.estimated_delivery_time_hours} hours` :
             `Hyperlocal delivery • ${bestCourier.distance_km} km away`,
           courier_id: bestCourier.courier_id || bestCourier.courier_company_id || null, // Handle both field names
         }];
       }
-      
+
       return options;
     } catch (err) {
       console.error("Hyperlocal delivery charge fetch failed", err);
@@ -482,18 +482,18 @@ export function CheckoutPage() {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     setIsFetchingDeliveryCharge(true);
-    
+
     try {
       if (cartItems.length === 0) {
         console.log("Waiting for cart items...");
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
+
       const options = await fetchStandardDeliveryChargesInternal();
       setStandardDeliveryOptions(options);
       setDeliveryOptions(options);
       setHyperlocalDeliveryOptions([]);
-      
+
       if (options.length > 0) {
         setSelectedDeliveryOption(options[0]);
         setDeliveryCharge(options[0].cost);
@@ -584,7 +584,7 @@ export function CheckoutPage() {
 
       // Map payment method: 'cod' -> 'COD', 'upi' -> 'PREPAID'
       const apiPaymentMethod = paymentMethod === "cod" ? "COD" : "PREPAID";
-      
+
       // Map delivery type: 'hyperlocal' or 'normal'
       const apiDeliveryType = selectedDeliveryOption.delivery_type === "hyperlocal" ? "hyperlocal" : "normal";
 
@@ -614,7 +614,7 @@ export function CheckoutPage() {
       const checkoutRes = await axios.post(
         `${API_BASE}/orders_routes/checkout`,
         checkoutPayload,
-        { 
+        {
           withCredentials: true,
           headers: {
             'Content-Type': 'application/json'
@@ -633,19 +633,19 @@ export function CheckoutPage() {
 
       setShowSuccess(true);
       toast.success(`Order placed successfully! Order ID: ${newOrderId}`);
-      
+
       // Clear cart from localStorage/sessionStorage if needed
       localStorage.removeItem("cart");
-      
+
     } catch (err) {
       console.error("❌ Checkout failed:", err);
       console.error("Error response:", err.response?.data);
-      
-      const errorMessage = err?.response?.data?.detail || 
-                          err?.response?.data?.message ||
-                          err?.message ||
-                          "Checkout failed. Please try again.";
-      
+
+      const errorMessage = err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Checkout failed. Please try again.";
+
       toast.error(errorMessage);
     } finally {
       setPlacingOrder(false);
@@ -696,7 +696,6 @@ export function CheckoutPage() {
       </div>
     );
   }
-
   // QR Payment State
   if (showQR) {
     const paymentApps = [
@@ -918,11 +917,10 @@ export function CheckoutPage() {
                       {hyperlocalDeliveryOptions.map((option) => (
                         <label
                           key={option.id}
-                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                            selectedDeliveryOption?.id === option.id
+                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${selectedDeliveryOption?.id === option.id
                               ? "border-[#D73D32] bg-[#D73D32]/5"
                               : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
-                          }`}
+                            }`}
                         >
                           <input
                             type="radio"
@@ -986,11 +984,10 @@ export function CheckoutPage() {
                       {standardDeliveryOptions.map((option) => (
                         <label
                           key={option.id}
-                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                            selectedDeliveryOption?.id === option.id
+                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${selectedDeliveryOption?.id === option.id
                               ? "border-[#D73D32] bg-[#D73D32]/5"
                               : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
-                          }`}
+                            }`}
                         >
                           <input
                             type="radio"
@@ -1057,11 +1054,10 @@ export function CheckoutPage() {
                   <label
                     key={method.value}
                     htmlFor={method.value}
-                    className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                      paymentMethod === method.value
+                    className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === method.value
                         ? "border-[#D73D32] bg-[#D73D32]/5"
                         : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <RadioGroupItem value={method.value} id={method.value} />
                     <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm border border-gray-200">
