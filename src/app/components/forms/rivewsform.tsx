@@ -289,7 +289,7 @@ const ratingLabels: Record<number, { label: string; color: string }> = {
 };
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-const BASE_URL = "http://127.0.0.1:8000/reviews";
+const BASE_URL = "https://api.citizenprintz.in/reviews";
 export const api = {
   list: (): Promise<ApiResponse> =>
     fetch(`${BASE_URL}/list`).then((r) => r.json()),

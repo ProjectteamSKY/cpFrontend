@@ -31,8 +31,8 @@ import { AddressPage } from "./AddressPage";
 import DesignRequestTracking from "./Designrequesttracking";
 import { getUserId, getUserRoles } from "../../utils/authStorage";
 
-const API_BASE = "http://127.0.0.1:8000/api";
-const MEDIA_BASE = "http://127.0.0.1:8000/";
+const API_BASE = "https://api.citizenprintz.in/api";
+const MEDIA_BASE = "https://api.citizenprintz.in/";
 
 // ---------------------------------------------------------------------------
 // Types

@@ -59,7 +59,7 @@ export function DesignReviewPage() {
       setFrontPreviewUrl(newFrontUrl);
     } else if (state.previews?.front) {
       // Fallback: if only preview URL exists, fetch and convert to File
-      console.log("⚠️ Only preview URL found, converting to File...");
+      console.log(" Only preview URL found, converting to File...");
       fetch(state.previews.front)
         .then(res => res.blob())
         .then(blob => {

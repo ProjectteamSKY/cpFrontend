@@ -2,7 +2,7 @@
 // import { useEffect, useState, useRef, useCallback } from "react";
 // import { Link, useNavigate } from "react-router";
 
-// const BASE = "http://127.0.0.1:8000";
+// const BASE = "https://api.citizenprintz.in";
 // const SLIDE_MS = 6000;
 // const TRANS_MS = 350;
 
@@ -480,7 +480,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 
-const BASE = "http://127.0.0.1:8000";
+const BASE = "https://api.citizenprintz.in";
 const SLIDE_MS = 6000;
 const TRANS_MS = 350;
 

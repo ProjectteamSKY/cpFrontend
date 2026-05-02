@@ -44,6 +44,7 @@ import { AttributeManagement } from "./components/admin/AttributeManagement";
 import { AttributeValueManagement } from "./components/admin/AttributeValueManagement";
 import { ProductAttributeManagement } from "./components/admin/ProductAttributeManagement";
 import ProductSetupWrapper from "./components/admin/ProductSetupWrapper";
+import { OrderDetailsPage } from "./components/admin/OrderDetailsPage";
 
 
 
@@ -221,8 +222,8 @@ export const router = createBrowserRouter([
               { path: "SubCategory", element: <SubcategoryManagement /> },
               { path: "Attribute", element: <AttributeManagement /> },
               { path: "Attribute-values", element: <AttributeValueManagement /> },
-               { path: "Product-Attribute", element: <ProductAttributeManagement /> },
-               { path: "ProductSetupWrapper", element: <ProductSetupWrapper /> },
+              { path: "Product-Attribute", element: <ProductAttributeManagement /> },
+              { path: "ProductSetupWrapper", element: <ProductSetupWrapper /> },
 
               { path: "Papertype", element: <PaperTypeManagement /> },
               { path: "Cuttype", element: <CutTypeManagement /> },
@@ -253,6 +254,8 @@ export const router = createBrowserRouter([
             ),
             children: [
               { path: "Order", element: <OrderManagement /> },
+              { path: "Orders/:orderId", element: <OrderDetailsPage /> },
+
             ],
           },
         ],
