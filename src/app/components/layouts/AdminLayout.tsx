@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Bell,
   Palette,
+  Truck,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -125,7 +126,7 @@ const navGroups = [
         label: "Product Attribute",
         roles: ["admin"],
       },
-       {
+      {
         path: "/admin/ProductSetupWrapper",
         icon: Maximize2,
         label: "ProductSetupWrapper",
@@ -133,7 +134,7 @@ const navGroups = [
       },
 
 
-      
+
     ],
   },
 
@@ -156,6 +157,18 @@ const navGroups = [
         path: "/admin/Role",
         icon: Users,
         label: "Role",
+        roles: ["admin"],
+      },
+    ],
+  },
+
+  {
+    label: "Shipping Management",
+    items: [
+      {
+        path: "/admin/Shiprocket",
+        icon: Truck,
+        label: "Shipping",
         roles: ["admin"],
       },
     ],

@@ -1,7 +1,7 @@
 import axios from "axios";
 import api from "./api";
 
-const API_BASE_URL = "https://api.citizenprintz.in/api/shipping";
+const API_BASE_URL = "http://127.0.0.1:8000/api/shipping";
 
 // ✅ Create Shipment (Shiprocket Order)
 export const createShiprocketOrder = async (
@@ -69,4 +69,16 @@ export const cancelOrder = async (orderId: string) => {
 export const refundOrder = async (orderId: string) => {
   const res = await api.post(`/shipping/refund-order/${orderId}`);
   return res.data;
+};
+
+
+export const getPickupLocations = async () => {
+  const response = await api.get('/shipping/pickup-locations');
+  return response.data;
+};  
+
+// Get wallet balance
+export const getWalletBalance = async () => {
+  const response = await api.get('/shipping/wallet-balance');
+  return response.data;
 };

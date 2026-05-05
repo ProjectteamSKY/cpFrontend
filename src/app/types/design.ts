@@ -20,15 +20,19 @@ export interface DesignRequest {
   updated_at: string;
 }
 
+// In your types/design.ts file
+// In your types/design.ts file
 export interface DesignFormData {
-  name: string;
-  email: string;
-  phone: string;
-  product_id: string;
-  design_notes?: string;
-  logo_images?: File[];
-  designed_images?: File[];
-  design_price?: number;
+    name: string;
+    email: string;
+    phone: string;
+    product_id: string;
+    design_notes: string;
+    logo_images: File[];
+    designed_images: File[];
+    design_price: number;
+    existing_logo_images?: string[];
+    existing_designed_images?: string[];
 }
 
 export interface DesignApiResponse {

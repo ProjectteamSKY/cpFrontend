@@ -9,7 +9,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { getUserId } from "../../utils/authStorage";
 
-const API_BASE = "https://api.citizenprintz.in";
+const API_BASE = "http://127.0.0.1:8000";
 
 const emptyForm = {
   first_name: "", last_name: "", street: "", landmark: "",

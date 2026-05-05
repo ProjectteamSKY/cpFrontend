@@ -43,8 +43,8 @@ import paytm from "../../../media/icons8-paytm-50.svg";
 import phonepe from "../../../media/icons8-phone-pe-50.svg";
 import { getUserId } from "../../utils/authStorage";
 
-const API_BASE = "https://api.citizenprintz.in/api";
-const MEDIA_BASE = "https://api.citizenprintz.in/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -531,7 +531,7 @@ export function CheckoutPage() {
   const roundedDelivery = Math.round(deliveryCharge);
   const gst = Math.round(roundedSubtotal * 0.18);
   // const total = Math.round(roundedSubtotal + gst + roundedDelivery);
-  const total = Math.round(roundedSubtotal + gst);
+  const total = Math.round(roundedSubtotal + gst + roundedDelivery);
 
 
   // ================= PLACE ORDER =================

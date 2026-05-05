@@ -20,7 +20,7 @@
 //   return null;
 // }
 
-// const BASE = "https://api.citizenprintz.in";
+// const BASE = "http://127.0.0.1:8000";
 
 // // ── BANNER CAROUSEL (Hero replacement — full-width text-overlay) ─────────────
 // interface Discount {

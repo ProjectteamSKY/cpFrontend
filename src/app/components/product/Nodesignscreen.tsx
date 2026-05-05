@@ -277,7 +277,7 @@ export default function NoDesignScreen({
         }
 
         const response = await fetch(
-            "https://api.citizenprintz.in/api/design_request/create",
+            "http://127.0.0.1:8000/api/design_request/create",
             {
                 method: "POST",
                 body: fd,

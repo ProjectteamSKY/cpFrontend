@@ -8,8 +8,8 @@ import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
 import { getUserId } from "../../utils/authStorage";
 
-const API_BASE = "https://api.citizenprintz.in/api";
-const MEDIA_BASE = "https://api.citizenprintz.in/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 interface CartItem {
   id: string;

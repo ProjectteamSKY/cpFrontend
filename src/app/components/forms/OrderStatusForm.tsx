@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 interface Props {
   currentStatus: OrderStatus;
   onChange: (status: OrderStatus) => Promise<void>;
+  loading?: boolean;
 }
 
 const STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
@@ -17,17 +18,26 @@ const STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
   cancelled: [],
   refunded: [],
 };
+
 export function OrderStatusForm({
   currentStatus,
   onChange,
+  loading = false,
 }: Props) {
-  const nextStatuses = STATUS_FLOW[currentStatus];
+  // ✅ SAFE fallback (prevents crash)
+  const nextStatuses = STATUS_FLOW[currentStatus] ?? [];
+
   const [selected, setSelected] = useState<OrderStatus | "">("");
 
-  if (currentStatus === "delivery") {
+  // ✅ Completed / Locked states
+  if (
+    currentStatus === "delivery" ||
+    currentStatus === "cancelled" ||
+    currentStatus === "refunded"
+  ) {
     return (
-      <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-        Completed
+      <span className="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+        No actions
       </span>
     );
   }
@@ -40,26 +50,37 @@ export function OrderStatusForm({
           setSelected(e.target.value as OrderStatus)
         }
         className="border rounded-md px-3 py-1 text-sm"
+        disabled={loading || nextStatuses.length === 0}
       >
         <option value="">Select status</option>
-        {nextStatuses.map((status) => (
-          <option key={status} value={status}>
-            {status}
-          </option>
-        ))}
+
+        {nextStatuses.length === 0 ? (
+          <option disabled>No transitions</option>
+        ) : (
+          nextStatuses.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))
+        )}
       </select>
 
       <Button
         size="sm"
-        disabled={!selected}
-        className="bg-[#D73D32] text-white"
+        disabled={!selected || loading}
+        className="bg-[#D73D32] text-white disabled:opacity-50"
         onClick={async () => {
           if (!selected) return;
-          await onChange(selected);
-          setSelected("");
+
+          try {
+            await onChange(selected);
+            setSelected(""); // reset after success
+          } catch (err) {
+            console.error("Status update failed:", err);
+          }
         }}
       >
-        Update
+        {loading ? "Updating..." : "Update"}
       </Button>
     </div>
   );

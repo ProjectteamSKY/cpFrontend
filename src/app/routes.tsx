@@ -45,6 +45,7 @@ import { AttributeValueManagement } from "./components/admin/AttributeValueManag
 import { ProductAttributeManagement } from "./components/admin/ProductAttributeManagement";
 import ProductSetupWrapper from "./components/admin/ProductSetupWrapper";
 import { OrderDetailsPage } from "./components/admin/OrderDetailsPage";
+import ShiprocketManagement from "./components/shiprocket/ShiprockectManagement";
 
 
 
@@ -235,6 +236,7 @@ export const router = createBrowserRouter([
               { path: "Role", element: <UserRole /> },
               { path: "add-role", element: <AddRole /> },
               { path: "resources-actions", element: <AddResourceActions /> },
+              { path: "Shiprocket", element: <ShiprocketManagement /> }
             ],
           },
           // ===== DESIGNER + ADMIN =====

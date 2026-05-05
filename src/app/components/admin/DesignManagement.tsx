@@ -152,28 +152,44 @@ export function DesignManagement() {
             header: "Status",
             cell: ({ row }) => {
                 const design = row.original;
-                const statuses: Array<"NEW" | "IN_PROGRESS" | "DESIGN_COMPLETED" | "REJECTED"> = [
-                    "NEW",
-                    "IN_PROGRESS",
-                    "DESIGN_COMPLETED",
-                    "REJECTED",
-                ];
+
+                const statuses: Array<
+                    "NEW" | "IN_PROGRESS" | "DESIGN_COMPLETED" | "APPROVED" | "REJECTED"
+                > = [
+                        "NEW",
+                        "IN_PROGRESS",
+                        "DESIGN_COMPLETED",
+                        "APPROVED",
+                        "REJECTED",
+                    ];
+
+                const handleChange = async (value: string) => {
+                    await handleStatusChange(design.id, value);
+                    await refetch();
+                };
 
                 return (
                     <div className="flex items-center gap-2">
-                        <select
-                            value={design.status}
-                            onChange={(e) =>
-                                handleStatusChange(design.id, e.target.value as any)
-                            }
-                            className="px-3 py-1 rounded-md border border-gray-300 text-sm bg-white hover:border-[#D73D32] focus:border-[#D73D32] focus:ring-1 focus:ring-[#D73D32] cursor-pointer transition-colors"
-                        >
-                            {statuses.map((status) => (
-                                <option key={status} value={status}>
-                                    {status.replace("_", " ")}
-                                </option>
-                            ))}
-                        </select>
+
+                        {/* 🔥 APPROVED = BADGE (LOCKED STATE) */}
+                        {design.status === "APPROVED" ? (
+                            <span className="px-3 py-1 text-xs rounded-md bg-green-100 text-green-700 font-medium">
+                                APPROVED
+                            </span>
+                        ) : (
+                            /* 🔥 OTHER STATUSES = DROPDOWN */
+                            <select
+                                value={design.status}
+                                onChange={(e) => handleChange(e.target.value)}
+                                className="px-3 py-1 rounded-md border border-gray-300 text-sm bg-white hover:border-[#D73D32] focus:border-[#D73D32] focus:ring-1 focus:ring-[#D73D32] cursor-pointer transition-colors"
+                            >
+                                {statuses.map((status) => (
+                                    <option key={status} value={status}>
+                                        {status.replace(/_/g, " ")}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                 );
             },
@@ -237,18 +253,7 @@ export function DesignManagement() {
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Design Requests Management</h1>
 
-                {mode === "list" && (
-                    <Button
-                        className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
-                        onClick={() => {
-                            setSelectedDesign(null);
-                            setMode("add");
-                        }}
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Design Request
-                    </Button>
-                )}
+                
             </div>
 
             {/* FORM / VIEW MODES */}
@@ -346,7 +351,7 @@ export function DesignManagement() {
                                 {selectedDesign.logo_images.map((img, idx) => (
                                     <img
                                         key={idx}
-                                        src={`https://api.citizenprintz.in/${img}`}
+                                        src={`http://127.0.0.1:8000/${img}`}
                                         alt={`Logo ${idx + 1}`}
                                         className="w-full h-32 object-cover rounded-lg border border-gray-200"
                                     />
@@ -363,7 +368,7 @@ export function DesignManagement() {
                                 {selectedDesign.designed_images.map((img, idx) => (
                                     <img
                                         key={idx}
-                                        src={`https://api.citizenprintz.in/${img}`}
+                                        src={`http://127.0.0.1:8000/${img}`}
                                         alt={`Design ${idx + 1}`}
                                         className="w-full h-32 object-cover rounded-lg border border-gray-200"
                                     />
