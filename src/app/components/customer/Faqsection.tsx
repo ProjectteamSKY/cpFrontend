@@ -114,7 +114,7 @@ export default function FAQ({ categoryId, productId }: FAQProps) {
   const buildApiUrl = (): string => {
     const params = new URLSearchParams({ category_id: categoryId });
     if (productId) params.append("product_id", productId);
-    return `http://127.0.0.1:8000/api/faq/product?${params.toString()}`;
+    return `https://api.citizenprintz.in/api/faq/product?${params.toString()}`;
   };
 
   useEffect(() => {

@@ -147,7 +147,7 @@ export function AdminDashboard() {
 
   useEffect(() => {
     // Fetch summary
-    fetch("http://127.0.0.1:8000/api/orders_routes/summary")
+    fetch("https://api.citizenprintz.in/api/orders_routes/summary")
       .then(r => r.json())
       .then(data => {
         setSummary(data);
@@ -160,7 +160,7 @@ export function AdminDashboard() {
       });
 
     // Fetch revenue data
-    fetch("http://127.0.0.1:8000/api/orders_routes/revenue/monthly")
+    fetch("https://api.citizenprintz.in/api/orders_routes/revenue/monthly")
       .then(r => r.json())
       .then(data => {
         // Ensure data is an array and has the correct structure
@@ -178,7 +178,7 @@ export function AdminDashboard() {
       });
 
     // Fetch top products
-    fetch("http://127.0.0.1:8000/api/orders_routes/top-products")
+    fetch("https://api.citizenprintz.in/api/orders_routes/top-products")
       .then(r => r.json())
       .then(data => {
         // Transform data to match expected format
@@ -210,7 +210,7 @@ export function AdminDashboard() {
       });
 
     // Fetch recent orders
-    fetch("http://127.0.0.1:8000/api/orders_routes/recent-orders")
+    fetch("https://api.citizenprintz.in/api/orders_routes/recent-orders")
       .then(r => r.json())
       .then(data => {
         const orders = Array.isArray(data) ? data.map(order => ({

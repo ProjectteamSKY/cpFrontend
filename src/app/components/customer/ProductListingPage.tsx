@@ -60,7 +60,7 @@ interface Product {
 /* ─────────────────────────────────────────
    Constants & Helpers
 ───────────────────────────────────────── */
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "https://api.citizenprintz.in";
 
 // Extract best image URL from the complex image object
 function getImageUrlFromImageObj(image?: ProductImage): string {

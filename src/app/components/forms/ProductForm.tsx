@@ -29,7 +29,7 @@ import {
 import { Alert, AlertDescription } from "../ui/alert";
 import { productValidation } from "../../validation/productValidation";
 
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "https://api.citizenprintz.in";
 
 interface Props {
   defaultValues?: Product | null;

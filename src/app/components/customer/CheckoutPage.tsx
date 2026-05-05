@@ -42,9 +42,10 @@ import gpay from "../../../media/icons8-google-pay-50.svg";
 import paytm from "../../../media/icons8-paytm-50.svg";
 import phonepe from "../../../media/icons8-phone-pe-50.svg";
 import { getUserId } from "../../utils/authStorage";
+import { getPickupLocations } from "../../service/shippingApiService";
 
-const API_BASE = "http://127.0.0.1:8000/api";
-const MEDIA_BASE = "http://127.0.0.1:8000/";
+const API_BASE = "https://api.citizenprintz.in/api";
+const MEDIA_BASE = "https://api.citizenprintz.in/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -82,7 +83,7 @@ export function CheckoutPage() {
   const isFetchingRef = useRef(false);
   const eventSourceRef = useRef(null);
   const isOrderPlacedRef = useRef(false);
-
+  const [selectedPickupPincode, setSelectedPickupPincode] = useState(null);
   // Read selected address from sessionStorage
   const selectedAddressId = sessionStorage.getItem("selected_address_id");
   const selectedAddress = (() => {
@@ -100,6 +101,10 @@ export function CheckoutPage() {
       toast.error("Please select a delivery address first");
       navigate("/address");
     }
+  }, []);
+
+  useEffect(() => {
+    fetchPickupPincode();
   }, []);
 
   // Toggle section expansion
@@ -251,6 +256,26 @@ export function CheckoutPage() {
     }
   };
 
+  const fetchPickupPincode = async () => {
+    try {
+      const res = await getPickupLocations();
+
+      const shippingAddresses =
+        res?.pickup_locations?.shipping_address || [];
+
+      const firstPincode = shippingAddresses?.[0]?.pin_code || null;
+
+      setSelectedPickupPincode(firstPincode);
+
+      console.log("Selected Pickup Pincode:", firstPincode);
+
+      return firstPincode;
+
+    } catch (err) {
+      console.error("Failed to fetch pickup pincode", err);
+      return null;
+    }
+  };
   // Check Hyperlocal Availability
   const checkHyperlocalAvailability = async () => {
     if (!selectedAddress?.postal_code) {
@@ -324,6 +349,7 @@ export function CheckoutPage() {
     }
   };
 
+
   // Fetch Standard Delivery Charges (Internal)
   const fetchStandardDeliveryChargesInternal = async () => {
     if (!selectedAddress?.postal_code) {
@@ -342,7 +368,7 @@ export function CheckoutPage() {
       );
 
       const deliveryPostcode = selectedAddress.postal_code;
-      const pickupPostcode = "600001";
+      const pickupPostcode = selectedPickupPincode || "600100";
       const codValue = paymentMethod === "cod" ? 1 : 0;
 
       const res = await axios.get(`${API_BASE}/shipping/serviceavailability`, {
@@ -402,7 +428,7 @@ export function CheckoutPage() {
     }
 
     try {
-      const pickupPostcode = "600100";
+      const pickupPostcode = selectedPickupPincode || "600100";
       const deliveryPostcode = selectedAddress.postal_code;
       const codValue = paymentMethod === "cod" ? 1 : 0;
 
@@ -498,6 +524,8 @@ export function CheckoutPage() {
       isFetchingRef.current = false;
     }
   };
+
+  
 
   // Initialize cart and delivery fetch on mount
   useEffect(() => {

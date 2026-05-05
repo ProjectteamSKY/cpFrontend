@@ -434,7 +434,7 @@ function RejectionReasonModal({ isOpen, onClose, onSubmit, isSubmitting }: {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DesignRequestTracking({
     open, onClose, requestId, userId,
-    mediaBaseUrl = "http://127.0.0.1:8000/",
+    mediaBaseUrl = "https://api.citizenprintz.in/",
 }: DesignRequestTrackingProps) {
     const navigate = useNavigate();
     const [request, setRequest] = useState<DesignRequest | null>(null);
@@ -450,7 +450,7 @@ export default function DesignRequestTracking({
         if (!requestId) return;
         setLoading(true); setError(null);
         try {
-            const res = await fetch(`http://127.0.0.1:8000/api/design_request/${requestId}`);
+            const res = await fetch(`https://api.citizenprintz.in/api/design_request/${requestId}`);
             if (!res.ok) throw new Error(`Error ${res.status}`);
             const json = await res.json();
             setRequest(json.data || json);
@@ -475,7 +475,7 @@ export default function DesignRequestTracking({
         if (!request) return;
         setApproving(true); setError(null);
         try {
-            const res = await fetch(`http://127.0.0.1:8000/api/design_request/designedimage/${request.id}/approve`, {
+            const res = await fetch(`https://api.citizenprintz.in/api/design_request/designedimage/${request.id}/approve`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: userId }),
@@ -496,7 +496,7 @@ export default function DesignRequestTracking({
             formData.append("user_id", userId || "");
             formData.append("rejection_reason", rejectionReason);
             
-            const res = await fetch(`http://127.0.0.1:8000/api/design_request/designedimage/${request.id}/reject`, {
+            const res = await fetch(`https://api.citizenprintz.in/api/design_request/designedimage/${request.id}/reject`, {
                 method: "PUT",
                 body: formData,
             });
