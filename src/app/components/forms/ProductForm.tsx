@@ -29,7 +29,7 @@ import {
 import { Alert, AlertDescription } from "../ui/alert";
 import { productValidation } from "../../validation/productValidation";
 
-const BASE_URL = "http://54.206.3.97";
+const BASE_URL = "https://api.citizenprintz.in";
 
 interface Props {
   defaultValues?: Product | null;
@@ -86,9 +86,35 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
   const [relatedImagePreviews, setRelatedImagePreviews] = useState<(string | File)[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const getFullImageUrl = useCallback((imagePath: string) => {
-    if (imagePath.startsWith("http")) return imagePath;
-    return `${BASE_URL}/${imagePath}`;
+  const getFullImageUrl = useCallback((image: any) => {
+    if (!image) return "";
+
+    let imagePath = "";
+
+    // Check if image has nested structure (original, mobile, thumbnail)
+    if (image.original?.url) {
+      imagePath = image.original.url;
+    } else if (image.mobile?.url) {
+      imagePath = image.mobile.url;
+    } else if (image.thumbnail?.url) {
+      imagePath = image.thumbnail.url;
+    } else if (image.url) {
+      // Direct url property
+      imagePath = image.url;
+    }
+
+    if (!imagePath) return "";
+
+    // Handle absolute URLs
+    if (imagePath.startsWith("http")) {
+      return imagePath;
+    }
+
+    // Remove leading slash if present
+    const cleanPath = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
+
+    // Return full URL
+    return `${BASE_URL}/${cleanPath}`;
   }, []);
 
   /* ================= FETCH CATEGORIES ================= */
@@ -152,12 +178,16 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     setExistingImages(defaultValues.images ?? []);
     setExistingRelatedImages(defaultValues.related_images ?? []);
 
-    setImagePreviews(
-      (defaultValues.images ?? []).map((img) => getFullImageUrl(img.url))
-    );
-    setRelatedImagePreviews(
-      (defaultValues.related_images ?? []).map((img) => getFullImageUrl(img.url))
-    );
+    const imagePrevs = (defaultValues.images ?? [])
+      .map((img) => getFullImageUrl(img))
+      .filter(Boolean);
+
+    const relatedImagePrevs = (defaultValues.related_images ?? [])
+      .map((img) => getFullImageUrl(img))
+      .filter(Boolean);
+
+    setImagePreviews(imagePrevs);
+    setRelatedImagePreviews(relatedImagePrevs);
   }, [formKey, defaultValues, reset, getFullImageUrl]);
 
   /* ================= IMAGE HANDLERS ================= */
@@ -221,9 +251,17 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     const removed = imagePreviews[index];
 
     if (typeof removed === "string") {
-      const filename = removed.split("/").pop();
+      // Extract the filename from the URL
+      const urlParts = removed.split("/");
+      const filename = urlParts[urlParts.length - 1];
+      
       setExistingImages((prev) =>
-        prev.filter((img) => img.url.split("/").pop() !== filename)
+        prev.filter((img) => {
+          const imgUrl = getFullImageUrl(img);
+          const imgUrlParts = imgUrl.split("/");
+          const imgFilename = imgUrlParts[imgUrlParts.length - 1];
+          return imgFilename !== filename;
+        })
       );
     }
 
@@ -234,9 +272,17 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
     const removed = relatedImagePreviews[index];
 
     if (typeof removed === "string") {
-      const filename = removed.split("/").pop();
+      // Extract the filename from the URL
+      const urlParts = removed.split("/");
+      const filename = urlParts[urlParts.length - 1];
+      
       setExistingRelatedImages((prev) =>
-        prev.filter((img) => img.url.split("/").pop() !== filename)
+        prev.filter((img) => {
+          const imgUrl = getFullImageUrl(img);
+          const imgUrlParts = imgUrl.split("/");
+          const imgFilename = imgUrlParts[imgUrlParts.length - 1];
+          return imgFilename !== filename;
+        })
       );
     }
 
@@ -312,11 +358,10 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                 id="name"
                 {...register("name", productValidation.name)}
                 placeholder="Enter product name"
-                className={`${
-                  errors.name
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
-                }`}
+                className={`${errors.name
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                  }`}
               />
               {errors.name && (
                 <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
@@ -342,9 +387,8 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                     disabled={isLoadingCategories}
                   >
                     <SelectTrigger
-                      className={`${
-                        categoriesError ? "border-red-500" : "border-gray-300"
-                      } focus:ring-[#D73D32] focus:border-[#D73D32]`}
+                      className={`${categoriesError ? "border-red-500" : "border-gray-300"
+                        } focus:ring-[#D73D32] focus:border-[#D73D32]`}
                     >
                       <SelectValue
                         placeholder={
@@ -398,19 +442,18 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                     }
                   >
                     <SelectTrigger
-                      className={`${
-                        subcategoriesError ? "border-red-500" : "border-gray-300"
-                      } focus:ring-[#D73D32] focus:border-[#D73D32]`}
+                      className={`${subcategoriesError ? "border-red-500" : "border-gray-300"
+                        } focus:ring-[#D73D32] focus:border-[#D73D32]`}
                     >
                       <SelectValue
                         placeholder={
                           !selectedCategory
                             ? "Select a category first"
                             : isLoadingSubcategories
-                            ? "Loading subcategories..."
-                            : subcategories.length === 0
-                            ? "No subcategories available"
-                            : "Select a subcategory"
+                              ? "Loading subcategories..."
+                              : subcategories.length === 0
+                                ? "No subcategories available"
+                                : "Select a subcategory"
                         }
                       />
                     </SelectTrigger>
@@ -479,11 +522,10 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                 type="number"
                 {...register("min_order_qty", productValidation.min_order_qty)}
                 placeholder="e.g., 100"
-                className={`${
-                  errors.min_order_qty
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
-                }`}
+                className={`${errors.min_order_qty
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                  }`}
               />
               {errors.min_order_qty && (
                 <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
@@ -503,11 +545,10 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                 type="number"
                 {...register("max_order_qty", productValidation.max_order_qty)}
                 placeholder="Optional"
-                className={`${
-                  errors.max_order_qty
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
-                }`}
+                className={`${errors.max_order_qty
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:border-[#D73D32] focus:ring-[#D73D32]"
+                  }`}
               />
               {errors.max_order_qty && (
                 <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
@@ -583,6 +624,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                               src={typeof src === "string" ? src : URL.createObjectURL(src)}
                               alt={`Preview ${index + 1}`}
                               className="w-full h-full object-cover rounded-lg border border-gray-200 group-hover:border-[#D73D32] transition-colors"
+                              onError={(e) => {
+                                console.error(`Failed to load image at index ${index}:`, src);
+                              }}
                             />
                             <button
                               type="button"
@@ -663,6 +707,9 @@ export function ProductForm({ defaultValues, onSubmit, onCancel }: Props) {
                               src={typeof src === "string" ? src : URL.createObjectURL(src)}
                               alt={`Related preview ${index + 1}`}
                               className="w-full h-full object-cover rounded-lg border border-gray-200 group-hover:border-[#D73D32] transition-colors"
+                              onError={(e) => {
+                                console.error(`Failed to load related image at index ${index}:`, src);
+                              }}
                             />
                             <button
                               type="button"

@@ -31,8 +31,8 @@ import { AddressPage } from "./AddressPage";
 import DesignRequestTracking from "./Designrequesttracking";
 import { getUserId, getUserRoles } from "../../utils/authStorage";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "https://api.citizenprintz.in/api";
+const MEDIA_BASE = "https://api.citizenprintz.in/";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -472,47 +472,47 @@ function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFor
         setForm((prev) => ({ ...prev, [key]: value }));
     };
     const handleSubmit = async () => {
-    setSaving(true);
-    try {
-        const payload = {
-            user_id: userId,
-            phone_number: form.phone_number || null,
-            gender: form.gender || "Not Specified",
-            address: form.address || null,
-            city: form.city || null,
-            state: form.state || null,
-            country: form.country || null,
-            postal_code: form.postal_code || null,
-            date_of_birth: form.date_of_birth || null,
-        };
-
-        let res;
-
+        setSaving(true);
         try {
-            // ✅ Try UPDATE first
-            res = await axios.put(`${API_BASE}/user-profile/${userId}`, payload, {
-                headers: { "Content-Type": "application/json" },
-            });
-        } catch (err: any) {
-            if (err.response?.status === 404) {
-                // ✅ If not exists → CREATE
-                res = await axios.post(`${API_BASE}/user-profile/`, payload, {
+            const payload = {
+                user_id: userId,
+                phone_number: form.phone_number || null,
+                gender: form.gender || "Not Specified",
+                address: form.address || null,
+                city: form.city || null,
+                state: form.state || null,
+                country: form.country || null,
+                postal_code: form.postal_code || null,
+                date_of_birth: form.date_of_birth || null,
+            };
+
+            let res;
+
+            try {
+                // ✅ Try UPDATE first
+                res = await axios.put(`${API_BASE}/user-profile/${userId}`, payload, {
                     headers: { "Content-Type": "application/json" },
                 });
-            } else {
-                throw err;
+            } catch (err: any) {
+                if (err.response?.status === 404) {
+                    // ✅ If not exists → CREATE
+                    res = await axios.post(`${API_BASE}/user-profile/`, payload, {
+                        headers: { "Content-Type": "application/json" },
+                    });
+                } else {
+                    throw err;
+                }
             }
-        }
 
-        onSaved(res.data);
-        toast.success("Profile updated successfully!");
-    } catch (err) {
-        console.error("Extended profile save failed", err);
-        toast.error("Failed to save profile.");
-    } finally {
-        setSaving(false);
-    }
-};
+            onSaved(res.data);
+            toast.success("Profile updated successfully!");
+        } catch (err) {
+            console.error("Extended profile save failed", err);
+            toast.error("Failed to save profile.");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const inputClass =
         "w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition";

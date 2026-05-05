@@ -194,7 +194,7 @@ export default function NoDesignScreen({
         }
 
         if (!variantPriceId) {
-            console.error("❌ Invalid variant_price_id selection", {
+            console.error(" Invalid variant_price_id selection", {
                 selectedQuantity,
                 prices: selectedVariant?.prices,
             });
@@ -214,7 +214,7 @@ export default function NoDesignScreen({
                     attributeMetadata?.[key.toUpperCase()];
 
                 if (!meta) {
-                    console.warn("⚠️ Missing metadata for:", key);
+                    console.warn(" Missing metadata for:", key);
                 }
 
                 return {
@@ -277,7 +277,7 @@ export default function NoDesignScreen({
         }
 
         const response = await fetch(
-            "http://54.206.3.97/api/design_request/create",
+            "https://api.citizenprintz.in/api/design_request/create",
             {
                 method: "POST",
                 body: fd,

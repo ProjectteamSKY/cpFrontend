@@ -3,7 +3,7 @@
 import axios from "axios";
 import { DesignRequest, DesignFormData, DesignUpdatePayload } from "../types/design";
 
-const API_BASE_URL = "http://54.206.3.97/api";
+const API_BASE_URL = "https://api.citizenprintz.in/api";
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,

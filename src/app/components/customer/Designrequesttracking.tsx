@@ -11,6 +11,13 @@ import { useNavigate } from "react-router-dom";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
+interface DesignedImageItem {
+    images: string[];
+    status: string;
+    version: number;
+    created_at: string;
+}
+
 export interface DesignRequest {
     id: string;
     user_id: string;
@@ -22,13 +29,17 @@ export interface DesignRequest {
     variant_id: string;
     product_variant_price_id: string;
     design_notes: string;
-    logo_images: string;
-    designed_images: string;
+    logo_images: string | string[];
+    designed_images: string | string[] | DesignedImageItem[];
     status: "NEW" | "IN_PROGRESS" | "DESIGN_COMPLETED" | "APPROVED" | "REJECTED" | "PRINTING" | "COMPLETED";
     is_approved: number;
     design_price: number;
+    rejection_reason?: string;
     created_at: string;
     updated_at: string;
+    selected_attributes?: string;
+    variant_price_id?: string;
+    revision_count?: number;
 }
 
 export interface DesignRequestTrackingProps {
@@ -100,14 +111,56 @@ const STATUS_ORDER: StatusKey[] = ["NEW", "IN_PROGRESS", "DESIGN_COMPLETED", "AP
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-function parseImages(raw: string | string[]): string[] {
+function parseImages(raw: string | string[] | DesignedImageItem[]): string[] {
+    if (!raw) return [];
+    
+    // If it's an array
+    if (Array.isArray(raw)) {
+        // Check if it's array of DesignedImageItem objects
+        if (raw.length > 0 && typeof raw[0] === 'object' && 'images' in raw[0]) {
+            // Get the latest version's images (assuming last item is latest or we want all)
+            const latestItem = raw[raw.length - 1] as DesignedImageItem;
+            return latestItem.images || [];
+        }
+        // If it's array of strings
+        return raw as string[];
+    }
+    
+    // If it's a JSON string
+    if (typeof raw === 'string') {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                // Check if parsed is array of objects with images property
+                if (parsed.length > 0 && typeof parsed[0] === 'object' && 'images' in parsed[0]) {
+                    const latestItem = parsed[parsed.length - 1];
+                    return latestItem.images || [];
+                }
+                return parsed;
+            }
+            return [];
+        } catch {
+            return [];
+        }
+    }
+    
+    return [];
+}
+
+function parseLogoImages(raw: string | string[]): string[] {
     if (!raw) return [];
     if (Array.isArray(raw)) return raw;
-    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; }
-    catch { return []; }
+    try { 
+        const p = JSON.parse(raw); 
+        return Array.isArray(p) ? p : []; 
+    } catch { 
+        return []; 
+    }
 }
 
 function toUrl(path: string, base: string): string {
+    if (!path) return "";
+    // Handle Windows backslashes
     const clean = path.replace(/\\/g, "/");
     if (clean.startsWith("http")) return clean;
     return `${base.replace(/\/$/, "")}/${clean}`;
@@ -303,11 +356,85 @@ function Stepper({ status }: { status: StatusKey }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Rejection Reason Modal
+// ─────────────────────────────────────────────────────────────────────────────
+function RejectionReasonModal({ isOpen, onClose, onSubmit, isSubmitting }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSubmit: (reason: string) => void;
+    isSubmitting: boolean;
+}) {
+    const [reason, setReason] = useState("");
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[99999] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                            <MessageCircle size={16} color="#b91c1c" />
+                        </div>
+                        <h3 className="text-lg font-bold text-stone-900">Request Changes</h3>
+                    </div>
+                    <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
+                        <X size={20} />
+                    </button>
+                </div>
+                
+                <p className="text-sm text-stone-600 mb-4">
+                    Please let us know what changes you'd like. This helps our designer understand your requirements better.
+                </p>
+                
+                <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Example: Please increase logo size, change background color to blue, use a different font style..."
+                    className="w-full p-3 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-[#D73D32] focus:ring-1 focus:ring-[#D73D32] min-h-[150px] resize-y"
+                    autoFocus
+                />
+                
+                <div className="flex gap-3 mt-5">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-2.5 rounded-lg border border-stone-300 text-stone-700 font-semibold text-sm hover:bg-stone-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={() => onSubmit(reason)}
+                        disabled={!reason.trim() || isSubmitting}
+                        className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <div className="w-4 h-4 rounded-full border-2 border-white/35 border-t-white drt-spin" />
+                                Submitting...
+                            </>
+                        ) : (
+                            <>
+                                <ThumbsDown size={14} />
+                                Submit Changes Request
+                            </>
+                        )}
+                    </button>
+                </div>
+                
+                <p className="text-xs text-stone-400 mt-4 text-center">
+                    Our designer will review your feedback and update the design accordingly.
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DesignRequestTracking({
     open, onClose, requestId, userId,
-    mediaBaseUrl = "http://54.206.3.97/",
+    mediaBaseUrl = "https://api.citizenprintz.in/",
 }: DesignRequestTrackingProps) {
     const navigate = useNavigate();
     const [request, setRequest] = useState<DesignRequest | null>(null);
@@ -317,12 +444,13 @@ export default function DesignRequestTracking({
     const [approving, setApproving] = useState(false);
     const [rejecting, setRejecting] = useState(false);
     const [actionResult, setActionResult] = useState<"approved" | "rejected" | null>(null);
+    const [showRejectionModal, setShowRejectionModal] = useState(false);
 
     const fetchRequest = useCallback(async () => {
         if (!requestId) return;
         setLoading(true); setError(null);
         try {
-            const res = await fetch(`http://54.206.3.97/api/design_request/${requestId}`);
+            const res = await fetch(`https://api.citizenprintz.in/api/design_request/${requestId}`);
             if (!res.ok) throw new Error(`Error ${res.status}`);
             const json = await res.json();
             setRequest(json.data || json);
@@ -347,7 +475,7 @@ export default function DesignRequestTracking({
         if (!request) return;
         setApproving(true); setError(null);
         try {
-            const res = await fetch(`http://54.206.3.97/api/design_request/designedimage/${request.id}/approve`, {
+            const res = await fetch(`https://api.citizenprintz.in/api/design_request/designedimage/${request.id}/approve`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: userId }),
@@ -360,25 +488,31 @@ export default function DesignRequestTracking({
         } finally { setApproving(false); }
     };
 
-    const handleReject = async () => {
+    const handleRejectWithReason = async (rejectionReason: string) => {
         if (!request) return;
         setRejecting(true); setError(null);
         try {
-            const res = await fetch(`http://54.206.3.97/api/design_request/${request.id}/reject`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: userId }),
+            const formData = new FormData();
+            formData.append("user_id", userId || "");
+            formData.append("rejection_reason", rejectionReason);
+            
+            const res = await fetch(`https://api.citizenprintz.in/api/design_request/designedimage/${request.id}/reject`, {
+                method: "PUT",
+                body: formData,
             });
             if (!res.ok) throw new Error(`Rejection failed (${res.status})`);
-            setRequest(p => p ? { ...p, status: "REJECTED", is_approved: 0 } : p);
+            const responseData = await res.json();
+            setRequest(p => p ? { ...p, status: "REJECTED", is_approved: 0, rejection_reason: rejectionReason } : p);
             setActionResult("rejected");
+            setShowRejectionModal(false);
         } catch (err: any) {
             setError(err.message || "Failed to reject design");
         } finally { setRejecting(false); }
     };
 
+    // Parse images with the new helper functions
     const designedImages = request ? parseImages(request.designed_images) : [];
-    const logoImages = request ? parseImages(request.logo_images) : [];
+    const logoImages = request ? parseLogoImages(request.logo_images) : [];
     const cfg = request ? STATUS_CFG[request.status] : null;
     const showReview = request?.status === "DESIGN_COMPLETED" && !request?.is_approved && !actionResult;
 
@@ -399,6 +533,14 @@ export default function DesignRequestTracking({
 
     return (
         <div className="drt">
+            {/* Rejection Reason Modal */}
+            <RejectionReasonModal
+                isOpen={showRejectionModal}
+                onClose={() => !rejecting && setShowRejectionModal(false)}
+                onSubmit={handleRejectWithReason}
+                isSubmitting={rejecting}
+            />
+
             {/* Slide-in panel */}
             <div className={`fixed inset-0 z-[9999] bg-stone-50 flex flex-col transition-transform duration-350 ease-[cubic-bezier(0.4,0,0.2,1)] ${open ? 'translate-x-0' : 'translate-x-full'}`}>
 
@@ -480,6 +622,21 @@ export default function DesignRequestTracking({
                                     </div>
                                 </div>
 
+                                {/* Show rejection reason if status is REJECTED */}
+                                {request.status === "REJECTED" && request.rejection_reason && (
+                                    <div className="rounded-xl p-3.5 pl-4 mb-3" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-red-100 border border-red-200">
+                                                <MessageCircle size={14} color="#b91c1c" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xs font-bold text-red-900 mb-1">Change Request Details:</p>
+                                                <p className="text-xs text-red-800 leading-relaxed">{request.rejection_reason}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Stepper */}
                                 <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden mb-3">
                                     <div className="p-3.5 pb-3.5 pl-4">
@@ -532,8 +689,14 @@ export default function DesignRequestTracking({
                                         <div className="flex-1">
                                             <p className="text-[13px] font-bold text-red-900">Changes requested</p>
                                             <p className="text-xs text-red-700 mt-0.5">Our designer will revise and send it back soon.</p>
+                                            {request.rejection_reason && (
+                                                <div className="mt-2 pt-2 border-t border-red-200">
+                                                    <p className="text-xs font-semibold text-red-800">Your feedback:</p>
+                                                    <p className="text-xs text-red-700 mt-0.5">{request.rejection_reason}</p>
+                                                </div>
+                                            )}
                                         </div>
-                                        <a href={`https://wa.me/?text=Changes needed for design ID: ${request.id.slice(0, 8).toUpperCase()}. Notes:`}
+                                        <a href={`https://wa.me/?text=Changes needed for design ID: ${request.id.slice(0, 8).toUpperCase()}. Notes: ${encodeURIComponent(request.rejection_reason || "")}`}
                                             target="_blank" rel="noreferrer"
                                             className="flex items-center gap-1 text-[11px] font-bold text-red-700 no-underline shrink-0">
                                             <MessageCircle size={12} /> Add notes
@@ -559,10 +722,8 @@ export default function DesignRequestTracking({
                                                             ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-white/35 border-t-white drt-spin" /> Approving…</>
                                                             : <><ThumbsUp size={13} /> Approve</>}
                                                     </button>
-                                                    <button className="h-10.5 rounded-lg flex items-center justify-center gap-1.5 flex-1 font-bold text-[13px] border-2 border-red-300 bg-white text-red-600 transition-all duration-200 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleReject} disabled={approving || rejecting}>
-                                                        {rejecting
-                                                            ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-red-300 border-t-red-600 drt-spin" /> Rejecting…</>
-                                                            : <><ThumbsDown size={13} /> Changes</>}
+                                                    <button className="h-10.5 rounded-lg flex items-center justify-center gap-1.5 flex-1 font-bold text-[13px] border-2 border-red-300 bg-white text-red-600 transition-all duration-200 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setShowRejectionModal(true)} disabled={approving || rejecting}>
+                                                        <ThumbsDown size={13} /> Request Changes
                                                     </button>
                                                 </div>
                                                 <a href={`https://wa.me/?text=I need design changes. ID: ${request.id.slice(0, 8).toUpperCase()}`}

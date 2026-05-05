@@ -3,7 +3,7 @@ import axios from "axios";
 
 export const assignRoleToUser = async (userId, roleId, assignedBy = null) => {
 
-  const API_BASE_URL = 'http://54.206.3.97/api';
+  const API_BASE_URL = 'https://api.citizenprintz.in/api';
   
   const formData = new FormData();
   formData.append("user_id", userId);

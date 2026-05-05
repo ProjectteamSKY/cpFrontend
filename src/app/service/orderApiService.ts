@@ -6,6 +6,7 @@ import { Order, OrderStatus } from "../types/order";
 ========================= */
 
 const STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
+  confirmed: ["pending"],
   pending: ["process"],
   process: ["printing"],
   printing: ["packed"],
@@ -30,10 +31,21 @@ export const getAllOrders = async (): Promise<Order[]> => {
 
 export const updateOrderStatus = async (
   orderId: string,
-  currentStatus: OrderStatus,
+  currentStatus: OrderStatus | string,
   newStatus: OrderStatus
 ): Promise<void> => {
-  const allowed = STATUS_FLOW[currentStatus];
+  // ✅ SAFE fallback
+  const allowed =
+    typeof currentStatus === "string" && currentStatus in STATUS_FLOW
+      ? STATUS_FLOW[currentStatus as OrderStatus]
+      : [];
+
+  // ✅ Debug (very important)
+  console.log("STATUS CHECK: - orderApiService.ts:44", {
+    currentStatus,
+    newStatus,
+    allowed,
+  });
 
   if (!allowed.includes(newStatus)) {
     throw new Error(
@@ -41,6 +53,7 @@ export const updateOrderStatus = async (
     );
   }
 
+  // ✅ API CALL (will now trigger)
   await api.put(`/orders_routes/orders/${orderId}/status`, {
     status: newStatus,
   });

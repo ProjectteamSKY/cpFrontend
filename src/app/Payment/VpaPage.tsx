@@ -17,7 +17,7 @@ const VpaPage: React.FC = () => {
     try {
       // Send access token as query parameter
       const res = await axios.post(
-        `http://54.206.3.97/api/bank/vpa/create?accesstoken=${ACCESS_TOKEN}`,
+        `https://api.citizenprintz.in/api/bank/vpa/create?accesstoken=${ACCESS_TOKEN}`,
         {}, // empty body
         {
           headers: {

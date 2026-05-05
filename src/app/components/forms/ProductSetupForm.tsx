@@ -139,7 +139,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(imagesArray)) {
             const existingMainImages = imagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '',
+              preview: img.url ? `https://api.citizenprintz.in/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id,
@@ -162,7 +162,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
 
           if (Array.isArray(relatedImagesArray)) {
             const existingRelatedImages = relatedImagesArray.map((img: any) => ({
-              preview: img.url ? `http://54.206.3.97/${img.url}` : '',
+              preview: img.url ? `https://api.citizenprintz.in/${img.url}` : '',
               isExisting: true,
               url: img.url,
               id: img.id
@@ -419,7 +419,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
       /* ================= UPDATE OR CREATE ================= */
       if (isEditing && defaultValues?.id) {
         const response = await fetch(
-          `http://54.206.3.97/api/productsetup/update/${defaultValues.id}`,
+          `https://api.citizenprintz.in/api/productsetup/update/${defaultValues.id}`,
           {
             method: "PUT",
             body: formData,
@@ -436,7 +436,7 @@ export function ProductSetupForm({ defaultValues, onCancel, onSubmitSuccess, isE
         onSubmitSuccess?.();
       } else {
         const response = await axios.post(
-          "http://54.206.3.97/api/productsetup/create",
+          "https://api.citizenprintz.in/api/productsetup/create",
           formData
         );
 

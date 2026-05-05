@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string) => {
         try {
             const res = await axios.post(
-                "http://54.206.3.97/api/users/login",
+                "https://api.citizenprintz.in/api/users/login",
                 new URLSearchParams({ email, password })
             );
             console.log("Login response:", res.data);

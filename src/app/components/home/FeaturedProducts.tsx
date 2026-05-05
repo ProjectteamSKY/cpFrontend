@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 
-const BASE_URL = "http://54.206.3.97/";
+const BASE_URL = "https://api.citizenprintz.in/";
 
 function getValidImage(image: any): string | null {
   if (!image) return null;
@@ -30,7 +30,7 @@ export function FeaturedProducts() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://54.206.3.97/api/product/minimal/list")
+    fetch("https://api.citizenprintz.in/api/product/minimal/list")
       .then((res) => res.json())
       .then((data) => setProducts(data.products || []))
       .catch((err) => console.error("API Error:", err))

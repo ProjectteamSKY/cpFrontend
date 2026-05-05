@@ -1,7 +1,7 @@
 // UserRolePermissionService.js
 // import { API_BASE_URL } from '../config/apiConfig';
 
-const API_BASE_URL = 'http://54.206.3.97/api';
+const API_BASE_URL = 'https://api.citizenprintz.in/api';
 // create role
 export const createRole = async (roleData) => {
     try {

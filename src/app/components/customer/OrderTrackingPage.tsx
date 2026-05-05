@@ -11,25 +11,41 @@ import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
 import { getUserId } from "../../utils/authStorage";
 
-const API_BASE = "http://54.206.3.97/api";
+const API_BASE = "https://api.citizenprintz.in/api";
 
 const STATUS_CONFIG: Record<
   string,
   { icon: any; label: string; bg: string; text: string; dot: string; border: string; progress: number }
 > = {
-  pending:  { icon: ShoppingBag,  label: "Pending",          bg: "bg-amber-50",   text: "text-amber-700",   dot: "bg-amber-400",   border: "border-amber-200",   progress: 10  },
-  process:  { icon: Clock,        label: "Processing",        bg: "bg-sky-50",     text: "text-sky-700",     dot: "bg-sky-400",     border: "border-sky-200",     progress: 25  },
-  printing: { icon: Printer,      label: "Printing",          bg: "bg-violet-50",  text: "text-violet-700",  dot: "bg-violet-400",  border: "border-violet-200",  progress: 45  },
-  packed:   { icon: Package,      label: "Packed",            bg: "bg-teal-50",    text: "text-teal-700",    dot: "bg-teal-400",    border: "border-teal-200",    progress: 65  },
-  shipment: { icon: Truck,        label: "Shipped",           bg: "bg-orange-50",  text: "text-orange-700",  dot: "bg-orange-400",  border: "border-orange-200",  progress: 82  },
-  delivery: { icon: CheckCircle,  label: "Out for Delivery",  bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400", border: "border-emerald-200", progress: 100 },
+  pending: { icon: ShoppingBag, label: "Pending", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400", border: "border-amber-200", progress: 10 },
+  process: { icon: Clock, label: "Processing", bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-400", border: "border-sky-200", progress: 25 },
+  printing: { icon: Printer, label: "Printing", bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-400", border: "border-violet-200", progress: 45 },
+  packed: { icon: Package, label: "Packed", bg: "bg-teal-50", text: "text-teal-700", dot: "bg-teal-400", border: "border-teal-200", progress: 65 },
+  shipment: { icon: Truck, label: "Shipped", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400", border: "border-orange-200", progress: 82 },
+  delivery: { icon: CheckCircle, label: "Out for Delivery", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400", border: "border-emerald-200", progress: 100 },
+  cancelled: {
+    icon: X,
+    label: "Cancelled",
+    bg: "bg-gray-100",
+    text: "text-gray-600",
+    dot: "bg-gray-400",
+    border: "border-gray-200",
+    progress: 0
+  }
 };
 
+const CANCEL_BLOCKED = [
+  "printing",
+  "packed",
+  "shipment",
+  "delivery",
+  "cancelled"
+];
 const FILTER_TABS = [
-  { id: "all",      label: "All Orders", icon: Layers   },
-  { id: "pending",  label: "Pending",    icon: Clock    },
-  { id: "printing", label: "Printing",   icon: Printer  },
-  { id: "shipment", label: "Shipped",    icon: Truck    },
+  { id: "all", label: "All Orders", icon: Layers },
+  { id: "pending", label: "Pending", icon: Clock },
+  { id: "printing", label: "Printing", icon: Printer },
+  { id: "shipment", label: "Shipped", icon: Truck },
 ];
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -44,14 +60,13 @@ interface ReviewFormProps {
 }
 
 function ReviewFormModal({ order, userId, customerName, onClose, onSuccess }: ReviewFormProps) {
-  const [rating,     setRating]     = useState(0);
-  const [hovered,    setHovered]    = useState(0);
-  const [comment,    setComment]    = useState("");
-  const [image,      setImage]      = useState<File | null>(null);
-  const [preview,    setPreview]    = useState<string | null>(null);
+  const [rating, setRating] = useState(0);
+  const [hovered, setHovered] = useState(0);
+  const [comment, setComment] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const productId   = order?.products?.[0]?.product_id || "";
+  const productId = order?.products?.[0]?.product_id || "";
   const productName = order?.product_name || order?.items?.[0]?.product_name || `Order #${order?.id?.slice(-8).toUpperCase()}`;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,12 +81,12 @@ function ReviewFormModal({ order, userId, customerName, onClose, onSuccess }: Re
     setSubmitting(true);
     try {
       const form = new FormData();
-      form.append("product_id",    productId);
-      form.append("user_id",       userId);
+      form.append("product_id", productId);
+      form.append("user_id", userId);
       form.append("customer_name", customerName);
-      form.append("rating",        String(rating));
-      form.append("comment",       comment);
-      form.append("is_active",     "true");
+      form.append("rating", String(rating));
+      form.append("comment", comment);
+      form.append("is_active", "true");
       if (image) form.append("image", image);
 
       await axios.post(`${API_BASE}/review/create`, form, {
@@ -145,11 +160,10 @@ function ReviewFormModal({ order, userId, customerName, onClose, onSuccess }: Re
                   className="transition-transform hover:scale-110 focus:outline-none"
                 >
                   <Star
-                    className={`w-9 h-9 transition-colors ${
-                      star <= (hovered || rating)
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-gray-200 fill-gray-100"
-                    }`}
+                    className={`w-9 h-9 transition-colors ${star <= (hovered || rating)
+                      ? "fill-amber-400 text-amber-400"
+                      : "text-gray-200 fill-gray-100"
+                      }`}
                   />
                 </button>
               ))}
@@ -235,14 +249,15 @@ function ReviewFormModal({ order, userId, customerName, onClose, onSuccess }: Re
    OrderHistoryPage
 ══════════════════════════════════════════════════════════════════════ */
 export function OrderHistoryPage() {
-  const navigate     = useNavigate();
+  const navigate = useNavigate();
   const userId = getUserId();
   const customerName = sessionStorage.getItem("customer_name") || localStorage.getItem("customer_name") || "Customer";
 
-  const [orders,      setOrders]      = useState<any[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [filter,      setFilter]      = useState("all");
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
   const [reviewOrder, setReviewOrder] = useState<any | null>(null);
+  const [cancelLoading, setCancelLoading] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -263,6 +278,26 @@ export function OrderHistoryPage() {
     acc[o.status] = (acc[o.status] || 0) + 1;
     return acc;
   }, {});
+
+  // ✅ FIX: Proper cancel order function
+  const cancelOrder = async (orderId: string) => {
+    setCancelLoading(orderId);
+    try {
+      await axios.put(`${API_BASE}/orders_routes/${orderId}/cancel`);
+      toast.success("Order cancelled successfully");
+      
+      // Update UI instantly
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: "cancelled" } : o
+        )
+      );
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Failed to cancel order");
+    } finally {
+      setCancelLoading(null);
+    }
+  };
 
   /* ── Loading ──────────────────────────────────────────────────── */
   if (loading) return (
@@ -296,7 +331,7 @@ export function OrderHistoryPage() {
       {/* ── STAT TILES ───────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {FILTER_TABS.map(({ id, label, icon: Icon }, i) => {
-          const count    = id === "all" ? orders.length : (counts[id] || 0);
+          const count = id === "all" ? orders.length : (counts[id] || 0);
           const isActive = filter === id;
           return (
             <motion.button
@@ -305,11 +340,10 @@ export function OrderHistoryPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
               onClick={() => setFilter(id)}
-              className={`p-4 text-left rounded-2xl border transition-all duration-200 ${
-                isActive
-                  ? "bg-red-500 border-red-500 text-white shadow-lg shadow-red-200"
-                  : "bg-white border-gray-100 hover:border-red-200 hover:shadow-md"
-              }`}
+              className={`p-4 text-left rounded-2xl border transition-all duration-200 ${isActive
+                ? "bg-red-500 border-red-500 text-white shadow-lg shadow-red-200"
+                : "bg-white border-gray-100 hover:border-red-200 hover:shadow-md"
+                }`}
             >
               <Icon className={`w-4 h-4 mb-3 ${isActive ? "text-white/80" : "text-red-400"}`} />
               <p className={`text-2xl font-extrabold mb-0.5 leading-none ${isActive ? "text-white" : "text-gray-800"}`}>
@@ -327,11 +361,10 @@ export function OrderHistoryPage() {
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
         <button
           onClick={() => setFilter("all")}
-          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all duration-200 flex-shrink-0 ${
-            filter === "all"
-              ? "bg-red-500 border-red-500 text-white shadow-sm shadow-red-200"
-              : "bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500"
-          }`}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all duration-200 flex-shrink-0 ${filter === "all"
+            ? "bg-red-500 border-red-500 text-white shadow-sm shadow-red-200"
+            : "bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500"
+            }`}
         >
           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${filter === "all" ? "bg-white/70" : "bg-gray-400"}`} />
           All Orders
@@ -340,11 +373,10 @@ export function OrderHistoryPage() {
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all duration-200 flex-shrink-0 ${
-              filter === key
-                ? "bg-red-500 border-red-500 text-white shadow-sm shadow-red-200"
-                : "bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500"
-            }`}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all duration-200 flex-shrink-0 ${filter === key
+              ? "bg-red-500 border-red-500 text-white shadow-sm shadow-red-200"
+              : "bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500"
+              }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${filter === key ? "bg-white/70" : cfg.dot}`} />
             {cfg.label}
@@ -381,8 +413,8 @@ export function OrderHistoryPage() {
         <div className="w-full space-y-3">
           <AnimatePresence>
             {filteredOrders.map((order: any, i: number) => {
-              const cfg         = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-              const Icon        = cfg.icon;
+              const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+              const Icon = cfg.icon;
               const isDelivered = order.status === "delivery";
 
               return (
@@ -432,15 +464,40 @@ export function OrderHistoryPage() {
 
                       {/* Right — action buttons */}
                       <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+
+                        {/* CANCEL BUTTON */}
+                        {!CANCEL_BLOCKED.includes(order.status) && (
+                          <button
+                            onClick={() => cancelOrder(order.id)}
+                            disabled={cancelLoading === order.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors disabled:opacity-50 flex-1 sm:flex-none justify-center"
+                          >
+                            {cancelLoading === order.id ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                Cancelling...
+                              </>
+                            ) : (
+                              <>
+                                <X className="w-3.5 h-3.5" />
+                                Cancel
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {/* REVIEW BUTTON */}
                         {isDelivered && (
                           <button
                             onClick={() => setReviewOrder(order)}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors flex-1 sm:flex-none justify-center"
                           >
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            Rate &amp; Review
+                            Rate & Review
                           </button>
                         )}
+
+                        {/* VIEW BUTTON */}
                         <button
                           onClick={() => navigate(`/viewOrder/${order.id}`)}
                           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-100 bg-white text-red-500 text-xs font-bold hover:bg-red-500 hover:text-white hover:border-red-500 hover:shadow-md transition-all duration-200 flex-1 sm:flex-none justify-center"
@@ -450,13 +507,13 @@ export function OrderHistoryPage() {
                       </div>
                     </div>
 
-                    {/* Progress bar */}
-                    {!isDelivered && (
+                    {/* ✅ CLEAN PROGRESS BAR - No multicolor gradient */}
+                    {!isDelivered && order.status !== "cancelled" && (
                       <div className="mt-4 pt-4 border-t border-gray-50">
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <motion.div
-                              className="h-full bg-gradient-to-r from-red-400 to-orange-400 rounded-full"
+                              className="h-full bg-gray-400"
                               initial={{ width: 0 }}
                               animate={{ width: `${cfg.progress}%` }}
                               transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
@@ -467,7 +524,14 @@ export function OrderHistoryPage() {
                         <p className="text-[10px] text-gray-400 mt-1.5 font-medium">{cfg.label}</p>
                       </div>
                     )}
-
+                    {order.status === "cancelled" && (
+                      <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2">
+                        <X className="w-3.5 h-3.5 text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500">
+                          Order has been cancelled
+                        </span>
+                      </div>
+                    )}
                     {/* Delivered badge strip */}
                     {isDelivered && (
                       <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2">

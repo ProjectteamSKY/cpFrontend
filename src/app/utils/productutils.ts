@@ -96,7 +96,7 @@ export const getImageUrl = (image: any): string => {
     path = path.substring(1);
   }
 
-  return `http://54.206.3.97/${path}`;
+  return `https://api.citizenprintz.in/${path}`;
 };
 
 export const applyFilters = (

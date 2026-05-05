@@ -14,7 +14,7 @@ interface Props {
   onCancel: () => void;
 }
 
-const BASE_URL = "http://54.206.3.97";
+const BASE_URL = "https://api.citizenprintz.in";
 
 export function ProductDiscountForm({
   defaultValues,

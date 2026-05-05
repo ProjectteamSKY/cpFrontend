@@ -10,7 +10,7 @@ import {
 import { subcategoryValidation } from "../../validation/subcategoryValidation";
 
 // ✅ BASE URL
-const BASE_URL = "http://54.206.3.97";
+const BASE_URL = "https://api.citizenprintz.in";
 
 export function SubcategoryForm({
   defaultValues,

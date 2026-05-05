@@ -35,16 +35,16 @@ const getImageUrl = (imageData: any): string | null => {
         if (typeof url === 'string') {
             if (url.startsWith('http')) return url;
             if (url.startsWith('/storage') || url.startsWith('/uploads') || url.startsWith('media/')) {
-                return `http://54.206.3.97/${url}`;
+                return `https://api.citizenprintz.in/${url}`;
             }
-            return `http://54.206.3.97/${url.replace(/^\/+/, '')}`;
+            return `https://api.citizenprintz.in/${url.replace(/^\/+/, '')}`;
         }
     }
     
     // Case 2: It's a string
     if (typeof imageData === 'string') {
         if (imageData.startsWith('http')) return imageData;
-        return `http://54.206.3.97/${imageData.replace(/^\/+/, '')}`;
+        return `https://api.citizenprintz.in/${imageData.replace(/^\/+/, '')}`;
     }
     
     return null;

@@ -8,8 +8,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE   = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE   = "https://api.citizenprintz.in/api";
+const MEDIA_BASE = "https://api.citizenprintz.in/";
 
 const ORDER_STEPS = [
   { key: "pending",  label: "Placed",     icon: ShoppingBag, doneBg: "bg-amber-400",   ring: "ring-amber-200",   activeText: "text-amber-500",   activeBorder: "border-amber-400"   },

@@ -22,6 +22,15 @@ import {
   Wallet,
   Landmark,
   CircleCheckBig,
+  ShoppingBag,
+  Percent,
+  Ticket,
+  MessageCircle,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  X,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -33,9 +42,10 @@ import gpay from "../../../media/icons8-google-pay-50.svg";
 import paytm from "../../../media/icons8-paytm-50.svg";
 import phonepe from "../../../media/icons8-phone-pe-50.svg";
 import { getUserId } from "../../utils/authStorage";
+import { getPickupLocations } from "../../service/shippingApiService";
 
-const API_BASE = "http://54.206.3.97/api";
-const MEDIA_BASE = "http://54.206.3.97/";
+const API_BASE = "https://api.citizenprintz.in/api";
+const MEDIA_BASE = "https://api.citizenprintz.in/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -58,12 +68,22 @@ export function CheckoutPage() {
   const [hyperlocalCheck, setHyperlocalCheck] = useState(null);
   const [standardDeliveryOptions, setStandardDeliveryOptions] = useState([]);
   const [hyperlocalDeliveryOptions, setHyperlocalDeliveryOptions] = useState([]);
-  
+  const [txnId, setTxnId] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    address: true,
+    delivery: true,
+    payment: true,
+    orderSummary: true,
+  });
+  const [showHelpTip, setShowHelpTip] = useState(false);
+
   // Refs to prevent duplicate API calls
   const hasFetchedCart = useRef(false);
   const hasFetchedDelivery = useRef(false);
   const isFetchingRef = useRef(false);
-  
+  const eventSourceRef = useRef(null);
+  const isOrderPlacedRef = useRef(false);
+  const [selectedPickupPincode, setSelectedPickupPincode] = useState(null);
   // Read selected address from sessionStorage
   const selectedAddressId = sessionStorage.getItem("selected_address_id");
   const selectedAddress = (() => {
@@ -83,6 +103,18 @@ export function CheckoutPage() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchPickupPincode();
+  }, []);
+
+  // Toggle section expansion
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   // Fetch Cart Items
   const fetchCartItems = async () => {
     if (!userId) {
@@ -99,7 +131,6 @@ export function CheckoutPage() {
         `${API_BASE}/cartitems/user/${userId}`,
         { withCredentials: true }
       );
-      console.log("Cart items response:", res.data);
       const rawItems = res.data.data || [];
 
       if (!rawItems.length) {
@@ -214,7 +245,6 @@ export function CheckoutPage() {
         })
       );
 
-      console.log("Enriched cart items:", enrichedItems);
       setCartItems(enrichedItems);
       await checkHyperlocalAvailability();
     } catch (err) {
@@ -226,30 +256,45 @@ export function CheckoutPage() {
     }
   };
 
+  const fetchPickupPincode = async () => {
+    try {
+      const res = await getPickupLocations();
+
+      const shippingAddresses =
+        res?.pickup_locations?.shipping_address || [];
+
+      const firstPincode = shippingAddresses?.[0]?.pin_code || null;
+
+      setSelectedPickupPincode(firstPincode);
+
+      console.log("Selected Pickup Pincode:", firstPincode);
+
+      return firstPincode;
+
+    } catch (err) {
+      console.error("Failed to fetch pickup pincode", err);
+      return null;
+    }
+  };
   // Check Hyperlocal Availability
   const checkHyperlocalAvailability = async () => {
     if (!selectedAddress?.postal_code) {
-      console.log("No postal code available");
       return;
     }
 
     try {
       const deliveryPostcode = selectedAddress.postal_code;
-      console.log("Checking hyperlocal for pincode:", deliveryPostcode);
       const res = await axios.get(`${API_BASE}/shipping/hyperlocal/check`, {
         params: { pincode: deliveryPostcode }
       });
-      
-      console.log("Hyperlocal check response:", res.data);
+
       setHyperlocalCheck(res.data);
-      
+
       if (res.data.is_chennai_surrounding) {
         setIsHyperlocal(true);
-        console.log("Hyperlocal delivery available for this pincode");
         await fetchBothDeliveryOptions();
       } else {
         setIsHyperlocal(false);
-        console.log("Standard delivery only for this pincode");
         await fetchStandardDeliveryCharges();
       }
     } catch (err) {
@@ -264,39 +309,37 @@ export function CheckoutPage() {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     setIsFetchingDeliveryCharge(true);
-    console.log("Fetching both standard and hyperlocal delivery options...");
-    
+
     try {
       if (cartItems.length === 0) {
-        console.log("Waiting for cart items...");
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
+
       const [standardResult, hyperlocalResult] = await Promise.allSettled([
         fetchStandardDeliveryChargesInternal(),
         fetchHyperlocalDeliveryChargesInternal()
       ]);
-      
+
       let allOptions = [];
-      
+
       if (standardResult.status === 'fulfilled' && standardResult.value.length > 0) {
         setStandardDeliveryOptions(standardResult.value);
         allOptions = [...allOptions, ...standardResult.value];
       }
-      
+
       if (hyperlocalResult.status === 'fulfilled' && hyperlocalResult.value.length > 0) {
         setHyperlocalDeliveryOptions(hyperlocalResult.value);
         allOptions = [...allOptions, ...hyperlocalResult.value];
       }
-      
+
       allOptions.sort((a, b) => a.cost - b.cost);
       setDeliveryOptions(allOptions);
-      
+
       if (allOptions.length > 0) {
         setSelectedDeliveryOption(allOptions[0]);
         setDeliveryCharge(allOptions[0].cost);
       }
-      
+
     } catch (err) {
       console.error("Failed to fetch delivery options", err);
       toast.error("Failed to fetch delivery options");
@@ -306,41 +349,28 @@ export function CheckoutPage() {
     }
   };
 
+
   // Fetch Standard Delivery Charges (Internal)
   const fetchStandardDeliveryChargesInternal = async () => {
     if (!selectedAddress?.postal_code) {
       return [];
     }
 
-    console.log("Fetching standard delivery charges...");
-    
     try {
       const totalWeight = cartItems.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
       const totalLength = cartItems.reduce((sum, item) => sum + (Number(item.length) || 0), 0);
       const totalBreadth = cartItems.reduce((sum, item) => sum + (Number(item.breadth) || 0), 0);
       const totalHeight = cartItems.reduce((sum, item) => sum + (Number(item.height) || 0), 0);
-      
+
       const declaredValue = cartItems.reduce(
         (sum, i) => sum + Number(i.total_price),
         0
       );
 
       const deliveryPostcode = selectedAddress.postal_code;
-      const pickupPostcode = "600001";
-      // Map payment method to COD flag (1 for COD, 0 for PREPAID)
+      const pickupPostcode = selectedPickupPincode || "600100";
       const codValue = paymentMethod === "cod" ? 1 : 0;
-      
-      console.log("Standard Delivery Parameters:", {
-        pickup_postcode: pickupPostcode,
-        delivery_postcode: deliveryPostcode,
-        weight: totalWeight,
-        length: totalLength,
-        breadth: totalBreadth,
-        height: totalHeight,
-        cod: codValue,
-        declared_value: declaredValue,
-      });
-      
+
       const res = await axios.get(`${API_BASE}/shipping/serviceavailability`, {
         params: {
           pickup_postcode: pickupPostcode,
@@ -354,38 +384,36 @@ export function CheckoutPage() {
         },
       });
 
-      console.log("Standard delivery response:", res.data);
-
       let options = [];
-      
+
       if (res.data.couriers && res.data.couriers.length > 0) {
         options = res.data.couriers.map((courier, index) => ({
           id: `standard_${index}`,
           name: courier.courier_name || `Standard Courier ${index + 1}`,
-          type: "normal", // API expects 'normal' for standard delivery
+          type: "normal",
           delivery_type: "normal",
           cost: Number(courier.total_cost || courier.rate || 0),
           estimated_days: courier.estimated_delivery_days || 5,
           estimated_hours: (courier.estimated_delivery_days || 5) * 24,
           is_hyperlocal: false,
           description: `Standard delivery in ${courier.estimated_delivery_days || 5} days`,
-          courier_id: courier.courier_company_id || null, // Fixed: Use courier_company_id
+          courier_id: courier.courier_company_id || null,
         }));
       } else if (res.data.best_courier) {
         options = [{
           id: "standard_0",
           name: res.data.best_courier.courier_name || "Standard Delivery",
-          type: "normal", // API expects 'normal' for standard delivery
+          type: "normal",
           delivery_type: "normal",
           cost: Number(res.data.best_courier.total_cost || res.data.best_courier.rate || 0),
           estimated_days: res.data.best_courier.estimated_delivery_days || 5,
           estimated_hours: (res.data.best_courier.estimated_delivery_days || 5) * 24,
           is_hyperlocal: false,
           description: `Standard delivery in ${res.data.best_courier.estimated_delivery_days || 5} days`,
-          courier_id: res.data.best_courier.courier_company_id || null, // Fixed: Use courier_company_id
+          courier_id: res.data.best_courier.courier_company_id || null,
         }];
       }
-      
+
       return options;
     } catch (err) {
       console.error("Standard delivery charge fetch failed", err);
@@ -399,20 +427,11 @@ export function CheckoutPage() {
       return [];
     }
 
-    console.log("Fetching hyperlocal delivery charges...");
-    
     try {
-      const pickupPostcode = "600100";
+      const pickupPostcode = selectedPickupPincode || "600100";
       const deliveryPostcode = selectedAddress.postal_code;
-      // Map payment method to COD flag (1 for COD, 0 for PREPAID)
       const codValue = paymentMethod === "cod" ? 1 : 0;
-      
-      console.log("Hyperlocal Delivery Parameters:", {
-        pickup_postcode: pickupPostcode,
-        delivery_postcode: deliveryPostcode,
-        cod: codValue,
-      });
-      
+
       const res = await axios.get(`${API_BASE}/shipping/hyperlocal/serviceability`, {
         params: {
           pickup_postcode: pickupPostcode,
@@ -421,19 +440,17 @@ export function CheckoutPage() {
         },
       });
 
-      console.log("Hyperlocal delivery response:", res.data);
-
       let options = [];
-      
+
       if (res.data.all_couriers && res.data.all_couriers.length > 0) {
         options = res.data.all_couriers.map((courier, index) => {
-          const isExpress = courier.courier_name.includes("Quick") || 
-                           courier.estimated_delivery_time_hours <= 24;
-          
+          const isExpress = courier.courier_name.includes("Quick") ||
+            courier.estimated_delivery_time_hours <= 24;
+
           return {
             id: `hyperlocal_${index}`,
             name: courier.courier_name,
-            type: "hyperlocal", // API expects 'hyperlocal'
+            type: "hyperlocal",
             delivery_type: "hyperlocal",
             cost: Number(courier.total_cost || 0),
             estimated_hours: courier.estimated_delivery_time_hours,
@@ -441,21 +458,21 @@ export function CheckoutPage() {
             distance_km: courier.distance_km,
             etd: courier.etd,
             is_hyperlocal: true,
-            description: isExpress ? 
-              `Express delivery in ${courier.estimated_delivery_time_hours} hours` : 
-              `Hyperlocal delivery • ${courier.distance_km} km away`,
-            courier_id: courier.courier_id || courier.courier_company_id || null, // Handle both field names
+            description: isExpress ?
+              `🚀 Express delivery in ${courier.estimated_delivery_time_hours} hours` :
+              `🏠 Hyperlocal delivery • ${courier.distance_km} km away`,
+            courier_id: courier.courier_id || courier.courier_company_id || null,
           };
         });
       } else if (res.data.best_courier) {
         const bestCourier = res.data.best_courier;
-        const isExpress = bestCourier.courier_name.includes("Quick") || 
-                         bestCourier.estimated_delivery_time_hours <= 24;
-        
+        const isExpress = bestCourier.courier_name.includes("Quick") ||
+          bestCourier.estimated_delivery_time_hours <= 24;
+
         options = [{
           id: "hyperlocal_0",
           name: bestCourier.courier_name,
-          type: "hyperlocal", // API expects 'hyperlocal'
+          type: "hyperlocal",
           delivery_type: "hyperlocal",
           cost: Number(bestCourier.total_cost || 0),
           estimated_hours: bestCourier.estimated_delivery_time_hours,
@@ -463,13 +480,13 @@ export function CheckoutPage() {
           distance_km: bestCourier.distance_km,
           etd: bestCourier.etd,
           is_hyperlocal: true,
-          description: isExpress ? 
-            `Express delivery in ${bestCourier.estimated_delivery_time_hours} hours` : 
-            `Hyperlocal delivery • ${bestCourier.distance_km} km away`,
-          courier_id: bestCourier.courier_id || bestCourier.courier_company_id || null, // Handle both field names
+          description: isExpress ?
+            `🚀 Express delivery in ${bestCourier.estimated_delivery_time_hours} hours` :
+            `🏠 Hyperlocal delivery • ${bestCourier.distance_km} km away`,
+          courier_id: bestCourier.courier_id || bestCourier.courier_company_id || null,
         }];
       }
-      
+
       return options;
     } catch (err) {
       console.error("Hyperlocal delivery charge fetch failed", err);
@@ -482,18 +499,17 @@ export function CheckoutPage() {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     setIsFetchingDeliveryCharge(true);
-    
+
     try {
       if (cartItems.length === 0) {
-        console.log("Waiting for cart items...");
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
+
       const options = await fetchStandardDeliveryChargesInternal();
       setStandardDeliveryOptions(options);
       setDeliveryOptions(options);
       setHyperlocalDeliveryOptions([]);
-      
+
       if (options.length > 0) {
         setSelectedDeliveryOption(options[0]);
         setDeliveryCharge(options[0].cost);
@@ -509,6 +525,8 @@ export function CheckoutPage() {
     }
   };
 
+  
+
   // Initialize cart and delivery fetch on mount
   useEffect(() => {
     fetchCartItems();
@@ -517,7 +535,6 @@ export function CheckoutPage() {
   // Re-fetch delivery options when payment method changes
   useEffect(() => {
     if (cartItems.length > 0 && selectedAddress?.postal_code && !loadingCart) {
-      console.log("Payment method changed to:", paymentMethod);
       hasFetchedDelivery.current = false;
       if (isHyperlocal) {
         fetchBothDeliveryOptions();
@@ -541,32 +558,38 @@ export function CheckoutPage() {
   const roundedSubtotal = Math.round(subtotal);
   const roundedDelivery = Math.round(deliveryCharge);
   const gst = Math.round(roundedSubtotal * 0.18);
+  // const total = Math.round(roundedSubtotal + gst + roundedDelivery);
   const total = Math.round(roundedSubtotal + gst + roundedDelivery);
 
-  // ================= PLACE ORDER (CORRECTED) =================
+
+  // ================= PLACE ORDER =================
   const handlePlaceOrder = async () => {
     if (!userId) {
       toast.warning("User not logged in! Please login again.");
       return;
     }
+
     if (!cartItems.length) {
       toast.warning("Cart is empty!");
       return;
     }
+
     if (!selectedAddressId) {
       toast.error("No delivery address selected. Please go back and select one.");
       navigate("/address");
       return;
     }
+
     if (!selectedDeliveryOption) {
       toast.error("Please select a delivery option");
       return;
     }
 
+    if (placingOrder) return;
+
     setPlacingOrder(true);
 
     try {
-      // Format cart items according to backend CheckoutRequest model
       const cartItemsPayload = cartItems.map((item) => ({
         cart_item_id: item.id,
         quantity: item.quantity,
@@ -579,73 +602,74 @@ export function CheckoutPage() {
         weight: item.weight || 0,
         length: item.length || 0,
         breadth: item.breadth || 0,
-        height: item.height || 0
+        height: item.height || 0,
       }));
 
-      // Map payment method: 'cod' -> 'COD', 'upi' -> 'PREPAID'
       const apiPaymentMethod = paymentMethod === "cod" ? "COD" : "PREPAID";
-      
-      // Map delivery type: 'hyperlocal' or 'normal'
-      const apiDeliveryType = selectedDeliveryOption.delivery_type === "hyperlocal" ? "hyperlocal" : "normal";
 
-      console.log("Selected delivery option details:", {
-        courier_id: selectedDeliveryOption.courier_id,
-        courier_name: selectedDeliveryOption.name,
-        delivery_type: apiDeliveryType,
-        original_type: selectedDeliveryOption.delivery_type,
-        cost: selectedDeliveryOption.cost
-      });
+      const apiDeliveryType =
+        selectedDeliveryOption.delivery_type === "hyperlocal"
+          ? "hyperlocal"
+          : "normal";
 
-      // Prepare payload matching backend schema
       const checkoutPayload = {
         user_id: userId,
         cart_id: cartItems[0].cart_id,
         cart_items: cartItemsPayload,
         address_id: selectedAddressId,
-        payment_method: apiPaymentMethod, // 'COD' or 'PREPAID'
-        delivery_type: apiDeliveryType,   // 'hyperlocal' or 'normal'
-        courier_id: selectedDeliveryOption.courier_id ? String(selectedDeliveryOption.courier_id) : null,
+        payment_method: apiPaymentMethod,
+        delivery_type: apiDeliveryType,
+        courier_id: selectedDeliveryOption.courier_id
+          ? String(selectedDeliveryOption.courier_id)
+          : null,
         courier_name: selectedDeliveryOption.name || null,
-        delivery_charge: roundedDelivery
+        delivery_charge: roundedDelivery,
       };
-
-      console.log("📦 Checkout payload being sent:", JSON.stringify(checkoutPayload, null, 2));
 
       const checkoutRes = await axios.post(
         `${API_BASE}/orders_routes/checkout`,
         checkoutPayload,
-        { 
+        {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      console.log("✅ Checkout response:", checkoutRes.data);
+      const newOrderId =
+        checkoutRes.data.order_id || checkoutRes.data.data?.order_id;
 
-      const newOrderId = checkoutRes.data.order_id || checkoutRes.data.data?.order_id;
+      if (!newOrderId) {
+        throw new Error("Order ID not received from server");
+      }
+
       setOrderId(newOrderId);
 
-      // Clear session storage
       sessionStorage.removeItem("selected_address_id");
       sessionStorage.removeItem("selected_address");
-
-      setShowSuccess(true);
-      toast.success(`Order placed successfully! Order ID: ${newOrderId}`);
-      
-      // Clear cart from localStorage/sessionStorage if needed
       localStorage.removeItem("cart");
-      
+
+      setShowSuccess(false);
+
+      setTimeout(() => {
+        setShowSuccess(true);
+      }, 100);
+
+      toast.success(`Order placed successfully! Order ID: ${newOrderId}`);
+
+      // setTimeout(() => {
+      //   navigate(`/viewOrder/${newOrderId}`);
+      // }, 1500);
+
     } catch (err) {
-      console.error("❌ Checkout failed:", err);
-      console.error("Error response:", err.response?.data);
-      
-      const errorMessage = err?.response?.data?.detail || 
-                          err?.response?.data?.message ||
-                          err?.message ||
-                          "Checkout failed. Please try again.";
-      
+      console.error("Checkout failed:", err);
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Checkout failed. Please try again.";
+
       toast.error(errorMessage);
     } finally {
       setPlacingOrder(false);
@@ -656,17 +680,27 @@ export function CheckoutPage() {
   const generateQR = async () => {
     try {
       setQrLoading(true);
+      isOrderPlacedRef.current = false;
+
       const res = await axios.post(
         `${API_BASE}/bank/qr-generate`,
         {},
         {
           params: { amount: total.toFixed(2) },
-          responseType: "blob",
         }
       );
-      const imageUrl = URL.createObjectURL(res.data);
+
+      const { transaction_id, qr_image } = res.data;
+      const imageUrl = `data:image/png;base64,${qr_image}`;
+
       setQrData(imageUrl);
+      setTxnId(transaction_id);
       setShowQR(true);
+
+      setTimeout(() => {
+        startPaymentStream(transaction_id);
+      }, 200);
+
     } catch (err) {
       console.error("QR generation failed", err);
       toast.error("Failed to generate QR");
@@ -674,6 +708,75 @@ export function CheckoutPage() {
       setQrLoading(false);
     }
   };
+
+  const startPaymentStream = (transactionId) => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+
+    const eventSource = new EventSource(
+      `${API_BASE}/transactions/${transactionId}/stream`
+    );
+
+    eventSourceRef.current = eventSource;
+
+    const timeout = setTimeout(() => {
+      if (eventSourceRef.current) {
+        eventSource.close();
+        eventSourceRef.current = null;
+        toast.error("Payment timeout ⏳");
+      }
+    }, 120000);
+
+    eventSource.addEventListener("status", (event) => {
+      console.log("Live status:", event.data);
+    });
+
+    eventSource.addEventListener("completed", async (event) => {
+      clearTimeout(timeout);
+
+      const status = event.data;
+
+      if (status === "SUCCESS" && !isOrderPlacedRef.current) {
+        isOrderPlacedRef.current = true;
+        toast.success("Payment Successful ");
+        eventSource.close();
+        eventSourceRef.current = null;
+        setShowQR(false);
+
+        setTimeout(async () => {
+          await handlePlaceOrder();
+        }, 1000);
+
+      } else if (status !== "SUCCESS") {
+        toast.error("Payment Failed ❌");
+        eventSource.close();
+        eventSourceRef.current = null;
+      }
+    });
+
+    eventSource.onerror = (err) => {
+      console.error("SSE error:", err);
+      clearTimeout(timeout);
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
+  };
+
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (showSuccess && eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  }, [showSuccess]);
 
   const addressTypeIcon = (type) => {
     if (type === "work") return <Briefcase className="w-3.5 h-3.5" />;
@@ -683,15 +786,13 @@ export function CheckoutPage() {
   // Loading State
   if (loadingCart) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="w-12 h-12 rounded-full border-2 border-gray-200" />
-            <div className="absolute inset-0 rounded-full border-2 border-[#D73D32] border-t-transparent animate-spin" />
+            <div className="w-16 h-16 rounded-full border-4 border-gray-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-[#D73D32] border-t-transparent animate-spin" />
           </div>
-          <p className="text-sm font-medium text-gray-400 tracking-wider uppercase">
-            Loading cart
-          </p>
+          <p className="text-sm font-medium text-gray-500">Loading your cart...</p>
         </div>
       </div>
     );
@@ -701,33 +802,45 @@ export function CheckoutPage() {
   if (showQR) {
     const paymentApps = [
       { name: "Google Pay", icon: gpay, bgColor: "bg-white" },
-      { name: "PhonePe", icon: paytm, bgColor: "bg-white" },
-      { name: "Paytm", icon: phonepe, bgColor: "bg-white" }
+      { name: "PhonePe", icon: phonepe, bgColor: "bg-white" },
+      { name: "Paytm", icon: paytm, bgColor: "bg-white" }
     ];
 
     return (
-      <div className="flex items-center justify-center p-4 mb-10 min-h-screen bg-white">
-        <Card className="p-0 overflow-hidden shadow-xl max-w-md w-full border border-gray-100 bg-white">
-          <div className="bg-[#D73D32] px-6 py-5 text-center">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <Card className="p-0 overflow-hidden shadow-2xl max-w-md w-full border-0 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-gradient-to-r from-[#D73D32] to-[#e8554a] px-6 py-5 text-center relative">
+            <button
+              onClick={() => {
+                setShowQR(false);
+                if (eventSourceRef.current) {
+                  eventSourceRef.current.close();
+                  eventSourceRef.current = null;
+                }
+              }}
+              className="absolute right-4 top-4 text-white/80 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <div className="flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-2">
-                <Shield className="w-6 h-6 text-white" />
+              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-3">
+                <Shield className="w-7 h-7 text-white" />
               </div>
               <h2 className="text-xl font-semibold text-white tracking-tight">
                 Secure Payment
               </h2>
-              <p className="text-white/80 text-sm mt-1">Scan to pay with UPI</p>
+              <p className="text-white/80 text-sm mt-1">Scan QR code to pay</p>
             </div>
           </div>
-          <div className="p-6">
+          <div className="p-6 bg-white">
             {qrLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-6">
                 <div className="relative">
-                  <div className="w-16 h-16 border-2 border-gray-200 border-t-[#D73D32] rounded-full animate-spin" />
+                  <div className="w-16 h-16 border-4 border-gray-100 border-t-[#D73D32] rounded-full animate-spin" />
                 </div>
                 <div className="text-center">
                   <p className="text-gray-700 font-medium">Generating QR Code</p>
-                  <p className="text-sm text-gray-500 mt-1">Please wait a moment...</p>
+                  <p className="text-sm text-gray-400 mt-1">Please wait...</p>
                 </div>
               </div>
             ) : (
@@ -738,26 +851,27 @@ export function CheckoutPage() {
                       <img
                         src={qrData}
                         alt="UPI QR Code"
-                        className="w-56 h-56 mx-auto"
+                        className="w-64 h-64 mx-auto"
                       />
                     </div>
-                    <p className="text-sm font-medium text-gray-700 mt-3">
-                      Amount: ₹{total.toLocaleString()}
-                    </p>
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-500">Amount to pay</p>
+                      <p className="text-2xl font-bold text-[#D73D32]">₹{total.toLocaleString()}</p>
+                    </div>
                   </div>
                 )}
                 <div className="mb-6">
                   <p className="text-xs font-medium text-gray-400 uppercase tracking-wider text-center mb-4">
-                    Supported Apps
+                    Scan with any UPI app
                   </p>
-                  <div className="flex justify-center items-center gap-6">
+                  <div className="flex justify-center items-center gap-8">
                     {paymentApps.map((app) => (
                       <div key={app.name} className="text-center group cursor-pointer">
-                        <div className={`w-12 h-12 rounded-xl ${app.bgColor} shadow-sm border border-gray-100 flex items-center justify-center mx-auto group-hover:shadow-md transition-shadow duration-200`}>
+                        <div className={`w-14 h-14 rounded-xl ${app.bgColor} shadow-md border border-gray-100 flex items-center justify-center mx-auto group-hover:shadow-lg transition-all duration-200 group-hover:scale-105`}>
                           <img
                             src={app.icon}
                             alt={app.name}
-                            className="w-7 h-7 object-contain"
+                            className="w-8 h-8 object-contain"
                             onError={(e) => {
                               e.target.style.display = 'none';
                             }}
@@ -768,16 +882,20 @@ export function CheckoutPage() {
                     ))}
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setShowQR(false)}
-                    className="w-full rounded-xl bg-[#D73D32] px-6 py-3 text-white font-medium transition-all duration-200 hover:bg-[#D73D32]/90"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <p className="text-xs text-center text-gray-400 mt-6">
-                  After scanning, please confirm payment to complete your order
+                <button
+                  onClick={() => {
+                    setShowQR(false);
+                    if (eventSourceRef.current) {
+                      eventSourceRef.current.close();
+                      eventSourceRef.current = null;
+                    }
+                  }}
+                  className="w-full rounded-xl border-2 border-gray-200 px-6 py-3 text-gray-600 font-medium transition-all duration-200 hover:bg-gray-50"
+                >
+                  Cancel Payment
+                </button>
+                <p className="text-xs text-center text-gray-400 mt-4">
+                  After scanning, confirm payment to complete your order
                 </p>
               </>
             )}
@@ -790,408 +908,467 @@ export function CheckoutPage() {
   // Success State
   if (showSuccess) {
     return (
-      <div className="max-w-[1440px] mx-auto px-8 py-16 bg-white min-h-screen">
-        <Card className="bg-white p-12 text-center shadow-lg border border-gray-100 max-w-2xl mx-auto rounded-2xl">
-          <div className="w-20 h-20 bg-[#D73D32]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CircleCheckBig className="w-12 h-12 text-[#D73D32]" />
+      <div className="h-full w-full bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-6">
+        {/* Animated background particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-100 rounded-full blur-3xl opacity-20 animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#D73D32]/5 rounded-full blur-3xl opacity-20 animate-pulse delay-1000" />
+        </div>
+
+        <Card className="relative bg-white/80 backdrop-blur-sm p-10 text-center shadow-2xl border border-white/50 max-w-md w-full rounded-3xl animate-in zoom-in-95 duration-500 overflow-hidden">
+          {/* Decorative top bar */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green-400 via-[#D73D32] to-green-400" />
+
+          {/* Confetti/Sparkle effect (optional - you can add react-confetti or similar) */}
+          <div className="absolute top-20 right-6 opacity-30 animate-pulse">
+            <div className="text-yellow-400 text-xl">✦</div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            Order Placed Successfully
+          <div className="absolute bottom-20 left-6 opacity-30 animate-pulse delay-700">
+            <div className="text-yellow-400 text-xl">✦</div>
+          </div>
+
+          {/* Animated success icon */}
+          <div className="relative mb-8">
+            <div className="absolute inset-0 w-24 h-24 mx-auto">
+              <div className="w-full h-full bg-green-100 rounded-full animate-ping opacity-75" />
+            </div>
+            <div className="relative w-24 h-24 bg-gradient-to-br from-green-100 to-green-50 rounded-full flex items-center justify-center mx-auto shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <CircleCheckBig className="w-12 h-12 text-green-600 animate-bounce" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
+            Order Placed Successfully!
           </h1>
-          <p className="text-lg text-gray-600 mb-6">
-            Your order ID:{" "}
-            <span className="font-semibold text-[#D73D32]">{orderId}</span>
+
+          <p className="text-gray-500 mb-2 font-medium tracking-wide">
+            Your order has been confirmed
           </p>
-          <p className="text-gray-600 mb-8">
-            You will receive a confirmation email shortly.
+
+          {/* Premium order ID card */}
+          <div className="my-6 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200/60 shadow-inner">
+            <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">
+              Order ID
+            </p>
+            <p className="text-xl font-bold bg-gradient-to-r from-[#D73D32] to-[#e85d53] bg-clip-text text-transparent">
+              #{orderId}
+            </p>
+          </div>
+
+          <p className="text-sm text-gray-500 mb-8 flex items-center justify-center gap-2">
+            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            A confirmation email has been sent to your registered email address
           </p>
-          <div className="flex gap-4 justify-center">
+
+          {/* Premium buttons */}
+          <div className="flex gap-3">
             <Button
-              className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white px-6 py-2.5 rounded-lg"
+              className="flex-1 bg-gradient-to-r from-[#D73D32] to-[#e85d53] hover:from-[#c0342a] hover:to-[#d73d32] text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
               onClick={() => navigate(`/viewOrder/${orderId}`)}
             >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               Track Order
             </Button>
-            <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-50" onClick={() => navigate("/products")}>
+            <Button
+              variant="outline"
+              className="flex-1 border-2 border-gray-200 text-gray-700 hover:border-[#D73D32]/30 hover:bg-gradient-to-r hover:from-[#D73D32]/5 hover:to-transparent rounded-xl font-semibold py-3 transition-all duration-200 hover:shadow-md"
+              onClick={() => navigate("/products")}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
               Continue Shopping
             </Button>
           </div>
+
         </Card>
-        <Toaster />
       </div>
     );
   }
 
   // Main Checkout Form
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-[1440px] mx-auto px-8 py-8">
+    <div className="h-full w-full bg-gradient-to-br from-gray-50 to-white">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/address")}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span>Back</span>
+            </button>
+            <div className="h-5 w-px bg-gray-300" />
+            <h1 className="text-xl lg:text-2xl font-semibold text-gray-900">
+              Checkout
+            </h1>
+          </div>
           <button
-            onClick={() => navigate("/address")}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={() => setShowHelpTip(!showHelpTip)}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back
+            <HelpCircle className="w-4 h-4" />
+            <span>Need help?</span>
           </button>
-          <div className="h-6 w-px bg-gray-200" />
-          <h1 className="text-2xl font-medium text-gray-900 tracking-wide">Checkout</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {showHelpTip && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-start gap-3">
+              <MessageCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-blue-800 font-medium">Need assistance?</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Contact our support team at <strong>support@citizenprintz.in</strong> or call +91-XXXXXXXXXX
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Delivery Address */}
-            <Card className="bg-white p-6 shadow-sm border border-gray-100 rounded-xl">
-              <div className="flex items-center justify-between mb-5">
+          <div className="lg:col-span-2 space-y-4">
+            {/* Delivery Address Section */}
+            <Card className="bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden transition-all hover:shadow-md">
+              <button
+                onClick={() => toggleSection('address')}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              >
                 <div className="flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-[#D73D32]" />
-                  <h2 className="text-base font-medium text-gray-900">
+                  <h2 className="text-base font-semibold text-gray-900">
                     Delivery Address
                   </h2>
                 </div>
-                <button
-                  onClick={() => navigate("/address")}
-                  className="text-xs text-[#D73D32] font-medium hover:text-[#D73D32]/80 transition-colors flex items-center gap-1"
-                >
-                  Change <ChevronRight className="w-3 h-3" />
-                </button>
-              </div>
-              {selectedAddress ? (
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm text-[#D73D32] flex items-center justify-center flex-shrink-0 border border-gray-200">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="font-medium text-gray-900 text-sm">
-                        {selectedAddress.first_name} {selectedAddress.last_name}
-                      </p>
-                      {selectedAddress.address_type && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium capitalize bg-white border border-gray-200 text-gray-600">
-                          {addressTypeIcon(selectedAddress.address_type)}
-                          {selectedAddress.address_type}
-                        </span>
-                      )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate("/address");
+                    }}
+                    className="text-xs text-[#D73D32] font-medium hover:text-[#D73D32]/80 transition-colors flex items-center gap-1"
+                  >
+                    Change <ChevronRight className="w-3 h-3" />
+                  </button>
+                  {expandedSections.address ? (
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  )}
+                </div>
+              </button>
+              {expandedSections.address && selectedAddress && (
+                <div className="px-5 pb-5">
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-white border border-gray-100">
+                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm text-[#D73D32] flex items-center justify-center flex-shrink-0 border border-gray-200">
+                      <MapPin className="w-5 h-5" />
                     </div>
-                    <p className="text-sm text-gray-500 leading-relaxed">
-                      {selectedAddress.address}
-                      {selectedAddress.landmark ? `, ${selectedAddress.landmark}` : ""}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {selectedAddress.city}, {selectedAddress.state} — {selectedAddress.postal_code}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {selectedAddress.phone} · {selectedAddress.email}
-                    </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="font-semibold text-gray-900 text-sm">
+                          {selectedAddress.first_name} {selectedAddress.last_name}
+                        </p>
+                        {selectedAddress.address_type && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium capitalize bg-white border border-gray-200 text-gray-600">
+                            {addressTypeIcon(selectedAddress.address_type)}
+                            {selectedAddress.address_type}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {selectedAddress.address}
+                        {selectedAddress.landmark ? `, ${selectedAddress.landmark}` : ""}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {selectedAddress.city}, {selectedAddress.state} — {selectedAddress.postal_code}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        📞 {selectedAddress.phone} · ✉️ {selectedAddress.email}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-400">No address selected.</p>
               )}
             </Card>
 
-            {/* Delivery Options */}
+            {/* Delivery Options Section */}
             {deliveryOptions.length > 0 && (
-              <Card className="bg-white p-6 shadow-sm border border-gray-100 rounded-xl">
-                <div className="flex items-center gap-2 mb-5">
-                  <Truck className="w-5 h-5 text-[#D73D32]" />
-                  <h2 className="text-base font-medium text-gray-900">
-                    Delivery Options
-                  </h2>
-                  {isHyperlocal && hyperlocalCheck && (
-                    <span className="ml-2 text-xs bg-[#D73D32]/10 text-[#D73D32] px-2 py-0.5 rounded-full font-medium">
-                      {hyperlocalCheck.distance_km} km away
-                    </span>
+              <Card className="bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden transition-all hover:shadow-md">
+                <button
+                  onClick={() => toggleSection('delivery')}
+                  className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-[#D73D32]" />
+                    <h2 className="text-base font-semibold text-gray-900">
+                      Delivery Options
+                    </h2>
+                    {isHyperlocal && hyperlocalCheck && (
+                      <span className="ml-2 text-xs bg-[#D73D32]/10 text-[#D73D32] px-2 py-0.5 rounded-full font-medium">
+                        {hyperlocalCheck.distance_km} km away
+                      </span>
+                    )}
+                  </div>
+                  {expandedSections.delivery ? (
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
                   )}
-                </div>
-
-                {hyperlocalDeliveryOptions.length > 0 && (
-                  <div className="mb-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Zap className="w-4 h-4 text-amber-600" />
-                      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Express & Hyperlocal
-                      </h3>
-                    </div>
-                    <div className="space-y-3">
-                      {hyperlocalDeliveryOptions.map((option) => (
-                        <label
-                          key={option.id}
-                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                            selectedDeliveryOption?.id === option.id
-                              ? "border-[#D73D32] bg-[#D73D32]/5"
-                              : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="deliveryOption"
-                            checked={selectedDeliveryOption?.id === option.id}
-                            onChange={() => handleDeliveryOptionChange(option)}
-                            className="mt-1 w-4 h-4 text-[#D73D32] focus:ring-[#D73D32]"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                {option.type === "express" ? (
-                                  <Zap className="w-5 h-5 text-amber-600" />
-                                ) : (
-                                  <Clock className="w-5 h-5 text-gray-500" />
-                                )}
-                                <p className="font-medium text-gray-900 text-sm">
-                                  {option.name}
+                </button>
+                {expandedSections.delivery && (
+                  <div className="px-5 pb-5 space-y-4">
+                    {hyperlocalDeliveryOptions.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Zap className="w-4 h-4 text-amber-600" />
+                          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Express & Hyperlocal
+                          </h3>
+                        </div>
+                        <div className="space-y-3">
+                          {hyperlocalDeliveryOptions.map((option) => (
+                            <label
+                              key={option.id}
+                              className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${selectedDeliveryOption?.id === option.id
+                                ? "border-[#D73D32] bg-gradient-to-r from-[#D73D32]/5 to-transparent shadow-sm"
+                                : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                                }`}
+                            >
+                              <input
+                                type="radio"
+                                name="deliveryOption"
+                                checked={selectedDeliveryOption?.id === option.id}
+                                onChange={() => handleDeliveryOptionChange(option)}
+                                className="mt-1 w-4 h-4 text-[#D73D32] focus:ring-[#D73D32] focus:ring-offset-0"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+                                  <div className="flex items-center gap-2">
+                                    {option.type === "express" ? (
+                                      <Zap className="w-5 h-5 text-amber-600" />
+                                    ) : (
+                                      <Clock className="w-5 h-5 text-gray-500" />
+                                    )}
+                                    <p className="font-semibold text-gray-900 text-sm">
+                                      {option.name}
+                                    </p>
+                                    {option.type === "express" && (
+                                      <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                                        Express
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="font-bold text-gray-900">
+                                    ₹{option.cost.toLocaleString()}
+                                  </p>
+                                </div>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  {option.description}
                                 </p>
-                                {option.type === "express" && (
-                                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                                    Express
-                                  </span>
+                                {option.distance_km && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    📍 Distance: {option.distance_km} km
+                                  </p>
                                 )}
                               </div>
-                              <p className="font-semibold text-gray-900">
-                                ₹{option.cost.toLocaleString()}
-                              </p>
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-sm text-gray-500">
-                                {option.description}
-                              </p>
-                              {option.distance_km && (
-                                <p className="text-xs text-gray-400">
-                                  Distance: {option.distance_km} km
-                                </p>
-                              )}
-                              {option.etd && (
-                                <p className="text-xs text-gray-400">
-                                  Expected delivery: {option.etd}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                {standardDeliveryOptions.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock className="w-4 h-4 text-gray-500" />
-                      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Standard Delivery
-                      </h3>
-                    </div>
-                    <div className="space-y-3">
-                      {standardDeliveryOptions.map((option) => (
-                        <label
-                          key={option.id}
-                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                            selectedDeliveryOption?.id === option.id
-                              ? "border-[#D73D32] bg-[#D73D32]/5"
-                              : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="deliveryOption"
-                            checked={selectedDeliveryOption?.id === option.id}
-                            onChange={() => handleDeliveryOptionChange(option)}
-                            className="mt-1 w-4 h-4 text-[#D73D32] focus:ring-[#D73D32]"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="font-medium text-gray-900 text-sm">
-                                {option.name}
-                              </p>
-                              <p className="font-semibold text-gray-900">
-                                ₹{option.cost.toLocaleString()}
-                              </p>
-                            </div>
-                            <p className="text-sm text-gray-500">
-                              {option.description}
-                            </p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                    {standardDeliveryOptions.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Standard Delivery
+                          </h3>
+                        </div>
+                        <div className="space-y-3">
+                          {standardDeliveryOptions.map((option) => (
+                            <label
+                              key={option.id}
+                              className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${selectedDeliveryOption?.id === option.id
+                                ? "border-[#D73D32] bg-gradient-to-r from-[#D73D32]/5 to-transparent shadow-sm"
+                                : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                                }`}
+                            >
+                              <input
+                                type="radio"
+                                name="deliveryOption"
+                                checked={selectedDeliveryOption?.id === option.id}
+                                onChange={() => handleDeliveryOptionChange(option)}
+                                className="mt-1 w-4 h-4 text-[#D73D32] focus:ring-[#D73D32]"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="font-semibold text-gray-900 text-sm">
+                                    {option.name}
+                                  </p>
+                                  <p className="font-bold text-gray-900">
+                                    ₹{option.cost.toLocaleString()}
+                                  </p>
+                                </div>
+                                <p className="text-sm text-gray-500">
+                                  {option.description}
+                                </p>
+                                {option.estimated_days && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    ⏱️ Estimated {option.estimated_days} business days
+                                  </p>
+                                )}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                {isFetchingDeliveryCharge && (
-                  <div className="mt-4 text-sm text-gray-400 flex items-center gap-2">
-                    <div className="w-4 h-4 border border-gray-300 border-t-[#D73D32] rounded-full animate-spin" />
-                    Updating delivery options...
+                    {isFetchingDeliveryCharge && (
+                      <div className="text-sm text-gray-400 flex items-center gap-2 py-2">
+                        <div className="w-4 h-4 border-2 border-gray-200 border-t-[#D73D32] rounded-full animate-spin" />
+                        Updating delivery options...
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
             )}
 
-            {/* Payment Method */}
-            <Card className="bg-white p-6 shadow-sm border border-gray-100 rounded-xl">
-              <div className="flex items-center gap-2 mb-5">
-                <Wallet className="w-5 h-5 text-[#D73D32]" />
-                <h2 className="text-base font-medium text-gray-900">
-                  Payment Method
-                </h2>
-              </div>
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={setPaymentMethod}
-                className="space-y-3"
+            {/* Payment Method Section */}
+            <Card className="bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden transition-all hover:shadow-md">
+              <button
+                onClick={() => toggleSection('payment')}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
               >
-                {[
-                  {
-                    value: "upi",
-                    label: "UPI (PREPAID)",
-                    icon: <Smartphone className="w-5 h-5 text-[#D73D32]" />,
-                    desc: "Pay instantly via UPI apps like Google Pay, PhonePe, Paytm",
-                  },
-                  {
-                    value: "cod",
-                    label: "Cash on Delivery (COD)",
-                    icon: <IndianRupee className="w-5 h-5 text-[#D73D32]" />,
-                    desc: "Pay with cash when your order is delivered",
-                  },
-                ].map((method) => (
-                  <label
-                    key={method.value}
-                    htmlFor={method.value}
-                    className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                      paymentMethod === method.value
-                        ? "border-[#D73D32] bg-[#D73D32]/5"
-                        : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
-                    }`}
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-[#D73D32]" />
+                  <h2 className="text-base font-semibold text-gray-900">
+                    Payment Method
+                  </h2>
+                </div>
+                {expandedSections.payment ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              {expandedSections.payment && (
+                <div className="px-5 pb-5">
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={setPaymentMethod}
+                    className="space-y-3"
                   >
-                    <RadioGroupItem value={method.value} id={method.value} />
-                    <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm border border-gray-200">
-                      {method.icon}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-gray-900">
-                        {method.label}
-                      </p>
-                      <p className="text-xs text-gray-400">{method.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </RadioGroup>
+                    {[
+                      {
+                        value: "upi",
+                        label: "UPI (Prepaid)",
+                        icon: <Smartphone className="w-5 h-5 text-[#D73D32]" />,
+                        desc: "Pay instantly via UPI apps like Google Pay, PhonePe, Paytm",
+                        badge: "Instant",
+                      },
+                      {
+                        value: "cod",
+                        label: "Cash on Delivery",
+                        icon: <IndianRupee className="w-5 h-5 text-[#D73D32]" />,
+                        desc: "Pay with cash when your order is delivered",
+                        badge: "COD",
+                      },
+                    ].map((method) => (
+                      <label
+                        key={method.value}
+                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${paymentMethod === method.value
+                          ? "border-[#D73D32] bg-gradient-to-r from-[#D73D32]/5 to-transparent shadow-sm"
+                          : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                          }`}
+                      >
+                        <RadioGroupItem value={method.value} id={method.value} />
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm border border-gray-200">
+                          {method.icon}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold text-sm text-gray-900">
+                              {method.label}
+                            </p>
+                            <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                              {method.badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400">{method.desc}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+            </Card>
+
+            {/* Order Summary - Mobile View */}
+            <Card className="bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden lg:hidden">
+              <button
+                onClick={() => toggleSection('orderSummary')}
+                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-[#D73D32]" />
+                  <h2 className="text-base font-semibold text-gray-900">
+                    Order Summary
+                  </h2>
+                  <span className="text-sm font-bold text-[#D73D32]">
+                    ₹{total.toLocaleString()}
+                  </span>
+                </div>
+                {expandedSections.orderSummary ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              {expandedSections.orderSummary && (
+                <div className="px-5 pb-5">
+                  <MobileOrderSummary
+                    cartItems={cartItems}
+                    subtotal={roundedSubtotal}
+                    gst={gst}
+                    deliveryCharge={roundedDelivery}
+                    total={total}
+                  />
+                </div>
+              )}
             </Card>
           </div>
 
-          {/* Right Column - Order Summary */}
-          <div className="lg:col-span-1">
-            <Card className="bg-white p-6 shadow-lg border border-gray-100 rounded-xl sticky top-24">
-              <div className="flex items-center gap-2 mb-6 pb-3 border-b border-gray-100">
-                <Package className="w-5 h-5 text-[#D73D32]" />
-                <h2 className="text-base font-medium text-gray-900">
-                  Order Summary
-                </h2>
-              </div>
-
-              <div className="space-y-4 mb-6 pb-6 border-b border-gray-100 max-h-[400px] overflow-y-auto">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex flex-col gap-3">
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {item.files?.length ? (
-                        item.files.map((file) => (
-                          <div key={file.id} className="flex gap-2">
-                            {file.front_side_url && (
-                              <img
-                                src={file.front_side_url}
-                                alt={file.front_original_name}
-                                className="w-16 h-16 object-cover rounded-lg border border-gray-100"
-                              />
-                            )}
-                            {file.back_side_url && (
-                              <img
-                                src={file.back_side_url}
-                                alt={file.back_original_name}
-                                className="w-16 h-16 object-cover rounded-lg border border-gray-100"
-                              />
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        item.product_image && (
-                          <img
-                            src={item.product_image}
-                            alt={item.product_name}
-                            className="w-16 h-16 object-cover rounded-lg border border-gray-100"
-                          />
-                        )
-                      )}
-                    </div>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">
-                          {item.product_name}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Qty: {item.quantity}
-                        </p>
-                        {item.selected_options && Object.keys(item.selected_options).length > 0 && (
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {Object.entries(item.selected_options)
-                              .map(([k, v]) => `${k}: ${v}`)
-                              .join(", ")}
-                          </p>
-                        )}
-                      </div>
-                      <p className="font-medium text-gray-900 text-sm">
-                        ₹{item.total_price}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span className="font-medium text-gray-900">
-                    ₹{subtotal.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">GST (18%)</span>
-                  <span className="font-medium text-gray-900">
-                    ₹{gst.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Delivery Charge</span>
-                  <span className="font-medium text-gray-900">
-                    {isFetchingDeliveryCharge ? (
-                      <span className="flex items-center gap-1">
-                        <span className="w-3 h-3 border border-gray-300 border-t-[#D73D32] rounded-full animate-spin" />
-                      </span>
-                    ) : (
-                      `₹${deliveryCharge.toLocaleString()}`
-                    )}
-                  </span>
-                </div>
-                <div className="border-t border-gray-100 pt-3 mt-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-base font-medium text-gray-900">
-                      Total
-                    </span>
-                    <span className="text-2xl font-semibold text-[#D73D32]">
-                      {isFetchingDeliveryCharge ? (
-                        <span className="flex items-center gap-1">
-                          <span className="w-4 h-4 border border-gray-300 border-t-[#D73D32] rounded-full animate-spin" />
-                        </span>
-                      ) : (
-                        `₹${total.toLocaleString()}`
-                      )}
-                    </span>
-                  </div>
+          {/* Right Column - Order Summary Desktop */}
+          <div className="hidden lg:block">
+            <Card className="bg-white shadow-lg border border-gray-100 rounded-xl sticky top-24">
+              <div className="p-5 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-[#D73D32]" />
+                  <h2 className="text-base font-semibold text-gray-900">
+                    Order Summary
+                  </h2>
                 </div>
               </div>
-
-              <div className="space-y-3">
+              <DesktopOrderSummary
+                cartItems={cartItems}
+                subtotal={roundedSubtotal}
+                gst={gst}
+                deliveryCharge={roundedDelivery}
+                total={total}
+                isFetchingDeliveryCharge={isFetchingDeliveryCharge}
+              />
+              <div className="p-5 border-t border-gray-100">
                 <Button
-                  className="w-full bg-[#D73D32] hover:bg-[#D73D32]/90 text-white py-3 text-base font-medium rounded-lg transition-colors"
+                  className="w-full bg-gradient-to-r from-[#D73D32] to-[#e8554a] hover:from-[#D73D32]/90 hover:to-[#e8554a]/90 text-white py-3 text-base font-semibold rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
                   onClick={() => {
                     if (paymentMethod === "upi") {
                       generateQR();
@@ -1204,30 +1381,214 @@ export function CheckoutPage() {
                   {placingOrder ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Placing Order...
+                      Processing...
                     </span>
                   ) : (
-                    "Place Order"
+                    `Pay ₹${total.toLocaleString()}`
                   )}
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-gray-200 text-gray-500 hover:bg-gray-50 rounded-lg"
+                  className="w-full border-gray-200 text-gray-500 hover:bg-gray-50 rounded-lg mt-3"
                   onClick={() => navigate("/cart")}
                 >
                   Back to Cart
                 </Button>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-center gap-2">
-                <Shield className="w-4 h-4 text-gray-400" />
-                <p className="text-xs text-gray-400">Secure checkout</p>
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
+                  <Shield className="w-4 h-4 text-green-600" />
+                  <p className="text-xs text-gray-500">Secure checkout • 100% protected</p>
+                </div>
               </div>
             </Card>
           </div>
         </div>
-        <Toaster />
+
+        {/* Bottom Bar for Mobile */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 animate-in slide-in-from-bottom duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-gray-600">Total Amount</span>
+            <span className="text-xl font-bold text-[#D73D32]">
+              ₹{total.toLocaleString()}
+            </span>
+          </div>
+          <Button
+            className="w-full bg-gradient-to-r from-[#D73D32] to-[#e8554a] hover:from-[#D73D32]/90 hover:to-[#e8554a]/90 text-white py-3 text-base font-semibold rounded-lg"
+            onClick={() => {
+              if (paymentMethod === "upi") {
+                generateQR();
+              } else {
+                handlePlaceOrder();
+              }
+            }}
+            disabled={placingOrder || !selectedAddressId || isFetchingDeliveryCharge || !selectedDeliveryOption}
+          >
+            {placingOrder ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Processing...
+              </span>
+            ) : (
+              `Place Order • ₹${total.toLocaleString()}`
+            )}
+          </Button>
+        </div>
+      </div>
+      <Toaster />
+    </div>
+  );
+}
+
+// Mobile Order Summary Component
+function MobileOrderSummary({ cartItems, subtotal, gst, deliveryCharge, total }) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3 max-h-80 overflow-y-auto">
+        {cartItems.map((item) => (
+          <div key={item.id} className="flex gap-3 pb-3 border-b border-gray-100">
+            <div className="flex-shrink-0">
+              {item.files?.length ? (
+                <div className="flex gap-1">
+                  {item.files.slice(0, 2).map((file) => (
+                    <div key={file.id} className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden">
+                      <img
+                        src={file.front_side_url || file.back_side_url}
+                        alt={item.product_name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                item.product_image && (
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden">
+                    <img
+                      src={item.product_image}
+                      alt={item.product_name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900 text-sm line-clamp-1">
+                {item.product_name}
+              </p>
+              <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+            </div>
+            <p className="font-medium text-gray-900 text-sm">₹{item.total_price}</p>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2 pt-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Subtotal</span>
+          <span className="font-medium text-gray-900">₹{subtotal.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">GST (18%)</span>
+          <span className="font-medium text-gray-900">₹{gst.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Delivery</span>
+          <span className="font-medium text-gray-900">₹{deliveryCharge.toLocaleString()}</span>
+        </div>
+        <div className="border-t border-gray-200 pt-2 mt-2">
+          <div className="flex justify-between">
+            <span className="font-semibold text-gray-900">Total</span>
+            <span className="text-lg font-bold text-[#D73D32]">₹{total.toLocaleString()}</span>
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+// Desktop Order Summary Component
+function DesktopOrderSummary({ cartItems, subtotal, gst, deliveryCharge, total, isFetchingDeliveryCharge }) {
+  return (
+    <>
+      <div className="p-5 space-y-3 max-h-[400px] overflow-y-auto border-b border-gray-100">
+        {cartItems.map((item) => (
+          <div key={item.id} className="flex gap-3 pb-3 border-b border-gray-100 last:border-0">
+            <div className="flex-shrink-0">
+              {item.files?.length ? (
+                <div className="flex gap-1">
+                  {item.files.slice(0, 2).map((file) => (
+                    <div key={file.id} className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden">
+                      <img
+                        src={file.front_side_url || file.back_side_url}
+                        alt={item.product_name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                item.product_image && (
+                  <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden">
+                    <img
+                      src={item.product_image}
+                      alt={item.product_name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900 text-sm line-clamp-2">
+                {item.product_name}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Qty: {item.quantity}</p>
+              {item.selected_options && Object.keys(item.selected_options).length > 0 && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {Object.entries(item.selected_options)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(", ")}
+                </p>
+              )}
+            </div>
+            <p className="font-semibold text-gray-900 text-sm">₹{item.total_price}</p>
+          </div>
+        ))}
+      </div>
+      <div className="p-5 space-y-2 border-b border-gray-100">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Subtotal</span>
+          <span className="font-medium text-gray-900">₹{subtotal.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">GST (18%)</span>
+          <span className="font-medium text-gray-900">₹{gst.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Delivery Charge</span>
+          <span className="font-medium text-gray-900">
+            {isFetchingDeliveryCharge ? (
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 border border-gray-300 border-t-[#D73D32] rounded-full animate-spin" />
+              </span>
+            ) : (
+              `₹${deliveryCharge.toLocaleString()}`
+            )}
+          </span>
+        </div>
+        <div className="border-t border-gray-200 pt-3 mt-3">
+          <div className="flex justify-between items-center">
+            <span className="text-base font-semibold text-gray-900">Total</span>
+            <span className="text-xl font-bold text-[#D73D32]">
+              {isFetchingDeliveryCharge ? (
+                <span className="flex items-center gap-1">
+                  <span className="w-4 h-4 border border-gray-300 border-t-[#D73D32] rounded-full animate-spin" />
+                </span>
+              ) : (
+                `₹${total.toLocaleString()}`
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
