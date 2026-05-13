@@ -1,7 +1,7 @@
 // UserRolePermissionService.js
 // import { API_BASE_URL } from '../config/apiConfig';
 
-const API_BASE_URL = 'https://api.citizenprintz.in/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 // create role
 export const createRole = async (roleData) => {
     try {
@@ -121,6 +121,9 @@ export const getUserRoles = async (userId) => {
     }
 };
 
+
+
+
 // Remove User Role
 export const removeUserRole = async (userRoleId) => {
     try {
@@ -138,7 +141,7 @@ export const removeUserRole = async (userRoleId) => {
 
         return await response.json();
     } catch (error) {
-        console.error('Error removing user role: - UserRolePermissionService.js:141', error);
+        console.error('Error removing user role: - UserRolePermissionService.js:144', error);
         throw error;
     }
 };
@@ -152,7 +155,7 @@ export const fetchResources = async () => {
         const res = await response.json();
         return res.resources || []; // ✅ FIX
     } catch (error) {
-        console.error('Error fetching resources: - UserRolePermissionService.js:155', error);
+        console.error('Error fetching resources: - UserRolePermissionService.js:158', error);
         return [];
     }
 };
@@ -166,7 +169,7 @@ export const fetchPermissions = async () => {
         const res = await response.json();
         return res.permissions || []; // ✅ FIX
     } catch (error) {
-        console.error('Error fetching permissions: - UserRolePermissionService.js:169', error);
+        console.error('Error fetching permissions: - UserRolePermissionService.js:172', error);
         return [];
     }
 };
@@ -180,7 +183,7 @@ export const fetchRolePermissions = async () => {
         const res = await response.json();
         return res.role_permissions || []; // ✅ FIX (snake_case)
     } catch (error) {
-        console.error('Error fetching role permissions: - UserRolePermissionService.js:183', error);
+        console.error('Error fetching role permissions: - UserRolePermissionService.js:186', error);
         return [];
     }
 };
@@ -203,7 +206,7 @@ export const assignPermission = async (roleId, permissionId) => {
         }
         return await response.json();
     } catch (error) {
-        console.error('Error assigning permission: - UserRolePermissionService.js:206', error);
+        console.error('Error assigning permission: - UserRolePermissionService.js:209', error);
         throw error;
     }
 };
@@ -227,7 +230,7 @@ export const removePermission = async (roleId, permissionId) => {
         }
         return await response.json();
     } catch (error) {
-        console.error('Error removing permission: - UserRolePermissionService.js:230', error);
+        console.error('Error removing permission: - UserRolePermissionService.js:233', error);
         throw error;
     }
 };
@@ -255,7 +258,7 @@ export const createResource = async (resourceData) => {
 
         return await response.json();
     } catch (error) {
-        console.error('Error creating resource: - UserRolePermissionService.js:258', error);
+        console.error('Error creating resource: - UserRolePermissionService.js:261', error);
         throw error;
     }
 };
@@ -283,7 +286,7 @@ export const deleteResource = async (resourceId) => {
 
         return await response.json();
     } catch (error) {
-        console.error('Error deleting resource: - UserRolePermissionService.js:286', error);
+        console.error('Error deleting resource: - UserRolePermissionService.js:289', error);
         throw error;
     }
 };
@@ -314,7 +317,7 @@ export const createPermission = async (permissionData) => {
 
         return await response.json();
     } catch (error) {
-        console.error('Error creating permission: - UserRolePermissionService.js:317', error);
+        console.error('Error creating permission: - UserRolePermissionService.js:320', error);
         throw error;
     }
 };
@@ -339,7 +342,7 @@ export const deletePermission = async (permissionId) => {
 
         return await response.json().then(res => res.data || {});
     } catch (error) {
-        console.error('Error deleting permission: - UserRolePermissionService.js:342', error);
+        console.error('Error deleting permission: - UserRolePermissionService.js:345', error);
         throw error;
     }
 };

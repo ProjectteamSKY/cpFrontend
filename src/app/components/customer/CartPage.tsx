@@ -8,8 +8,8 @@ import { toast } from "react-toastify";
 import { Toaster } from "../ui/toaster";
 import { getUserId } from "../../utils/authStorage";
 
-const API_BASE = "https://api.citizenprintz.in/api";
-const MEDIA_BASE = "https://api.citizenprintz.in/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 interface CartItem {
   id: string;
@@ -17,15 +17,23 @@ interface CartItem {
   product_id: string;
   variant_id: string;
   variant_price_id: string;
+  design_request_id: string | null;
   customize_qty: number | null;
   quantity: number;
   unit_price: number;
   discount_id: string | null;
   total_price: number;
+  design_price: number | null;
   selected_attributes: string;
   created_at: string;
   updated_at: string;
   status: string;
+  custom_qty?: number;
+  price?: number;
+  weight?: number;
+  length?: number;
+  breadth?: number;
+  height?: number;
   files: FileAttachment[];
 }
 
@@ -188,11 +196,17 @@ export function CartPage() {
     }
   };
 
-  // Calculations
+  // Calculate product total (without design fees)
+  const productTotal = cartItems.reduce((sum, item) => {
+    const itemTotal = Number(item.total_price || 0);
+    const designFee = item.design_price ? Number(item.design_price) : 0;
+    return sum + (itemTotal - designFee);
+  }, 0);
+  
+  const designFeesTotal = cartItems.reduce((sum, item) => sum + (item.design_price ? Number(item.design_price) : 0), 0);
   const subtotal = cartItems.reduce((sum, item) => sum + Number(item.total_price || 0), 0);
   const gst = subtotal * 0.18;
-  const deliveryCharge = subtotal > 5000 ? 0 : 100;
-  const total = subtotal + gst + deliveryCharge;
+  const total = subtotal + gst;
 
   if (loading) {
     return (
@@ -216,7 +230,7 @@ export function CartPage() {
           <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-300" />
           <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
           <p className="text-gray-600 mb-6">Looks like you haven't added any items yet</p>
-          <Link to="/products">
+          <Link to="/">
             <Button className="bg-red-600 hover:bg-red-700">Browse Products</Button>
           </Link>
         </Card>
@@ -285,6 +299,23 @@ export function CartPage() {
                       </div>
                     )}
 
+                    {/* Design Price - Show if present (for transparency, not added to total) */}
+                    {item.design_price && item.design_price > 0 && (
+                      <div className="mb-3 p-2 bg-blue-50 rounded-md">
+                        <div className="flex items-baseline gap-2 text-sm">
+                          <span className="font-medium text-blue-700 min-w-[100px]">
+                            Design Fee:
+                          </span>
+                          <span className="text-blue-700 font-semibold">
+                            ₹{Number(item.design_price).toLocaleString()}
+                          </span>
+                          <span className="text-xs text-blue-600 ml-2">
+                            (Included in total)
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Quantity and Price */}
                     <div className="mt-4 pt-3 border-t">
                       <div className="flex flex-wrap justify-between items-center gap-2">
@@ -295,11 +326,21 @@ export function CartPage() {
                           <p className="text-sm text-gray-600">
                             Unit Price: <span className="font-medium">₹{Number(item.unit_price || 0).toLocaleString()}</span>
                           </p>
+                          {item.design_price && item.design_price > 0 && (
+                            <p className="text-sm text-gray-600">
+                              Design Fee: <span className="font-medium">₹{Number(item.design_price).toLocaleString()}</span>
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-red-600 text-lg sm:text-xl">
                             ₹{Number(item.total_price || 0).toLocaleString()}
                           </p>
+                          {item.design_price && item.design_price > 0 && (
+                            <p className="text-xs text-gray-500">
+                              (Incl. design fee)
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -324,37 +365,37 @@ export function CartPage() {
             <Card className="p-6 sticky top-24">
               <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
               
-              <div className="space-y-3">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>₹{subtotal.toLocaleString()}</span>
+              <div className="space-y-4">
+                {/* Product Total (excluding design fees) */}
+                <div className="flex justify-between items-center text-base">
+                  <span className="text-gray-700">Product Total</span>
+                  <span className="font-medium text-gray-900">₹{productTotal.toLocaleString()}</span>
                 </div>
 
-                <div className="flex justify-between text-gray-600">
-                  <span>GST (18%)</span>
-                  <span>₹{gst.toLocaleString()}</span>
-                </div>
-
-                <div className="flex justify-between text-gray-600">
-                  <span>Delivery Charge</span>
-                  <span>
-                    {deliveryCharge === 0 ? (
-                      <span className="text-green-600">Free</span>
-                    ) : (
-                      `₹${deliveryCharge}`
-                    )}
-                  </span>
-                </div>
-
-                {deliveryCharge > 0 && subtotal < 5000 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    *Free delivery on orders above ₹5,000
-                  </p>
+                {/* Design Fees (if any) */}
+                {designFeesTotal > 0 && (
+                  <div className="flex justify-between items-center text-base">
+                    <span className="text-gray-700">Design Fees</span>
+                    <span className="font-medium text-gray-900">+ ₹{designFeesTotal.toLocaleString()}</span>
+                  </div>
                 )}
 
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
+                {/* Subtotal (including design fees) */}
+                <div className="flex justify-between items-center text-base pt-2 border-t border-gray-100">
+                  <span className="text-gray-700">Subtotal</span>
+                  <span className="font-semibold text-gray-900">₹{subtotal.toLocaleString()}</span>
+                </div>
+
+                {/* GST */}
+                <div className="flex justify-between items-center text-base">
+                  <span className="text-gray-700">GST (18%)</span>
+                  <span className="font-medium text-gray-900">₹{gst.toLocaleString()}</span>
+                </div>
+
+                {/* Total */}
+                <div className="border-t border-gray-200 pt-4 mt-2">
+                  <div className="flex justify-between items-center text-lg font-bold">
+                    <span className="text-gray-900">Total</span>
                     <span className="text-red-600">₹{total.toLocaleString()}</span>
                   </div>
                 </div>
@@ -362,16 +403,15 @@ export function CartPage() {
 
               <Link to="/address">
                 <Button className="w-full mt-6 bg-red-600 hover:bg-red-700">
-                  Proceed to Payment
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  Continue to Checkout <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
 
-              <Link to="/products">
+              {/* <Link to="/products">
                 <Button variant="outline" className="w-full mt-3">
                   Continue Shopping
                 </Button>
-              </Link>
+              </Link> */}
             </Card>
           </div>
         </div>

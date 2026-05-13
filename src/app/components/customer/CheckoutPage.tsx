@@ -44,8 +44,8 @@ import phonepe from "../../../media/icons8-phone-pe-50.svg";
 import { getUserId } from "../../utils/authStorage";
 import { getPickupLocations } from "../../service/shippingApiService";
 
-const API_BASE = "https://api.citizenprintz.in/api";
-const MEDIA_BASE = "https://api.citizenprintz.in/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();

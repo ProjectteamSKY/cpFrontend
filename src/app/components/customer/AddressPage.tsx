@@ -9,7 +9,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { getUserId } from "../../utils/authStorage";
 
-const API_BASE = "https://api.citizenprintz.in";
+const API_BASE = "http://127.0.0.1:8000";
 
 const emptyForm = {
   first_name: "", last_name: "", street: "", landmark: "",
@@ -507,7 +507,7 @@ export function AddressPage({ isEmbedded = false }: { isEmbedded?: boolean }) {
         onChange={handleFormChange} onSave={handleSaveAddress} onClose={closeModal}
       />
 
-      <div className="min-h-screen bg-[#f7f7f7]">
+      <div className="h-full bg-white">
         {/* Sticky top nav */}
         <div className="sticky top-0 z-10 bg-white border-b border-[#ececec] shadow-sm">
           <div className="w-full px-6 py-3.5 flex items-center justify-between">
@@ -551,7 +551,7 @@ export function AddressPage({ isEmbedded = false }: { isEmbedded?: boolean }) {
             <div className="flex items-end justify-between mb-5">
               <div>
                 <p className="text-[10px] font-extrabold text-[#D73D32] uppercase tracking-[0.18em] mb-1">Step 1 of 3</p>
-                <h1 className="text-2xl font-black text-[#1a1a1a] tracking-tight">Delivery Address</h1>
+                <h1 className="text-2xl font-black text-[#1a1a1a]">Delivery Address</h1>
                 <p className="text-sm text-[#aaa] mt-0.5 font-medium">
                   {savedAddresses.length > 0
                     ? `${savedAddresses.length} saved address${savedAddresses.length !== 1 ? "es" : ""} — pick one`

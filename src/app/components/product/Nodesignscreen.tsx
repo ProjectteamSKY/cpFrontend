@@ -4,6 +4,7 @@ import {
     CheckCircle2, AlertCircle, Upload, Trash2
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ Added for navigation
 import { Product } from "../../types/productlist";
 import { fmt } from "./Configurepanel";
 
@@ -80,6 +81,7 @@ export default function NoDesignScreen({
     selectedQuantity,
     onSubmit,
 }: NoDesignScreenProps) {
+    const navigate = useNavigate(); // ✅ Initialize navigation
     console.log("🚀 NoDesignScreen rendered with:", {
         selectedVariant,
         selectedTierId,
@@ -277,7 +279,7 @@ export default function NoDesignScreen({
         }
 
         const response = await fetch(
-            "https://api.citizenprintz.in/api/design_request/create",
+            "http://127.0.0.1:8000/api/design_request/create",
             {
                 method: "POST",
                 body: fd,
@@ -324,6 +326,12 @@ export default function NoDesignScreen({
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    // ✅ Handle done button click - close and navigate to MyProfile
+    const handleDoneAndClose = () => {
+        onClose(); // Close the screen
+        navigate("/MyProfile"); // Navigate to MyProfile page
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -444,9 +452,9 @@ export default function NoDesignScreen({
                         ))}
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={handleDoneAndClose} // ✅ Updated handler
                         style={{ background: "#D73D32" }}
-                        className="w-full max-w-xs h-12 rounded-2xl text-white font-bold text-sm"
+                        className="w-full max-w-xs h-12 rounded-2xl text-white font-bold text-sm hover:opacity-90 transition-opacity"
                     >
                         Done
                     </button>

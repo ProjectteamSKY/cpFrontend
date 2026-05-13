@@ -31,8 +31,8 @@ import { AddressPage } from "./AddressPage";
 import DesignRequestTracking from "./Designrequesttracking";
 import { getUserId, getUserRoles } from "../../utils/authStorage";
 
-const API_BASE = "https://api.citizenprintz.in/api";
-const MEDIA_BASE = "https://api.citizenprintz.in/";
+const API_BASE = "http://127.0.0.1:8000/api";
+const MEDIA_BASE = "http://127.0.0.1:8000";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,11 +56,6 @@ interface ExtendedProfile {
     profile_picture: string | null;
     phone_number: string | null;
     gender: string;
-    address: string | null;
-    city: string | null;
-    state: string | null;
-    country: string | null;
-    postal_code: string | null;
     date_of_birth: string | null;
 }
 
@@ -170,7 +165,7 @@ function EditableField({ label, value, icon: Icon, fieldKey, type = "text", onSa
             await onSave(fieldKey, draft);
             setEditing(false);
         } catch {
-            setDraft(value); // revert on error
+            setDraft(value);
         } finally {
             setSaving(false);
         }
@@ -255,7 +250,6 @@ function AvatarUpload({ avatarUrl, name, userId, onUpdated }: AvatarUploadProps)
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate type & size
         if (!file.type.startsWith("image/")) {
             toast.error("Please select a valid image file.");
             return;
@@ -271,7 +265,6 @@ function AvatarUpload({ avatarUrl, name, userId, onUpdated }: AvatarUploadProps)
             formData.append("user_id", userId);
             formData.append("profile_picture", file);
 
-            // Try PUT first (update), fall back to POST (create)
             let res;
             try {
                 res = await axios.put(`${API_BASE}/user-profile/${userId}`, formData, {
@@ -287,7 +280,7 @@ function AvatarUpload({ avatarUrl, name, userId, onUpdated }: AvatarUploadProps)
                 }
             }
 
-            const newUrl = res.data?.profile_picture ?? res.data?.data?.profile_picture ?? null;
+            const newUrl = res.data?.data?.profile_picture ?? res.data?.profile_picture ?? null;
             if (newUrl) {
                 onUpdated(newUrl);
                 toast.success("Profile picture updated!");
@@ -297,7 +290,6 @@ function AvatarUpload({ avatarUrl, name, userId, onUpdated }: AvatarUploadProps)
             toast.error("Failed to upload profile picture.");
         } finally {
             setUploading(false);
-            // Reset input so same file can be re-selected
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
@@ -318,7 +310,6 @@ function AvatarUpload({ avatarUrl, name, userId, onUpdated }: AvatarUploadProps)
                 )}
             </div>
 
-            {/* Overlay on hover */}
             <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 {uploading ? (
                     <Loader2 className="w-6 h-6 text-white animate-spin" />
@@ -440,29 +431,25 @@ interface ExtendedProfileFormProps {
     onSaved: (updated: ExtendedProfile) => void;
 }
 
-function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFormProps) {
-    const [form, setForm] = useState<Omit<ExtendedProfile, "user_id" | "profile_picture">>({
+function ExtendedProfileForm({
+    userId,
+    extProfile,
+    onSaved,
+}: ExtendedProfileFormProps) {
+    const [form, setForm] = useState({
         phone_number: extProfile?.phone_number ?? "",
         gender: extProfile?.gender ?? "Not Specified",
-        address: extProfile?.address ?? "",
-        city: extProfile?.city ?? "",
-        state: extProfile?.state ?? "",
-        country: extProfile?.country ?? "",
-        postal_code: extProfile?.postal_code ?? "",
         date_of_birth: extProfile?.date_of_birth ?? "",
     });
+
     const [saving, setSaving] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (extProfile) {
             setForm({
                 phone_number: extProfile.phone_number ?? "",
                 gender: extProfile.gender ?? "Not Specified",
-                address: extProfile.address ?? "",
-                city: extProfile.city ?? "",
-                state: extProfile.state ?? "",
-                country: extProfile.country ?? "",
-                postal_code: extProfile.postal_code ?? "",
                 date_of_birth: extProfile.date_of_birth ?? "",
             });
         }
@@ -470,41 +457,62 @@ function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFor
 
     const handleChange = (key: keyof typeof form, value: string) => {
         setForm((prev) => ({ ...prev, [key]: value }));
+        setErrors((prev) => ({ ...prev, [key]: "" }));
     };
+
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {};
+
+        if (!form.phone_number.trim()) {
+            newErrors.phone_number = "Phone number is required";
+        } else if (!/^[0-9]{10,15}$/.test(form.phone_number)) {
+            newErrors.phone_number = "Enter valid phone number (10-15 digits)";
+        }
+
+        if (!form.date_of_birth.trim()) {
+            newErrors.date_of_birth = "Date of birth is required";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async () => {
+        if (!validateForm()) {
+            toast.error("Please fix the errors before saving");
+            return;
+        }
+
         setSaving(true);
+
         try {
-            const payload = {
-                user_id: userId,
-                phone_number: form.phone_number || null,
-                gender: form.gender || "Not Specified",
-                address: form.address || null,
-                city: form.city || null,
-                state: form.state || null,
-                country: form.country || null,
-                postal_code: form.postal_code || null,
-                date_of_birth: form.date_of_birth || null,
-            };
+            const formData = new FormData();
+            formData.append("user_id", userId);
+            formData.append("phone_number", form.phone_number);
+            formData.append("gender", form.gender);
+            if (form.date_of_birth) {
+                formData.append("date_of_birth", form.date_of_birth);
+            }
 
             let res;
-
             try {
-                // ✅ Try UPDATE first
-                res = await axios.put(`${API_BASE}/user-profile/${userId}`, payload, {
-                    headers: { "Content-Type": "application/json" },
+                // Try to update first
+                res = await axios.put(`${API_BASE}/user-profile/${userId}`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
                 });
             } catch (err: any) {
                 if (err.response?.status === 404) {
-                    // ✅ If not exists → CREATE
-                    res = await axios.post(`${API_BASE}/user-profile/`, payload, {
-                        headers: { "Content-Type": "application/json" },
+                    // Create if not exists
+                    res = await axios.post(`${API_BASE}/user-profile/`, formData, {
+                        headers: { "Content-Type": "multipart/form-data" },
                     });
                 } else {
                     throw err;
                 }
             }
 
-            onSaved(res.data);
+            const updatedProfile = res.data?.data ?? res.data;
+            onSaved(updatedProfile);
             toast.success("Profile updated successfully!");
         } catch (err) {
             console.error("Extended profile save failed", err);
@@ -514,28 +522,36 @@ function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFor
         }
     };
 
-    const inputClass =
-        "w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition";
-
-    const fields: { key: keyof typeof form; label: string; type?: string; span?: boolean }[] = [
-        { key: "phone_number", label: "Phone Number", type: "tel" },
-        { key: "date_of_birth", label: "Date of Birth", type: "date" },
-        { key: "address", label: "Address", span: true },
-        { key: "city", label: "City" },
-        { key: "state", label: "State" },
-        { key: "country", label: "Country" },
-        { key: "postal_code", label: "Postal Code" },
-    ];
+    const inputClass = "w-full text-sm bg-white border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-red-400 focus:ring-4 focus:ring-red-100 transition";
+    const errorClass = "border-red-500 focus:border-red-500 focus:ring-red-100";
 
     return (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-5">
                 Extended Information
             </h3>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Gender select */}
+                {/* Phone Number */}
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs text-gray-400">Gender</label>
+                    <label className="text-xs font-medium text-gray-500">
+                        Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="tel"
+                        value={form.phone_number}
+                        onChange={(e) => handleChange("phone_number", e.target.value)}
+                        className={`${inputClass} ${errors.phone_number ? errorClass : ""}`}
+                        placeholder="Enter phone number"
+                    />
+                    {errors.phone_number && (
+                        <span className="text-xs text-red-500 mt-1">{errors.phone_number}</span>
+                    )}
+                </div>
+
+                {/* Gender */}
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500">Gender</label>
                     <select
                         value={form.gender}
                         onChange={(e) => handleChange("gender", e.target.value)}
@@ -547,28 +563,35 @@ function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFor
                     </select>
                 </div>
 
-                {fields.map(({ key, label, type = "text", span }) => (
-                    <div key={key} className={`flex flex-col gap-1 ${span ? "sm:col-span-2" : ""}`}>
-                        <label className="text-xs text-gray-400">{label}</label>
-                        <input
-                            type={type}
-                            value={form[key] ?? ""}
-                            onChange={(e) => handleChange(key, e.target.value)}
-                            className={inputClass}
-                            placeholder={`Enter ${label.toLowerCase()}`}
-                        />
-                    </div>
-                ))}
+                {/* Date of Birth */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label className="text-xs font-medium text-gray-500">
+                        Date of Birth <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        value={form.date_of_birth}
+                        onChange={(e) => handleChange("date_of_birth", e.target.value)}
+                        className={`${inputClass} ${errors.date_of_birth ? errorClass : ""}`}
+                    />
+                    {errors.date_of_birth && (
+                        <span className="text-xs text-red-500 mt-1">{errors.date_of_birth}</span>
+                    )}
+                </div>
             </div>
 
-            <div className="mt-5 flex justify-end">
+            <div className="mt-6 flex justify-end">
                 <button
                     onClick={handleSubmit}
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-60"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Save Changes
+                    {saving ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <Save className="w-4 h-4" />
+                    )}
+                    {saving ? "Saving..." : "Save Changes"}
                 </button>
             </div>
         </div>
@@ -580,10 +603,7 @@ function ExtendedProfileForm({ userId, extProfile, onSaved }: ExtendedProfileFor
 // ---------------------------------------------------------------------------
 export function ProfilePage() {
     const navigate = useNavigate();
-    // const userItem = sessionStorage.getItem("user") || localStorage.getItem("user");
-    // const user = userItem ? JSON.parse(userItem) : null;
     const userId = getUserId();
-    const roles = getUserRoles();
 
     console.log("ProfilePage mounted. User ID:", userId);
     const [activeTab, setActiveTab] = useState<TabId>("profile");
@@ -592,9 +612,9 @@ export function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [extLoading, setExtLoading] = useState(false);
 
-    // Tracking slide-over state
     const [trackingOpen, setTrackingOpen] = useState(false);
     const [trackingRequestId, setTrackingRequestId] = useState<string>("");
+
     useEffect(() => {
         if (!userId) {
             toast.error("Please login to view your profile");
@@ -627,14 +647,11 @@ export function ProfilePage() {
             if (err.response?.status !== 404) {
                 console.error("Failed to fetch extended profile", err);
             }
-            // 404 is fine — no profile yet
         } finally {
             setExtLoading(false);
         }
     };
 
-    // Save a single field from the core UserProfile (name/email — read-only for now)
-    // This hook is passed to EditableField for any fields that map to a PATCH/PUT on /users/{id}
     const handleCoreFieldSave = async (key: string, value: string) => {
         try {
             const res = await axios.patch(`${API_BASE}/users/${userId}`, { [key]: value });
@@ -654,7 +671,6 @@ export function ProfilePage() {
 
     const handleExtProfileSaved = (updated: ExtendedProfile) => {
         setExtProfile(updated);
-        // Sync phone back to core profile state for display
         if (updated.phone_number) {
             setProfile((prev) => (prev ? { ...prev, phone: updated.phone_number! } : prev));
         }
@@ -677,7 +693,6 @@ export function ProfilePage() {
     const config = tierConfig[tier];
     const TierIcon = config.icon;
 
-    // Derive the display avatar URL
     const avatarUrl = profile?.avatar
         ? profile.avatar.startsWith("http")
             ? profile.avatar
@@ -696,16 +711,13 @@ export function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="h-full bg-white">
             <div className="max-w-full px-4 sm:px-6 lg:px-8 py-8">
-
                 {/* Profile Hero Card */}
                 <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mb-6">
                     <div className="h-1 w-full bg-red-600" />
                     <div className="p-6">
                         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
-
-                            {/* Avatar with upload */}
                             <AvatarUpload
                                 avatarUrl={avatarUrl}
                                 name={profile?.full_name}
@@ -713,7 +725,6 @@ export function ProfilePage() {
                                 onUpdated={handleAvatarUpdated}
                             />
 
-                            {/* Info */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                     <h2 className="text-lg font-bold text-gray-900">{profile?.full_name}</h2>
@@ -740,7 +751,6 @@ export function ProfilePage() {
                                 </p>
                             </div>
 
-                            {/* Logout */}
                             <div className="flex flex-col items-start lg:items-end gap-4">
                                 <button
                                     onClick={handleLogout}
@@ -760,10 +770,11 @@ export function ProfilePage() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${activeTab === tab.id
-                                ? "border-red-600 text-red-600"
-                                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                }`}
+                            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                                activeTab === tab.id
+                                    ? "border-red-600 text-red-600"
+                                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            }`}
                         >
                             <tab.icon className="w-4 h-4" />
                             {tab.label}
@@ -773,11 +784,8 @@ export function ProfilePage() {
 
                 {/* Tab Content */}
                 <div>
-                    {/* Profile Tab */}
                     {activeTab === "profile" && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                            {/* Core info — read-only fields (email/name are managed by auth) */}
                             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
                                     Account Information
@@ -800,48 +808,10 @@ export function ProfilePage() {
                                         onSave={handleCoreFieldSave}
                                         readOnly
                                     />
-                                    <EditableField
-                                        icon={Calendar}
-                                        label="Member Since"
-                                        value={
-                                            profile?.join_date
-                                                ? new Date(profile.join_date).toLocaleDateString("en-US", {
-                                                    day: "numeric",
-                                                    month: "long",
-                                                    year: "numeric",
-                                                })
-                                                : ""
-                                        }
-                                        fieldKey="join_date"
-                                        onSave={handleCoreFieldSave}
-                                        readOnly
-                                    />
+                                    
                                 </div>
                             </div>
 
-                            {/* Stats card */}
-                            {/* <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
-                                    Account Stats
-                                </h3>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {[
-                                        { label: "Orders", value: profile?.total_orders ?? 0 },
-                                        { label: "Points", value: profile?.loyalty_points ?? 0 },
-                                        {
-                                            label: "Spent",
-                                            value: `₹${(profile?.total_spent ?? 0).toLocaleString("en-IN")}`,
-                                        },
-                                    ].map(({ label, value }) => (
-                                        <div key={label} className="rounded-xl bg-red-50 p-3 text-center">
-                                            <p className="text-lg font-bold text-red-600">{value}</p>
-                                            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div> */}
-
-                            {/* Extended profile form — spans full width */}
                             <div className="md:col-span-2">
                                 {extLoading ? (
                                     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center justify-center gap-2 text-gray-400 text-sm">
@@ -869,7 +839,6 @@ export function ProfilePage() {
                 </div>
             </div>
 
-            {/* Design Request Tracking Slide-Over */}
             <DesignRequestTracking
                 open={trackingOpen}
                 onClose={() => setTrackingOpen(false)}

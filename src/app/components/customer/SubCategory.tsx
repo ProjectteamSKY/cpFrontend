@@ -34,7 +34,7 @@ interface ApiResponse {
 }
 
 // ── Config ─────────────────────────────────────────────
-const BASE_URL = "https://api.citizenprintz.in";
+const BASE_URL = "http://127.0.0.1:8000";
 
 // ── Skeleton Loader ─────────────────────────────────────
 function SkeletonCard() {

@@ -208,13 +208,13 @@ function Lightbox({ images, index, mediaBase, onClose }: {
                         <ChevronRight size={19} />
                     </button>
                 )}
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                     <span className="text-[11px] text-white/45">{cur + 1} / {images.length}</span>
                     <a href={src} download target="_blank" rel="noreferrer"
                         className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-white/10 text-white text-xs font-semibold no-underline">
                         <Download size={12} /> Download
                     </a>
-                </div>
+                </div> */}
             </div>
         </div>
     );
@@ -434,7 +434,7 @@ function RejectionReasonModal({ isOpen, onClose, onSubmit, isSubmitting }: {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DesignRequestTracking({
     open, onClose, requestId, userId,
-    mediaBaseUrl = "https://api.citizenprintz.in/",
+    mediaBaseUrl = "http://127.0.0.1:8000/",
 }: DesignRequestTrackingProps) {
     const navigate = useNavigate();
     const [request, setRequest] = useState<DesignRequest | null>(null);
@@ -450,7 +450,7 @@ export default function DesignRequestTracking({
         if (!requestId) return;
         setLoading(true); setError(null);
         try {
-            const res = await fetch(`https://api.citizenprintz.in/api/design_request/${requestId}`);
+            const res = await fetch(`http://127.0.0.1:8000/api/design_request/${requestId}`);
             if (!res.ok) throw new Error(`Error ${res.status}`);
             const json = await res.json();
             setRequest(json.data || json);
@@ -475,7 +475,7 @@ export default function DesignRequestTracking({
         if (!request) return;
         setApproving(true); setError(null);
         try {
-            const res = await fetch(`https://api.citizenprintz.in/api/design_request/designedimage/${request.id}/approve`, {
+            const res = await fetch(`http://127.0.0.1:8000/api/design_request/designedimage/${request.id}/approve`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: userId }),
@@ -496,7 +496,7 @@ export default function DesignRequestTracking({
             formData.append("user_id", userId || "");
             formData.append("rejection_reason", rejectionReason);
             
-            const res = await fetch(`https://api.citizenprintz.in/api/design_request/designedimage/${request.id}/reject`, {
+            const res = await fetch(`http://127.0.0.1:8000/api/design_request/designedimage/${request.id}/reject`, {
                 method: "PUT",
                 body: formData,
             });

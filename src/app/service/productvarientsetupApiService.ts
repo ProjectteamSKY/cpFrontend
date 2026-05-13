@@ -2,7 +2,7 @@ import axios from "axios";
 import { Variant, VariantAttributeValue, VariantPrice, Attribute, AttributeValue } from "../types/productvarientsetup";
 
 const api = axios.create({
-  baseURL: "https://api.citizenprintz.in/api",
+  baseURL: "http://127.0.0.1:8000/api",
 });
 
 // ------------------ VARIANTS (product_variant_combinations) ------------------

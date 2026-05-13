@@ -82,7 +82,7 @@ export function Testimonials() {
             className="lg:col-span-2 group relative"
             variants={fadeInUp}
           >
-            <div className="relative bg-[#D73D32] rounded-3xl p-8 text-white overflow-hidden shadow-2xl">
+            <div className="relative bg-[#2d4863] rounded-3xl p-8 text-white overflow-hidden shadow-2xl">
               {/* Animated Background Elements */}
               {/* <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-500/20 to-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
               <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-blue-500/10 to-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" /> */}
@@ -117,11 +117,11 @@ export function Testimonials() {
                 <div className="flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-white/10">
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#D73D32] to-[#D73D32] flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#FFFFFF] to-[#FFFFFF] flex items-center justify-center text-black font-bold text-lg shadow-lg">
                         {featuredReview.avatar}
                       </div>
                       <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-gray-900">
-                        <BadgeCheck size={12} className="text-white" />
+                        <BadgeCheck size={12} className="text-black" />
                       </div>
                     </div>
                     <div>

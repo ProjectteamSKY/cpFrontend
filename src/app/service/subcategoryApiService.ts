@@ -46,13 +46,27 @@ export const getAllSubcategories = async (categoryId?: string): Promise<Subcateg
   }
 };
 
+
+export const getAllsubCategoriesbasedOnproduct = async () => {
+    try {
+        const response = await api.get("/subcategory/subcategory_list");
+        console.log('API Response from subcategory_list: - subcategoryApiService.ts:53', response.data);
+        
+        // Return the entire response data
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching subcategories: - subcategoryApiService.ts:58', error);
+        throw error;
+    }
+};
+
 /* Fetch all subcategories (no category filter) */
 export const getAllSubcategoriesss = async (): Promise<Subcategory[]> => {
   try {
     const res = await api.get("/subcategory/list"); // no params
     return (res.data.subcategories || []).map(mapSubcategoryFromApi);
   } catch (error: any) {
-    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:55", error.response?.data ?? error);
+    console.error("Fetch Subcategories Error: - subcategoryApiService.ts:69", error.response?.data ?? error);
     throw new Error("Failed to fetch subcategories");
   }
 };
@@ -105,7 +119,7 @@ export const deleteSubcategory = async (id: string): Promise<void> => {
   try {
     await api.delete(`/subcategory/delete/subcategory/${id}`);
   } catch (error: any) {
-    console.log("DELETE SUBCATEGORY ERROR: - subcategoryApiService.ts:108", error.response?.data);
+    console.log("DELETE SUBCATEGORY ERROR: - subcategoryApiService.ts:122", error.response?.data);
 
     const message =
       error?.response?.data?.detail ||

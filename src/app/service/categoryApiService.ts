@@ -37,14 +37,29 @@ const mapCategoryToApi = (data: CategoryFormData) => {
 ========================================================= */
 export const getAllCategories = async (): Promise<Category[]> => {
   try {
+    // const res = await api.get("/category/list");
     const res = await api.get("/category/list");
-
     return (res.data.categories || []).map(mapCategoryFromApi);
   } catch (error: any) {
     console.error("Fetch Categories Error: - categoryApiService.ts:44", error.response?.data);
     throw new Error("Failed to fetch categories");
   }
 };
+
+export const getAllsubCategoriesbasedOnCategory = async () => {
+    try {
+        const response = await api.get("/category/category_list");
+        console.log('API Response from category_list: - categoryApiService.ts:52', response.data);
+        
+        // Return the entire response data
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching categories: - categoryApiService.ts:57', error);
+        throw error;
+    }
+};
+
+
 
 /* =========================================================
    Create Category
@@ -55,7 +70,7 @@ export const createCategory = async (
   try {
     const body = mapCategoryToApi(payload);
 
-    console.log("Sending body: - categoryApiService.ts:58", body);
+    console.log("Sending body: - categoryApiService.ts:73", body);
 
     await api.post("/category/create", body);
 
@@ -93,7 +108,7 @@ export const updateCategory = async (
 
     return { success: true, message: "Category updated successfully" };
   } catch (error: any) {
-    console.error("Update Category Error: - categoryApiService.ts:96", error.response?.data);
+    console.error("Update Category Error: - categoryApiService.ts:111", error.response?.data);
 
     return {
       success: false,
@@ -109,7 +124,7 @@ export const deleteCategory = async (id: string): Promise<void> => {
   try {
     await api.delete(`/category/${id}`);
   } catch (error: any) {
-    console.log("DELETE ERROR: - categoryApiService.ts:112", error.response?.data);
+    console.log("DELETE ERROR: - categoryApiService.ts:127", error.response?.data);
 
     // ✅ Extract backend message properly
     const message =
@@ -134,7 +149,7 @@ export const toggleCategoryStatus = async (
       is_active: Boolean(is_active),
     });
   } catch (error: any) {
-    console.error("Toggle Status Error: - categoryApiService.ts:137", error.response?.data);
+    console.error("Toggle Status Error: - categoryApiService.ts:152", error.response?.data);
     throw new Error("Failed to toggle category status");
   }
 };
@@ -142,9 +157,9 @@ export const toggleCategoryStatus = async (
 export const activateCategory = async (id: string): Promise<void> => {
   try {
     await api.put(`/category/${id}/activate`);
-    console.log(`Category ${id} activated - categoryApiService.ts:145`);
+    console.log(`Category ${id} activated - categoryApiService.ts:160`);
   } catch (error: any) {
-    console.error("Activate Category Error: - categoryApiService.ts:147", error.response?.data);
+    console.error("Activate Category Error: - categoryApiService.ts:162", error.response?.data);
     throw new Error("Failed to activate category");
   }
 };
@@ -152,9 +167,9 @@ export const activateCategory = async (id: string): Promise<void> => {
 export const deactivateCategory = async (id: string): Promise<void> => {
   try {
     await api.put(`/category/${id}/deactivate`);
-    console.log(`Category ${id} deactivated - categoryApiService.ts:155`);
+    console.log(`Category ${id} deactivated - categoryApiService.ts:170`);
   } catch (error: any) {
-    console.error("Deactivate Category Error: - categoryApiService.ts:157", error.response?.data);
+    console.error("Deactivate Category Error: - categoryApiService.ts:172", error.response?.data);
     throw new Error("Failed to deactivate category");
   }
 };

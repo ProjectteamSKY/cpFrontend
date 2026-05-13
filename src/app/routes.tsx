@@ -46,6 +46,12 @@ import { ProductAttributeManagement } from "./components/admin/ProductAttributeM
 import ProductSetupWrapper from "./components/admin/ProductSetupWrapper";
 import { OrderDetailsPage } from "./components/admin/OrderDetailsPage";
 import ShiprocketManagement from "./components/shiprocket/ShiprockectManagement";
+import SalesManagement from "./components/admin/Salesmanagement";
+import AboutUsPage from "./components/home/AboutUsPage";
+import DesignServicesPage from "./components/home/DesignServicesPage";
+import ContactUsPage from "./components/home/ContactUsPage";
+import ReturnPolicyPage from "./components/home/ReturnPolicyPage";
+import ContactManagement from "./components/admin/ContactManagement";
 
 
 
@@ -170,6 +176,22 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <HomePage /> },
           {
+            path: "/about",
+            element: <AboutUsPage />,
+          },
+          {
+            path: "/design-services",
+            element: <DesignServicesPage />,
+          },
+          {
+            path: "/contact",
+            element: <ContactUsPage />,
+          },
+          {
+            path: "/return-policy",
+            element: <ReturnPolicyPage />,
+          },
+          {
             path: "/login",
             element: <LoginPage />,
           },
@@ -236,7 +258,11 @@ export const router = createBrowserRouter([
               { path: "Role", element: <UserRole /> },
               { path: "add-role", element: <AddRole /> },
               { path: "resources-actions", element: <AddResourceActions /> },
-              { path: "Shiprocket", element: <ShiprocketManagement /> }
+              { path: "Shiprocket", element: <ShiprocketManagement /> },
+              { path: "Sales-report", element: <SalesManagement /> },
+              { path: "ContactManagement", element: <ContactManagement /> }
+
+
             ],
           },
           // ===== DESIGNER + ADMIN =====

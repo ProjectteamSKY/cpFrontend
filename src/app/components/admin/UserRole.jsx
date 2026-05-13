@@ -58,8 +58,25 @@ const UserRole = () => {
     const [popup, setPopup] = useState({ open: false, message: '', type: 'success' });
     const [expandedResources, setExpandedResources] = useState({});
     const [activeRoleIdx, setActiveRoleIdx] = useState(0);
+    const [userRoles, setUserRoles] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showUserRolesModal, setShowUserRolesModal] = useState(false);
+    const [expandedUsers, setExpandedUsers] = useState({});
 
     const savedPerms = React.useRef({});
+
+    // Fetch user roles from the API
+    const fetchUserRoles = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/user_role/list');
+            const data = await response.json();
+            if (data.status === 'success') {
+                setUserRoles(data.user_roles);
+            }
+        } catch (err) {
+            console.error('Error fetching user roles:', err);
+        }
+    };
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -78,6 +95,8 @@ const UserRole = () => {
                     fetchPermissions(),
                     fetchRolePermissions(),
                 ]);
+
+                await fetchUserRoles();
 
                 console.log('Fetched roles:', rolesData);
                 console.log('Fetched resources:', resourcesData);
@@ -165,6 +184,10 @@ const UserRole = () => {
         setExpandedResources(prev => ({ ...prev, [resourceId]: !prev[resourceId] }));
     };
 
+    const toggleUserExpansion = (userId) => {
+        setExpandedUsers(prev => ({ ...prev, [userId]: !prev[userId] }));
+    };
+
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -181,14 +204,17 @@ const UserRole = () => {
 
             if (requests.length === 0) {
                 setPopup({ open: true, message: 'No changes to save.', type: 'success' });
+                setTimeout(() => setPopup({ open: false, message: '', type: 'success' }), 3000);
                 return;
             }
 
             await Promise.all(requests);
             savedPerms.current = JSON.parse(JSON.stringify(rolePerms));
             setPopup({ open: true, message: 'Role permissions saved successfully!', type: 'success' });
+            setTimeout(() => setPopup({ open: false, message: '', type: 'success' }), 3000);
         } catch (err) {
             setPopup({ open: true, message: 'Failed to save: ' + err.message, type: 'error' });
+            setTimeout(() => setPopup({ open: false, message: '', type: 'error' }), 3000);
         } finally {
             setSaving(false);
         }
@@ -196,6 +222,35 @@ const UserRole = () => {
 
     const handleAddRole = () => navigate('/admin/add-role');
     const handleAddResourcesActions = () => navigate('/admin/resources-actions');
+    
+    const handleViewUserRoles = (user) => {
+        const userRolesList = userRoles.filter(ur => ur.user_id === user.id);
+        setSelectedUser({ ...user, roles: userRolesList });
+        setShowUserRolesModal(true);
+    };
+
+    const getUserRolesForDisplay = () => {
+        const userMap = new Map();
+        userRoles.forEach(ur => {
+            if (!userMap.has(ur.user_id)) {
+                userMap.set(ur.user_id, {
+                    id: ur.user_id,
+                    name: ur.user_name,
+                    email: ur.user_email,
+                    roles: []
+                });
+            }
+            userMap.get(ur.user_id).roles.push({
+                id: ur.role_id,
+                name: ur.role_name,
+                description: ur.role_description,
+                assigned_at: ur.assigned_at,
+                assigned_by: ur.assigned_by_name,
+                assigned_by_id: ur.assigned_by
+            });
+        });
+        return Array.from(userMap.values());
+    };
 
     if (error) return (
         <div className="p-6 min-h-screen flex flex-col items-center justify-center bg-white">
@@ -214,6 +269,7 @@ const UserRole = () => {
 
     const colTemplate = `220px repeat(${apiRoles.length}, 1fr)`;
     const activeRole = apiRoles[activeRoleIdx];
+    const usersWithRoles = getUserRolesForDisplay();
 
     return (
         <div className="p-3 sm:p-4 md:p-6 min-h-screen bg-white">
@@ -253,6 +309,99 @@ const UserRole = () => {
                     </div>
                 </div>
 
+                {/* User Role Assignments Section - Table Format */}
+                <div className="mb-8 border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                    <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+                        <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-[#D73D32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            User Role Assignments
+                        </h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr className="border-b border-gray-200">
+                                    <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 w-1/4">
+                                        User
+                                    </th>
+                                    <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Assigned Roles
+                                    </th>
+                                   
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {usersWithRoles.map((user, idx) => {
+                                    const isExpanded = expandedUsers[user.id];
+                                    return (
+                                        <React.Fragment key={user.id}>
+                                            <tr className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                                                <td className="px-4 py-3">
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">{user.name}</div>
+                                                        <div className="text-xs text-gray-500">{user.email}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {user.roles.slice(0, 3).map((role, roleIdx) => (
+                                                            <span key={roleIdx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                                {formatRoleLabel(role.name)}
+                                                            </span>
+                                                        ))}
+                                                        {/* {user.roles.length > 3 && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                                                +{user.roles.length - 3} more
+                                                            </span>
+                                                        )} */}
+                                                        {user.roles.length === 0 && (
+                                                            <span className="text-xs text-gray-400">No roles assigned</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                {/* <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        onClick={() => handleViewUserRoles(user)}
+                                                        className="text-xs px-3 py-1.5 rounded-lg transition-colors bg-[#D73D32] hover:bg-[#C2352A] text-white font-medium"
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                </td> */}
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan="3" className="px-4 py-3">
+                                                        <div className="space-y-2">
+                                                            <div className="text-xs font-medium text-gray-700 mb-2">All Roles:</div>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {user.roles.map((role, roleIdx) => (
+                                                                    <div key={roleIdx} className="bg-white border border-gray-200 rounded-lg p-2 inline-block">
+                                                                        <span className="text-sm font-medium text-[#D73D32]">{formatRoleLabel(role.name)}</span>
+                                                                        {role.description && (
+                                                                            <span className="text-xs text-gray-500 ml-2">({role.description})</span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    {usersWithRoles.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                            No user role assignments found
+                        </div>
+                    )}
+                </div>
+
                 {/* Desktop Table */}
                 <div className="hidden lg:block border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
                     <div className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
@@ -289,9 +438,6 @@ const UserRole = () => {
                                             <span className="text-xs w-4 flex-shrink-0 text-gray-400">
                                                 {isExpanded ? '▼' : '▶'}
                                             </span>
-                                            {/* <span className="text-[10px] w-5 text-right flex-shrink-0 text-gray-400">
-                                                {resource.id}
-                                            </span> */}
                                             <span className="font-semibold text-sm text-gray-900">
                                                 {resource.name.trim()}
                                             </span>
@@ -375,7 +521,7 @@ const UserRole = () => {
                                     onClick={() => setActiveRoleIdx(idx)}
                                     className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
                                         isActive
-                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            ? 'bg-[#D73D32] text-white border-[#D73D32]'
                                             : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                                     }`}
                                 >
@@ -391,7 +537,7 @@ const UserRole = () => {
                         <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
                             {/* Card header */}
                             <div className="border-b p-4 flex items-center justify-between bg-gray-50 border-gray-200">
-                                <span className="text-base font-semibold text-indigo-600">
+                                <span className="text-base font-semibold text-[#D73D32]">
                                     {formatRoleLabel(activeRole.name)}
                                 </span>
                                 <button
@@ -486,7 +632,7 @@ const UserRole = () => {
                                 </div>
                                 <div className="w-full rounded-full h-1.5 bg-gray-200">
                                     <div
-                                        className="h-1.5 rounded-full transition-all duration-300 bg-indigo-600"
+                                        className="h-1.5 rounded-full transition-all duration-300 bg-[#D73D32]"
                                         style={{
                                             width: `${(countEnabled(activeRole.name) / allPermIds.length) * 100}%`,
                                         }}
@@ -496,6 +642,66 @@ const UserRole = () => {
                         </div>
                     )}
                 </div>
+
+                {/* User Roles Modal */}
+                {showUserRolesModal && selectedUser && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl">
+                            <div className="border-b p-4 flex items-center justify-between bg-gray-50">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900">{selectedUser.name}</h3>
+                                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowUserRolesModal(false)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="p-4 overflow-y-auto">
+                                {selectedUser.roles && selectedUser.roles.length > 0 ? (
+                                    <div className="space-y-3">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50">
+                                                <tr className="border-b border-gray-200">
+                                                    <th className="text-left px-3 py-2 text-xs font-medium text-gray-500">Role Name</th>
+                                                    <th className="text-left px-3 py-2 text-xs font-medium text-gray-500">Description</th>
+                                                    <th className="text-left px-3 py-2 text-xs font-medium text-gray-500">Assigned By</th>
+                                                    <th className="text-left px-3 py-2 text-xs font-medium text-gray-500">Assigned At</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {selectedUser.roles.map((role, idx) => (
+                                                    <tr key={idx} className="border-b border-gray-100">
+                                                        <td className="px-3 py-2 text-sm font-medium text-[#D73D32]">{formatRoleLabel(role.name)}</td>
+                                                        <td className="px-3 py-2 text-sm text-gray-600">{role.description || '-'}</td>
+                                                        <td className="px-3 py-2 text-sm text-gray-600">{role.assigned_by || '-'}</td>
+                                                        <td className="px-3 py-2 text-sm text-gray-600">
+                                                            {role.assigned_at ? new Date(role.assigned_at).toLocaleDateString() : '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-gray-500 py-8">No roles assigned to this user</p>
+                                )}
+                            </div>
+                            <div className="border-t p-4 bg-gray-50">
+                                <button
+                                    onClick={() => setShowUserRolesModal(false)}
+                                    className="w-full px-4 py-2 bg-[#D73D32] text-white rounded-lg hover:bg-[#C2352A] transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Save Button */}
                 <div className="mt-5 flex justify-end">
@@ -520,6 +726,17 @@ const UserRole = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Popup notification */}
+            {popup.open && (
+                <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+                    <div className={`px-4 py-3 rounded-lg shadow-lg ${
+                        popup.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'
+                    }`}>
+                        <p className="text-sm">{popup.message}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

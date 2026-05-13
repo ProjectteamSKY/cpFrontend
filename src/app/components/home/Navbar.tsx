@@ -3,12 +3,13 @@ import { Link, useLocation } from "react-router";
 import { Menu, X, Search, User, Heart, ShoppingCart, ChevronDown, ArrowRight, XCircle } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import {
-    getAllCategories,
+    getAllsubCategoriesbasedOnCategory,
 } from "../../service/categoryApiService";
-import { getAllSubcategories } from "../../service/subcategoryApiService";
+import { getAllSubcategories, getAllsubCategoriesbasedOnproduct } from "../../service/subcategoryApiService";
 import { getAllProductsActive } from "../../service/productApiService";
 import { Subcategory } from "../../types/subcategory";
 import { Product } from "../../types/product";
+import logo from "../../../media/logo_5.png"
 
 interface Category {
     id: string;
@@ -28,32 +29,32 @@ interface SearchResult {
 // Helper function to get full image URL
 const getImageUrl = (imageData: any): string | null => {
     if (!imageData) return null;
-    
+
     // Case 1: It's an object with url property
     if (typeof imageData === 'object' && imageData.url) {
         let url = imageData.url;
         if (typeof url === 'string') {
             if (url.startsWith('http')) return url;
             if (url.startsWith('/storage') || url.startsWith('/uploads') || url.startsWith('media/')) {
-                return `https://api.citizenprintz.in/${url}`;
+                return `http://127.0.0.1:8000/${url}`;
             }
-            return `https://api.citizenprintz.in/${url.replace(/^\/+/, '')}`;
+            return `http://127.0.0.1:8000/${url.replace(/^\/+/, '')}`;
         }
     }
-    
+
     // Case 2: It's a string
     if (typeof imageData === 'string') {
         if (imageData.startsWith('http')) return imageData;
-        return `https://api.citizenprintz.in/${imageData.replace(/^\/+/, '')}`;
+        return `http://127.0.0.1:8000/${imageData.replace(/^\/+/, '')}`;
     }
-    
+
     return null;
 };
 
 // Helper to get product image
 const getProductImage = (product: Product): string | null => {
     if (!product) return null;
-    
+
     // Check if images is an array
     if (product.images && Array.isArray(product.images)) {
         // Find default image or first image
@@ -61,7 +62,7 @@ const getProductImage = (product: Product): string | null => {
         const imageToUse = defaultImage || product.images[0];
         return getImageUrl(imageToUse);
     }
-    
+
     return null;
 };
 
@@ -81,7 +82,7 @@ export function Navbar() {
     const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null);
     const [scrolled, setScrolled] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     const searchRef = useRef<HTMLDivElement>(null);
     const hoverTimeoutRef = useRef<NodeJS.Timeout>();
     const megaMenuRef = useRef<HTMLDivElement>(null);
@@ -92,17 +93,64 @@ export function Navbar() {
         const fetchAllData = async () => {
             setIsLoading(true);
             try {
-                const cats = await getAllCategories();
+                // Fetch categories
+                const cats = await getAllsubCategoriesbasedOnCategory();
+                
+                // ✅ Fixed: Ensure cats is an array before using filter
+                let categoriesArray = Array.isArray(cats) ? cats : [];
+                
+                // If it's an object with data property (common API pattern)
+                if (!Array.isArray(cats) && cats && typeof cats === 'object') {
+                    if (Array.isArray(cats.data)) {
+                        categoriesArray = cats.data;
+                    } else if (Array.isArray(cats.categories)) {
+                        categoriesArray = cats.categories;
+                    } else {
+                        // Try to extract any array property
+                        categoriesArray = Object.values(cats).find(val => Array.isArray(val)) || [];
+                    }
+                }
+                
                 // Filter out invalid categories and ensure unique
-                const validCats = cats.filter(cat => cat && cat.id && cat.name);
+                const validCats = categoriesArray.filter((cat: { id: any; name: any; }) => cat && cat.id && cat.name);
                 setCategories([{ id: "all", name: "View All" }, ...validCats]);
 
-                const subs = await getAllSubcategories();
+                // Fetch subcategories
+                const subs = await getAllsubCategoriesbasedOnproduct();
+                
+                // Fetch products
                 const products = await getAllProductsActive();
 
-                // Build subcategories map - only for valid categories
+                // Ensure subs and products are arrays
+                let subsArray: Subcategory[] = [];
+                if (Array.isArray(subs)) {
+                    subsArray = subs;
+                } else if (subs && typeof subs === 'object') {
+                    if (Array.isArray(subs.data)) {
+                        subsArray = subs.data;
+                    } else if (Array.isArray(subs.subcategories)) {
+                        subsArray = subs.subcategories;
+                    } else {
+                        subsArray = Object.values(subs).find(val => Array.isArray(val)) || [];
+                    }
+                }
+                
+                let productsArray: Product[] = [];
+                if (Array.isArray(products)) {
+                    productsArray = products;
+                } else if (products && typeof products === 'object') {
+                    if (Array.isArray(products.data)) {
+                        productsArray = products.data;
+                    } else if (Array.isArray(products.products)) {
+                        productsArray = products.products;
+                    } else {
+                        productsArray = Object.values(products).find(val => Array.isArray(val)) || [];
+                    }
+                }
+
+                // ✅ FIXED: Build subcategories map - only for valid categories
                 const subMap: Record<string, Subcategory[]> = {};
-                subs.forEach((sub) => {
+                subsArray.forEach((sub: Subcategory) => {
                     if (sub && sub.category_id && sub.is_active && !sub.is_deleted) {
                         if (!subMap[sub.category_id]) subMap[sub.category_id] = [];
                         subMap[sub.category_id].push(sub);
@@ -110,17 +158,27 @@ export function Navbar() {
                 });
                 setSubcategoriesMap(subMap);
 
-                // Build products map by subcategory - only for valid products with subcategory
+                // ✅ FIXED: Build products map by subcategory - CRITICAL FIX
+                // This ensures products are correctly mapped to their subcategories
                 const prodMap: Record<string, Product[]> = {};
-                products.forEach((p) => {
-                    if (p && p.subcategory_id && p.is_active) {
-                        if (!prodMap[p.subcategory_id]) prodMap[p.subcategory_id] = [];
+                productsArray.forEach((p: Product) => {
+                    // Check if product has a subcategory_id and is active
+                    if (p && p.subcategory_id && p.is_active === 1) {
+                        // Initialize array if it doesn't exist
+                        if (!prodMap[p.subcategory_id]) {
+                            prodMap[p.subcategory_id] = [];
+                        }
+                        // Add product to the map
                         prodMap[p.subcategory_id].push(p);
                     }
                 });
                 setProductsMap(prodMap);
             } catch (error) {
                 console.error("Error fetching navigation data:", error);
+                // Set empty arrays to prevent further errors
+                setCategories([{ id: "all", name: "View All" }]);
+                setSubcategoriesMap({});
+                setProductsMap({});
             } finally {
                 setIsLoading(false);
             }
@@ -155,13 +213,13 @@ export function Navbar() {
                 // Check if click is on a category link
                 const target = event.target as HTMLElement;
                 const isCategoryLink = target.closest('.category-link');
-                
+
                 if (!isCategoryLink) {
                     setHoveredCategory(null);
                 }
             }
         };
-        
+
         document.addEventListener('mousedown', handleClickOutsideMegaMenu);
         return () => document.removeEventListener('mousedown', handleClickOutsideMegaMenu);
     }, []);
@@ -278,19 +336,27 @@ export function Navbar() {
         if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
 
+    // Helper to check if subcategory has products
+    const hasProducts = (subcategoryId: string): boolean => {
+        return productsMap[subcategoryId] && productsMap[subcategoryId].length > 0;
+    };
+
     return (
-        <nav className={`bg-white sticky top-0 z-50 transition-shadow duration-300 ${scrolled ? 'shadow-lg' : 'shadow-sm'}`}>
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className={`bg-white sticky top-0 z-50 transition-shadow duration-300 `}>
+            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Top Bar - Logo, Search, Actions */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 py-3 md:py-0 md:h-16 lg:h-20">
                     {/* Logo and Mobile Menu Row */}
                     <div className="flex items-center justify-between md:justify-start">
-                        <Link to="/" className="group flex-shrink-0">
-                            <span className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-[#c0392b] to-[#e74c3c] bg-clip-text text-transparent tracking-tight">
-                                Citizen Prints
-                            </span>
-                            <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c0392b] to-[#e74c3c] group-hover:w-full transition-all duration-300 hidden md:block"></div>
-                        </Link>
+
+                        {/* Logo */}
+                        <div className="flex items-center flex-shrink-0">
+                            <img
+                                src={logo}
+                                alt="Citizen Prints"
+                                className="h-20 sm:h-16 lg:h-20 w-auto object-contain"
+                            />
+                        </div>
 
                         {/* Mobile Menu Button */}
                         <button
@@ -300,6 +366,7 @@ export function Navbar() {
                         >
                             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
+
                     </div>
 
                     {/* Enhanced Search Bar - Desktop */}
@@ -319,9 +386,9 @@ export function Navbar() {
                                     <option value="subcategories">Subcategories</option>
                                 </select>
                             </div>
-                            
+
                             <Search size={18} className={`absolute left-24 top-1/2 -translate-y-1/2 transition-colors duration-200 ${searchFocused ? 'text-[#c0392b]' : 'text-gray-400'}`} />
-                            
+
                             <input
                                 type="text"
                                 placeholder={searchCategory === 'all' ? "Search products, categories, or subcategories..." : `Search ${searchCategory}...`}
@@ -330,7 +397,7 @@ export function Navbar() {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => setSearchFocused(true)}
                             />
-                            
+
                             {searchQuery && (
                                 <button
                                     onClick={clearSearch}
@@ -361,7 +428,7 @@ export function Navbar() {
                                                 {searchCategory === 'all' ? 'Showing all matches' : `Showing ${searchCategory}`}
                                             </span>
                                         </div>
-                                        
+
                                         <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
                                             {enhancedSearchResults.map((result) => {
                                                 if (result.type === 'product') {
@@ -374,8 +441,8 @@ export function Navbar() {
                                                         >
                                                             {result.image ? (
                                                                 <div className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
-                                                                    <img 
-                                                                        src={result.image} 
+                                                                    <img
+                                                                        src={result.image}
                                                                         alt={result.name}
                                                                         className="w-full h-full object-cover"
                                                                         onError={(e) => {
@@ -465,7 +532,7 @@ export function Navbar() {
                                                 }
                                             })}
                                         </div>
-                                        
+
                                         <div className="p-3 bg-gray-50 border-t">
                                             <Link
                                                 to={`/products?search=${encodeURIComponent(searchQuery)}`}
@@ -530,28 +597,26 @@ export function Navbar() {
                     <div className="overflow-x-auto scrollbar-hide">
                         <div className="flex gap-1 py-2 min-w-max">
                             {categories.filter(c => c && c.id && c.name).map((c) => (
-                                <div 
-                                    key={c.id} 
+                                <div
+                                    key={c.id}
                                     className="relative"
                                     onMouseEnter={() => handleHoverEnter(c.id)}
                                     onMouseLeave={handleHoverLeave}
                                 >
                                     <Link
                                         to={c.id === "all" ? "/" : `/products?category=${c.id}`}
-                                        className={`category-link flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
-                                            hoveredCategory === c.id 
-                                                ? "text-[#c0392b] bg-red-50" 
+                                        className={`category-link flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${hoveredCategory === c.id
+                                                ? "text-[#c0392b] bg-red-50"
                                                 : "text-gray-700 hover:text-[#c0392b] hover:bg-red-50"
-                                        }`}
+                                            }`}
                                         onClick={() => setHoveredCategory(null)}
                                     >
                                         {c.name}
                                         {c.id !== "all" && (
-                                            <ChevronDown 
-                                                size={14} 
-                                                className={`transition-transform duration-200 ${
-                                                    hoveredCategory === c.id ? "rotate-180" : ""
-                                                }`}
+                                            <ChevronDown
+                                                size={14}
+                                                className={`transition-transform duration-200 ${hoveredCategory === c.id ? "rotate-180" : ""
+                                                    }`}
                                             />
                                         )}
                                     </Link>
@@ -578,8 +643,8 @@ export function Navbar() {
                                                     .filter((s) => s.is_active && !s.is_deleted);
                                                 return (
                                                     <div key={cat.id} className="space-y-3">
-                                                        <Link 
-                                                            to={`/products?category=${cat.id}`} 
+                                                        <Link
+                                                            to={`/products?category=${cat.id}`}
                                                             className="block font-semibold text-[#c0392b] text-sm uppercase tracking-wide hover:opacity-80 transition-opacity"
                                                             onClick={() => setHoveredCategory(null)}
                                                         >
@@ -587,9 +652,9 @@ export function Navbar() {
                                                         </Link>
                                                         <div className="space-y-1.5">
                                                             {subcategories.slice(0, 5).map((sub) => (
-                                                                <Link 
-                                                                    key={sub.id} 
-                                                                    to={`/products?subcategory=${sub.id}`} 
+                                                                <Link
+                                                                    key={sub.id}
+                                                                    to={`/products?subcategory=${sub.id}`}
                                                                     className="block text-sm text-gray-600 hover:text-[#c0392b] py-1 transition-colors"
                                                                     onClick={() => setHoveredCategory(null)}
                                                                 >
@@ -598,8 +663,8 @@ export function Navbar() {
                                                             ))}
                                                         </div>
                                                         {subcategories.length > 0 && (
-                                                            <Link 
-                                                                to={`/subcategorylist?category=${cat.id}`} 
+                                                            <Link
+                                                                to={`/subcategorylist?category=${cat.id}`}
                                                                 className="inline-flex items-center gap-1 text-xs font-medium text-[#c0392b] hover:opacity-80 transition-colors"
                                                                 onClick={() => setHoveredCategory(null)}
                                                             >
@@ -616,36 +681,48 @@ export function Navbar() {
                                         {(subcategoriesMap[hoveredCategory] || [])
                                             .filter((s) => s.is_active && !s.is_deleted)
                                             .slice(0, 8)
-                                            .map((sub) => (
-                                                <div key={sub.id} className="space-y-3">
-                                                    <h3 className="font-semibold text-gray-800 text-sm border-l-2 border-[#c0392b] pl-2">
-                                                        {sub.name}
-                                                    </h3>
-                                                    <div className="space-y-1.5">
-                                                        {(productsMap[sub.id] || []).slice(0, 4).map((p) => (
-                                                            <Link 
-                                                                key={p.id} 
-                                                                to={`/product/${p.id}`} 
-                                                                className="block text-sm text-gray-500 hover:text-[#c0392b] py-1 transition-colors truncate"
+                                            .map((sub) => {
+                                                // ✅ FIXED: Get products for this specific subcategory
+                                                const subProducts = productsMap[sub.id] || [];
+                                                const hasAnyProducts = subProducts.length > 0;
+                                                
+                                                return (
+                                                    <div key={sub.id} className="space-y-3">
+                                                        <h3 className="font-semibold text-gray-800 text-sm border-l-2 border-[#c0392b] pl-2">
+                                                            {sub.name}
+                                                        </h3>
+                                                        
+                                                        {/* ✅ FIXED: Display products for this subcategory */}
+                                                        <div className="space-y-1.5">
+                                                            {subProducts.slice(0, 4).map((p) => (
+                                                                <Link
+                                                                    key={p.id}
+                                                                    to={`/product/${p.id}`}
+                                                                    className="block text-sm text-gray-500 hover:text-[#c0392b] py-1 transition-colors truncate"
+                                                                    onClick={() => setHoveredCategory(null)}
+                                                                >
+                                                                    {p.name && p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name || 'Unnamed Product'}
+                                                                </Link>
+                                                            ))}
+                                                            {!hasAnyProducts && (
+                                                                <p className="text-xs text-gray-400 italic">No products available</p>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {/* ✅ FIXED: Show "Shop Now" button ONLY if there are products */}
+                                                        {hasAnyProducts && (
+                                                            <Link
+                                                                to={`/products?subcategory=${sub.id}`}
+                                                                className="inline-flex items-center gap-1 text-xs font-medium text-[#c0392b] hover:opacity-80 transition-colors"
                                                                 onClick={() => setHoveredCategory(null)}
                                                             >
-                                                                {p.name && p.name.length > 35 ? p.name.substring(0, 35) + '...' : p.name || 'Unnamed'}
+                                                                Shop Now
+                                                                <ArrowRight size={12} />
                                                             </Link>
-                                                        ))}
-                                                        {(productsMap[sub.id] || []).length === 0 && (
-                                                            <p className="text-xs text-gray-400 italic">No products available</p>
                                                         )}
                                                     </div>
-                                                    <Link 
-                                                        to={`/products?subcategory=${sub.id}`} 
-                                                        className="inline-flex items-center gap-1 text-xs font-medium text-[#c0392b] hover:opacity-80 transition-colors"
-                                                        onClick={() => setHoveredCategory(null)}
-                                                    >
-                                                        Shop Now
-                                                        <ArrowRight size={12} />
-                                                    </Link>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                     </div>
                                 )}
                             </div>
@@ -657,11 +734,11 @@ export function Navbar() {
                 {mobileMenuOpen && (
                     <>
                         {/* Backdrop */}
-                        <div 
+                        <div
                             className="fixed inset-0 bg-black/50 z-40 md:hidden"
                             onClick={() => setMobileMenuOpen(false)}
                         />
-                        
+
                         {/* Drawer */}
                         <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-white z-50 shadow-2xl animate-slideInRight md:hidden">
                             <div className="flex flex-col h-full">
@@ -724,14 +801,13 @@ export function Navbar() {
                                             className="flex items-center justify-between w-full py-2 text-left font-semibold text-gray-800"
                                         >
                                             <span>All Categories</span>
-                                            <ChevronDown 
-                                                size={18} 
-                                                className={`transition-transform duration-200 ${
-                                                    mobileCategoriesOpen ? "rotate-180" : ""
-                                                }`}
+                                            <ChevronDown
+                                                size={18}
+                                                className={`transition-transform duration-200 ${mobileCategoriesOpen ? "rotate-180" : ""
+                                                    }`}
                                             />
                                         </button>
-                                        
+
                                         {mobileCategoriesOpen && (
                                             <div className="mt-2 ml-2 space-y-1">
                                                 {categories.filter(c => c.id !== "all").map((c) => (
@@ -750,15 +826,14 @@ export function Navbar() {
                                                                 {c.name}
                                                             </Link>
                                                             {(subcategoriesMap[c.id] || []).length > 0 && (
-                                                                <ChevronDown 
-                                                                    size={14} 
-                                                                    className={`transition-transform duration-200 ${
-                                                                        expandedMobileCategory === c.id ? "rotate-180" : ""
-                                                                    }`}
+                                                                <ChevronDown
+                                                                    size={14}
+                                                                    className={`transition-transform duration-200 ${expandedMobileCategory === c.id ? "rotate-180" : ""
+                                                                        }`}
                                                                 />
                                                             )}
                                                         </button>
-                                                        
+
                                                         {expandedMobileCategory === c.id && (
                                                             <div className="ml-4 mt-1 space-y-1 border-l-2 border-[#c0392b] pl-3">
                                                                 {(subcategoriesMap[c.id] || [])

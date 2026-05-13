@@ -132,7 +132,7 @@ export function OrderDetailsPage() {
   const handleDownloadImage = async (imageUrl: string, index: number = 0) => {
     try {
       // Construct full URL
-      const fullUrl = imageUrl.startsWith('http') ? imageUrl : `https://api.citizenprintz.in/${imageUrl}`;
+      const fullUrl = imageUrl.startsWith('http') ? imageUrl : `http://127.0.0.1:8000/${imageUrl}`;
       
       // Fetch the image as a blob
       const response = await fetch(fullUrl);
@@ -273,10 +273,10 @@ export function OrderDetailsPage() {
                           {item.files?.[0]?.front_side_url && (
                             <div className="md:w-32">
                               <img
-                                src={`https://api.citizenprintz.in/${item.files[0].front_side_url}`}
+                                src={`http://127.0.0.1:8000/${item.files[0].front_side_url}`}
                                 alt={item.product_name}
                                 className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => setSelectedImage(`https://api.citizenprintz.in/${item.files[0].front_side_url}`)}
+                                onClick={() => setSelectedImage(`http://127.0.0.1:8000/${item.files[0].front_side_url}`)}
                               />
                             </div>
                           )}
@@ -323,7 +323,7 @@ export function OrderDetailsPage() {
                                     <div key={idx} className="space-y-1 flex gap-2">
                                       {file.front_side_url && (
                                         <button
-                                          onClick={() => setSelectedImage(`https://api.citizenprintz.in/${file.front_side_url}`)}
+                                          onClick={() => setSelectedImage(`http://127.0.0.1:8000/${file.front_side_url}`)}
                                           className="text-sm text-[#2d4863] hover:text-[#D73D32] flex items-center gap-1"
                                         >
                                           <Eye className="w-4 h-4" />
@@ -332,7 +332,7 @@ export function OrderDetailsPage() {
                                       )}
                                       {file.back_side_url && (
                                         <button
-                                          onClick={() => setSelectedImage(`https://api.citizenprintz.in/${file.back_side_url}`)}
+                                          onClick={() => setSelectedImage(`http://127.0.0.1:8000/${file.back_side_url}`)}
                                           className="text-sm text-[#2d4863] hover:text-[#D73D32] flex items-center gap-1"
                                         >
                                           <Eye className="w-4 h-4" />

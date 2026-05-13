@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { AlertCircle, Upload, X, Loader2, Image as ImageIcon, FileUp, CheckCircle } from "lucide-react";
 import { designValidation } from "../../validation/designValidation";
 
-const BASE_URL = "https://api.citizenprintz.in";
+const BASE_URL = "http://127.0.0.1:8000";
 
 interface Props {
     defaultValues?: DesignRequest | null;

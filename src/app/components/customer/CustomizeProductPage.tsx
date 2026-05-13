@@ -146,7 +146,7 @@ export function CustomizeProductPage() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`https://api.citizenprintz.in/api/product/${productId}`);
+        const res = await axios.get(`http://127.0.0.1:8000/api/product/${productId}`);
         const productData = res.data;
 
         // Process images
@@ -265,7 +265,7 @@ export function CustomizeProductPage() {
     if (typeof imagePath === 'string') {
       if (imagePath.startsWith('http')) return imagePath;
       const cleanPath = imagePath.replace(/\\/g, '/');
-      return `https://api.citizenprintz.in/${cleanPath}`;
+      return `http://127.0.0.1:8000/${cleanPath}`;
     }
     return '';
   };

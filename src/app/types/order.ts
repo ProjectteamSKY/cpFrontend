@@ -43,6 +43,10 @@ export interface Shipment {
   pickup_status?: string | null
   current_status?: string
   delivered_at?: string | null
+  pickup_scheduled?: boolean;  // Add this
+  pickup_date?: string;        // Add this
+  pickup_time?: string;        // Add this
+  pickup_id?: string;   
 }
 
 /* UPDATE ORDER */

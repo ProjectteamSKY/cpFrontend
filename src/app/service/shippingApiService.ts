@@ -1,7 +1,7 @@
 import axios from "axios";
 import api from "./api";
 
-const API_BASE_URL = "https://api.citizenprintz.in/api/shipping";
+const API_BASE_URL = "http://127.0.0.1:8000/api/shipping";
 
 // ✅ Create Shipment (Shiprocket Order)
 export const createShiprocketOrder = async (
@@ -89,9 +89,9 @@ export const getWalletBalance = async () => {
 // Download Manifest Label
 export const downloadManifestLabel = async (orderId: string): Promise<void> => {
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/shipping/manifest-label`,
-      { order_id: orderId }
+    const response = await api.get(
+      `${API_BASE_URL}/manifest-label`,
+      { params: { order_id: orderId } }
     );
 
     // Check if response is a PDF or ZIP file
@@ -167,5 +167,14 @@ export const generateInvoice = async (orderId: string): Promise<void> => {
   } catch (error: any) {
     console.error('Error generating invoice: - shippingApiService.ts:168', error);
     throw new Error(error.response?.data?.message || 'Failed to generate invoice');
+  }
+};
+
+export const generatePickup = async (orderId: string) => {
+  try {
+    const response = await api.post(`/shipping/generate-pickup/${orderId}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
   }
 };
