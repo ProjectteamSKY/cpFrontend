@@ -77,7 +77,7 @@ export function Footer() {
       setLoading(true);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/api/product/footer/minimal"
+        "https://api.citizenprintz.in/api/product/footer/minimal"
       );
 
       if (!response.ok) {
@@ -103,21 +103,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand Section */}
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-11 h-11 rounded-2xl bg-[#D73D32] flex items-center justify-center shadow-lg shadow-red-500/20">
-                <span className="text-white font-bold text-xl">C</span>
-              </div>
-
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-wide">
-                  Citizen Prints
-                </h2>
-
-                <p className="text-xs text-gray-400">
-                  Premium Printing Solutions
-                </p>
-              </div>
-            </div>
+          
 
             <p className="text-gray-300 text-sm leading-7 mb-6 max-w-md">
               Your trusted print partner across India. Premium quality prints,

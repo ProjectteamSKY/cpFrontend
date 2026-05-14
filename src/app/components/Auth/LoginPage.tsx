@@ -48,7 +48,7 @@ export function LoginPage() {
       setLoading(true);
 
       await axios.post(
-        "http://127.0.0.1:8000/api/users/register",
+        "https://api.citizenprintz.in/api/users/register",
         new URLSearchParams({
           full_name: data.full_name,
           email: data.email,
@@ -71,7 +71,7 @@ export function LoginPage() {
       setLoading(true);
 
       await axios.post(
-        "http://127.0.0.1:8000/api/users/verify-otp",
+        "https://api.citizenprintz.in/api/users/verify-otp",
         new URLSearchParams({
           email: getValues("email"),
           otp: data.otp || "",
@@ -114,7 +114,7 @@ export function LoginPage() {
       const token = credentialResponse.credential;
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/users/google-login",
+        "https://api.citizenprintz.in/api/users/google-login",
         { token },
         { headers: { "Content-Type": "application/json" } }
       );

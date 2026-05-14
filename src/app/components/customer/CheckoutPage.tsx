@@ -44,8 +44,8 @@ import phonepe from "../../../media/icons8-phone-pe-50.svg";
 import { getUserId } from "../../utils/authStorage";
 import { getPickupLocations } from "../../service/shippingApiService";
 
-const API_BASE = "http://127.0.0.1:8000/api";
-const MEDIA_BASE = "http://127.0.0.1:8000/";
+const API_BASE = "https://api.citizenprintz.in/api";
+const MEDIA_BASE = "https://api.citizenprintz.in/";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -991,7 +991,7 @@ export function CheckoutPage() {
 
   // Main Checkout Form
   return (
-    <div className="h-full w-full bg-gradient-to-br from-gray-50 to-white">
+    <div className="h-full w-full bg-white">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">

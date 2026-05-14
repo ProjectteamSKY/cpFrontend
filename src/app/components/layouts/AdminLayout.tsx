@@ -171,7 +171,7 @@ const navGroups = [
         path: "/admin/ContactManagement",
         icon: FileText,
         color: "#D73D32",
-        label: "Contact Management",
+        label: "Support Management",
         roles: ["admin"],
       },
     ],

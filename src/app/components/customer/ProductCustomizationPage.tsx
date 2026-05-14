@@ -1,5 +1,5 @@
 // ProductDetailPage.tsx - COMPLETE FIXED VERSION
-import React from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, AlertCircle } from "lucide-react";
 import StepProgress from "../product/StepProgress";
 import ReviewsSection from "../product/ReviewsSection";
@@ -18,6 +18,36 @@ export function ProductDetailPage() {
   const ctx = useProductDetail();
   const location = useLocation();
   const [params] = useSearchParams();
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!ctx.product?.id) return;
+
+    const fetchReviews = async () => {
+      try {
+        setReviewsLoading(true);
+
+        const API_URL = `https://api.citizenprintz.in/api/review/product/${ctx.product.id}/latest`;
+
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        console.log("Reviews API Response:", data);
+
+        if (data?.status === "success") {
+          setReviews(data?.reviews || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch reviews:", error);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [ctx.product?.id]);
+
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (ctx.loading) {
@@ -70,7 +100,7 @@ export function ProductDetailPage() {
       frontFile: uploadedFiles?.frontFile?.name,
       backFile: uploadedFiles?.backFile?.name,
     });
-    
+
     // Pass files to hook's handleContinue
     ctx.handleContinue(uploadedFiles);
   };
@@ -150,7 +180,9 @@ export function ProductDetailPage() {
         />
 
         {/* ══ ROW 3 — Reviews ═════════════════════════════════════ */}
-        <ReviewsSection product={ctx.product} />
+        {!reviewsLoading && reviews.length > 0 && (
+          <ReviewsSection product={ctx.product} />
+        )}
 
         {/* ══ ROW 4 — FAQ ═════════════════════════════════════ */}
         <FAQ categoryId={ctx.product.category_id} productId={ctx.product.id} />

@@ -10,6 +10,7 @@ import { getAllProductsActive } from "../../service/productApiService";
 import { Subcategory } from "../../types/subcategory";
 import { Product } from "../../types/product";
 import logo from "../../../media/logo_5.png"
+import { getUserFullname } from "../../utils/authStorage";
 
 interface Category {
     id: string;
@@ -36,16 +37,16 @@ const getImageUrl = (imageData: any): string | null => {
         if (typeof url === 'string') {
             if (url.startsWith('http')) return url;
             if (url.startsWith('/storage') || url.startsWith('/uploads') || url.startsWith('media/')) {
-                return `http://127.0.0.1:8000/${url}`;
+                return `https://api.citizenprintz.in/${url}`;
             }
-            return `http://127.0.0.1:8000/${url.replace(/^\/+/, '')}`;
+            return `https://api.citizenprintz.in/${url.replace(/^\/+/, '')}`;
         }
     }
 
     // Case 2: It's a string
     if (typeof imageData === 'string') {
         if (imageData.startsWith('http')) return imageData;
-        return `http://127.0.0.1:8000/${imageData.replace(/^\/+/, '')}`;
+        return `https://api.citizenprintz.in/${imageData.replace(/^\/+/, '')}`;
     }
 
     return null;
@@ -87,7 +88,9 @@ export function Navbar() {
     const hoverTimeoutRef = useRef<NodeJS.Timeout>();
     const megaMenuRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
+    const name = getUserFullname();
 
+    console.log("Navbar rendered - User Full Name:", name);
     // 🔹 Fetch Categories, Subcategories, Products on mount
     useEffect(() => {
         const fetchAllData = async () => {
@@ -564,7 +567,7 @@ export function Navbar() {
                             className="group flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-[#c0392b] transition-all duration-200"
                         >
                             <User size={18} className="group-hover:scale-110 transition-transform" />
-                            <span className="hidden lg:inline">Profile</span>
+                            {name ? `${name}` : "Profile"}
                         </Link>
 
                         <Link
@@ -585,7 +588,7 @@ export function Navbar() {
 
                         <Link
                             to="/products"
-                            className="ml-2 px-4 lg:px-6 py-2 lg:py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#c0392b] to-[#e74c3c] text-white hover:shadow-lg hover:shadow-[#c0392b]/25 transition-all duration-300 transform hover:-translate-y-0.5"
+                            className="ml-2 px-4 lg:px-6 py-2 lg:py-2.5 rounded-xl text-sm font-semibold bg-[#D73D32] text-white hover:bg-[#c0392b] transition-all duration-200 flex items-center gap-1"
                         >
                             Order Now
                         </Link>

@@ -6,6 +6,8 @@ import axios from "axios";
 ======================= */
 interface User {
     id: string;       // UUID from backend
+    fullname: string;
+    email?: string;
     roles: string[];
 }
 
@@ -66,8 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loginWithToken = (backendToken: string, backendUser: User) => {
         setToken(backendToken);
         setUser(backendUser);
+
+        // ✅ Store token & user in session storage
         sessionStorage.setItem("token", backendToken);
         sessionStorage.setItem("user", JSON.stringify(backendUser));
+
+        // ✅ Set axios auth header
         axios.defaults.headers.common["Authorization"] = `Bearer ${backendToken}`;
 
         console.log("LoginWithToken called:");
@@ -78,31 +84,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string) => {
         try {
             const res = await axios.post(
-                "http://127.0.0.1:8000/api/users/login",
+                "https://api.citizenprintz.in/api/users/login",
                 new URLSearchParams({ email, password })
             );
+
             console.log("Login response:", res.data);
 
-            // Construct user object from backend response
+            // ✅ Construct user object from backend response
             const backendUser: User = {
-                id: res.data.user_id,
+                id: res.data.user_id,     // ✅ Optional
                 roles: res.data.roles || [],
+                fullname: res.data.fullname, // ✅ Include fullname
+                email: res.data.email,  
             };
+
             const backendToken = res.data.bearer_token;
 
+            // ✅ Save user + token
             loginWithToken(backendToken, backendUser);
 
             return { success: true };
+
         } catch (err: any) {
             console.error("Login failed:", err.response?.data || err);
-            return { success: false, message: err.response?.data?.detail || "Login failed" };
+
+            return {
+                success: false,
+                message: err.response?.data?.detail || "Login failed"
+            };
         }
     };
 
     const logout = () => {
         setToken(null);
         setUser(null);
+
+        // ✅ Clear session storage
         sessionStorage.clear();
+
+        // ✅ Remove auth header
         delete axios.defaults.headers.common["Authorization"];
 
         console.log("Logged out");

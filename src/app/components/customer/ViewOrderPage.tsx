@@ -22,8 +22,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000/api";
-const MEDIA_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://api.citizenprintz.in/api";
+const MEDIA_BASE = "https://api.citizenprintz.in";
 
 const ORDER_STEPS = [
   {

@@ -173,7 +173,7 @@ export function DesignReviewPage() {
   // Safety check
   if (!isStateValid) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-full w-full bg-gray-50 flex items-center justify-center">
         <div className="text-center p-10 max-w-md">
           <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
             <AlertCircle size={28} color="#C8352A" />
@@ -361,10 +361,10 @@ export function DesignReviewPage() {
 
   // Render component
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white h-full w-full">
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-6 h-11 flex items-center gap-1.5 text-xs text-gray-400">
+        <div className="w-full mx-auto px-6 h-11 flex items-center gap-1.5 text-xs text-gray-400">
           <button
             onClick={() => navigate("/")}
             className="bg-none border-none cursor-pointer text-gray-600 font-medium text-xs p-0 hover:text-gray-900"
@@ -383,7 +383,7 @@ export function DesignReviewPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 pb-16 bg-white">
+      <div className="w-full mx-auto px-6 py-8 pb-16 bg-white">
         {/* Header */}
         <div className="animate-[fade-up_0.5s_ease_both] mb-8">
           <div className="flex items-start justify-between flex-wrap gap-4">
@@ -396,7 +396,7 @@ export function DesignReviewPage() {
                   <ArrowLeft size={13} /> Back
                 </button>
               </div>
-              <h1 className="font-['Playfair_Display'] text-3xl font-bold text-gray-900 m-0 leading-tight">
+              <h1 className="text-3xl font-bold text-gray-900 m-0 ">
                 Review Your Order
               </h1>
               <p className="text-sm text-gray-400 mt-1.5">
@@ -477,13 +477,7 @@ export function DesignReviewPage() {
                 )}
               </div>
 
-              {/* Debug info */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-4 p-2 bg-gray-50 rounded text-xs text-gray-500">
-                  <p>Debug: sides={sides}, hasBackPreview={!!backPreview}, hasBackFile={!!backFileObj}</p>
-                  <p>Front: hasFile={!!frontFileObj}, hasPreview={!!frontPreview}</p>
-                </div>
-              )}
+            
             </div>
 
             {/* Product Specifications */}
@@ -561,7 +555,7 @@ export function DesignReviewPage() {
               </div>
 
               {/* Price Breakdown */}
-              <div>
+              {/* <div>
                 <div className="flex justify-between items-center text-[13px] py-2">
                   <span className="text-gray-500 font-medium">
                     {quantityNumber.toLocaleString()} pcs × ₹{unitPrice.toFixed(2)}
@@ -577,7 +571,7 @@ export function DesignReviewPage() {
                   </span>
                   <span className="text-gray-800 font-semibold">₹{gst.toLocaleString()}</span>
                 </div>
-              </div>
+              </div> */}
 
               <div className="h-px bg-gray-100 my-4" />
 
@@ -602,7 +596,7 @@ export function DesignReviewPage() {
 
               {/* Add to Cart Button */}
               <button
-                className="w-full py-3.5 px-6 bg-gradient-to-r from-red-600 to-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:bg-gray-400"
+                className="w-full py-3.5 px-6 bg-[#D73D32] text-white font-bold rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:bg-gray-400"
                 onClick={handleAddToCart}
                 disabled={loading}
               >
@@ -621,19 +615,19 @@ export function DesignReviewPage() {
               </button>
 
               {/* Continue Shopping Button */}
-              <div className="mt-3">
+              {/* <div className="mt-3">
                 <Link to="/products" className="no-underline">
                   <button className="w-full py-3 px-6 bg-white text-gray-700 font-semibold text-sm rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2">
                     <RotateCcw size={14} />
                     Continue Shopping
                   </button>
                 </Link>
-              </div>
+              </div> */}
 
               <div className="h-px bg-gray-100 my-4" />
 
               {/* Trust Indicators */}
-              <div className="flex flex-col gap-2">
+              {/* <div className="flex flex-col gap-2">
                 {[
                   { icon: Shield, text: "256-bit SSL encrypted checkout" },
                   { icon: FileCheck, text: "Proofing available on request" },
@@ -644,7 +638,7 @@ export function DesignReviewPage() {
                     {text}
                   </div>
                 ))}
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

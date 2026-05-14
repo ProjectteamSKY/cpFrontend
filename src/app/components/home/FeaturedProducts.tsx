@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "https://api.citizenprintz.in";
 
 // ---------------- IMAGE HELPERS ----------------
 

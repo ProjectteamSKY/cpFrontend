@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Search, Trash2, Mail, Phone, User } from "lucide-react";
+import { Search, Trash2, Mail, Phone, User, Inbox } from "lucide-react";
 
 interface ContactRequest {
   id: string;
@@ -31,6 +31,9 @@ export default function ContactManagement() {
       setLoading(true);
       const res = await axios.get(`${api}/contact_requests/list`);
       setData(res.data?.data || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -69,6 +72,8 @@ export default function ContactManagement() {
     item.phone_number.includes(search)
   );
 
+  const showEmptyState = !loading && filtered.length === 0;
+
   return (
     <div className="h-full">
 
@@ -95,20 +100,44 @@ export default function ContactManagement() {
       {/* TABLE */}
       <div className="bg-white shadow-lg rounded-xl overflow-hidden border">
 
-        {/* HEADER ROW */}
-        <div className="grid grid-cols-6 bg-[#2d4863] text-white text-sm font-semibold p-4">
-          <div>User</div>
-          <div>Contact</div>
-          <div>Subject</div>
-          <div>Status</div>
-          <div>Message</div>
-          <div>Action</div>
-        </div>
+        {/* HEADER ROW - Only show if not in empty state or loading */}
+        {!showEmptyState && (
+          <div className="grid grid-cols-6 bg-[#2d4863] text-white text-sm font-semibold p-4">
+            <div>User</div>
+            <div>Contact</div>
+            <div>Subject</div>
+            <div>Status</div>
+            <div>Message</div>
+            <div>Action</div>
+          </div>
+        )}
 
         {/* BODY */}
         {loading ? (
           <div className="p-10 text-center text-gray-500">
             Loading...
+          </div>
+        ) : showEmptyState ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="bg-gray-50 rounded-full p-4 mb-4">
+              <Inbox className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              {search ? "No matching results" : "No contact requests"}
+            </h3>
+            <p className="text-gray-500 text-center">
+              {search 
+                ? `No contacts found matching "${search}"` 
+                : "There are no contact requests to display"}
+            </p>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="mt-4 px-4 py-2 text-sm text-[#D73D32] hover:text-[#b32d24] font-medium"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
           filtered.map((item) => (
@@ -151,10 +180,10 @@ export default function ContactManagement() {
                     updateStatus(item.id, e.target.value)
                   }
                   className={`
-                    px-3 py-1 rounded-lg text-sm border
-                    ${item.status === "new" ? "bg-[#EC7063]/20 text-[#D73D32]" : ""}
-                    ${item.status === "in_progress" ? "bg-yellow-100 text-yellow-700" : ""}
-                    ${item.status === "resolved" ? "bg-green-100 text-green-700" : ""}
+                    px-3 py-1 rounded-lg text-sm border cursor-pointer
+                    ${item.status === "new" ? "bg-[#EC7063]/20 text-[#D73D32] border-[#EC7063]/30" : ""}
+                    ${item.status === "in_progress" ? "bg-yellow-100 text-yellow-700 border-yellow-200" : ""}
+                    ${item.status === "resolved" ? "bg-green-100 text-green-700 border-green-200" : ""}
                   `}
                 >
                   <option value="new">New</option>
@@ -173,7 +202,7 @@ export default function ContactManagement() {
                 <button
                   onClick={() => deleteItem(item.id)}
                   disabled={deleteLoading === item.id}
-                  className="flex items-center gap-1 text-red-500 hover:text-red-700"
+                  className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete
@@ -185,7 +214,6 @@ export default function ContactManagement() {
         )}
 
       </div>
-
     </div>
   );
 }

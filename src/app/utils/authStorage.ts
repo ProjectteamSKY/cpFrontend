@@ -2,36 +2,65 @@
 
 export interface StoredUser {
   id: string;
+  fullname: string;
+  email?: string;
   roles: string[];
 }
 
 /**
  * Get the currently logged-in user from sessionStorage or localStorage
- * Supports both old (`user_id`) and new (`id`) formats
  */
 export function getStoredUser(): StoredUser | null {
   try {
-    const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+    const userStr =
+      sessionStorage.getItem("user") ||
+      localStorage.getItem("user");
+
     if (!userStr || userStr === "undefined") return null;
 
     const parsed = JSON.parse(userStr);
+
     const user: StoredUser = {
       id: parsed.id || parsed.user_id || "",
-      roles: Array.isArray(parsed.roles) ? parsed.roles : [],
+      fullname: parsed.fullname || "", // ✅ Added
+      email: parsed.email || "",       // ✅ Added
+      roles: Array.isArray(parsed.roles)
+        ? parsed.roles
+        : [],
     };
+
     return user;
   } catch (err) {
-    console.error("Failed to parse stored user - authStorage.ts:24", err);
+    console.error(
+      "Failed to parse stored user",
+      err
+    );
     return null;
   }
 }
 
 /**
- * Get the currently logged-in user ID
+ * Get logged-in user ID
  */
 export function getUserId(): string {
   const user = getStoredUser();
   return user?.id || "";
+}
+
+/**
+ * ✅ Get logged-in user fullname
+ */
+export function getUserFullname(): string {
+  const user = getStoredUser();
+  return user?.fullname || "";
+}
+
+/**
+ * Get logged-in user email
+ */
+export function getUserEmail(): string {
+  const user = getStoredUser();
+  return user?.email || "";
 }
 
 /**
@@ -43,11 +72,20 @@ export function getUserRoles(): string[] {
 }
 
 /**
- * Save user to sessionStorage or localStorage
- * Accepts both formats
+ * Save user to storage
  */
-export function saveUser(userObj: { id?: string; user_id?: string; roles: string[] }, useSession = true) {
+export function saveUser(
+  userObj: {
+    id?: string;
+    user_id?: string;
+    fullname?: string;
+    email?: string;
+    roles: string[];
+  },
+  useSession = true
+) {
   const str = JSON.stringify(userObj);
+
   if (useSession) {
     sessionStorage.setItem("user", str);
   } else {

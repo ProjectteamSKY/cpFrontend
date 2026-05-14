@@ -357,7 +357,7 @@ export function ConfigurePanel({
     try {
       setLoading(true);
       const response = await fetch(
-        `http://127.0.0.1:8000/api/variant_attribute_value/product/${productId}/full-details`
+        `https://api.citizenprintz.in/api/variant_attribute_value/product/${productId}/full-details`
       );
       const data: FullDetailsResponse = await response.json();
 

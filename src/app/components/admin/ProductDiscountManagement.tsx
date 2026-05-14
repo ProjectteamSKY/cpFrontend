@@ -196,7 +196,7 @@ export function ProductDiscountManagement() {
 
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-[#1A1A1A] text-white">
+            <Button className="bg-[#D73D32] text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Discount
             </Button>

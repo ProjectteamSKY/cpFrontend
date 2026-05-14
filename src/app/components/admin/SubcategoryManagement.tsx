@@ -210,7 +210,7 @@ export function SubcategoryManagement({ categoryId }: Props) {
         {/* Add Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
+            <Button className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Subcategory
             </Button>

@@ -68,7 +68,7 @@ const UserRole = () => {
     // Fetch user roles from the API
     const fetchUserRoles = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/user_role/list');
+            const response = await fetch('https://api.citizenprintz.in/api/user_role/list');
             const data = await response.json();
             if (data.status === 'success') {
                 setUserRoles(data.user_roles);

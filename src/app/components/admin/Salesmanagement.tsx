@@ -30,6 +30,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+import logo from "../../../media/logo_5.png"
 // Types based on actual API response
 interface SalesSummary {
   total_orders: number;
@@ -121,7 +122,7 @@ interface OrderItem {
   total_qty: number;
 }
 
-const API_BASE = 'http://127.0.0.1:8000/api/orders_routes/sales';
+const API_BASE = 'https://api.citizenprintz.in/api/orders_routes/sales';
 
 export default function SalesManagement() {
   const [summary, setSummary] = useState<SalesSummary | null>(null);
@@ -189,7 +190,7 @@ export default function SalesManagement() {
       if (reportParams.start_date) params.append('start_date', reportParams.start_date);
       if (reportParams.end_date) params.append('end_date', reportParams.end_date);
       if (reportParams.status) params.append('status', reportParams.status);
-      
+
       const response = await fetch(`${API_BASE}/report?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to generate report');
       const data = await response.json();
@@ -204,110 +205,256 @@ export default function SalesManagement() {
 
   const exportToCSV = (data?: ReportData) => {
     const reportToExport = data || reportData;
+
     if (!reportToExport || !reportToExport.orders || reportToExport.orders.length === 0) return;
-    
-    const headers = ['Product Name', 'Qty', 'Customer Name', 'Phone Number', 'Amount', 'Date'];
-    const csvData = reportToExport.orders.flatMap((order: OrderItem) => 
-      order.products.map(product => [
-        product.product_name,
-        product.qty,
-        order.customer?.name || 'N/A',
-        order.customer?.phone || 'N/A',
-        product.total_price,
-        order.date?.split(' ')[0] || 'N/A'
-      ])
-    );
-    
-    const csvContent = [headers, ...csvData].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    const rows = [];
+
+    // Header Section
+    rows.push(['CITIZEN PRINTS SALES REPORT']);
+    rows.push([`Generated On: ${new Date().toLocaleDateString()}`]);
+    rows.push([]);
+
+    // Summary
+    rows.push(['Total Orders', reportToExport.total_orders]);
+    rows.push(['Total Sales', reportToExport.total_sales]);
+    rows.push(['Total Qty', reportToExport.total_qty]);
+    rows.push([]);
+
+    // Table Header
+    rows.push([
+      'Product Name',
+      'Qty',
+      'Customer Name',
+      'Phone Number',
+      'Amount',
+      'Date',
+    ]);
+
+    // Table Data
+    reportToExport.orders.forEach((order: OrderItem) => {
+      order.products.forEach((product) => {
+        rows.push([
+          product.product_name,
+          product.qty,
+          order.customer?.name || 'N/A',
+          order.customer?.phone || 'N/A',
+          product.total_price,
+          order.date?.split(' ')[0] || 'N/A',
+        ]);
+      });
+    });
+
+    const csvContent = rows
+      .map((row) =>
+        row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')
+      )
+      .join('\n');
+
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
+
     const url = URL.createObjectURL(blob);
+
     const a = document.createElement('a');
     a.href = url;
     a.download = `sales-report-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+
     URL.revokeObjectURL(url);
   };
 
   const exportToPDF = (data?: ReportData) => {
     const reportToExport = data || reportData;
+
     if (!reportToExport || !reportToExport.orders || reportToExport.orders.length === 0) return;
-    
+
     const printWindow = window.open('', '_blank');
+
     if (!printWindow) {
       alert('Please allow pop-ups to export PDF');
       return;
     }
-    
+
     const styles = `
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { color: #D73D32; margin-bottom: 10px; }
-        .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .summary-card { padding: 15px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
-        .summary-card h3 { margin: 0 0 5px 0; font-size: 12px; color: #666; }
-        .summary-card p { margin: 0; font-size: 18px; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background-color: #f5f5f5; padding: 10px; text-align: left; font-size: 12px; color: #666; }
-        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 12px; }
-      </style>
-    `;
-    
+    <style>
+      *{
+        box-sizing:border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        padding: 24px;
+        color: #333;
+      }
+
+      .header {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        border-bottom:2px solid #D73D32;
+        padding-bottom:16px;
+        margin-bottom:24px;
+      }
+
+      .logo {
+        height:60px;
+        object-fit:contain;
+      }
+
+      .title-section h1{
+        margin:0;
+        color:#D73D32;
+        font-size:28px;
+      }
+
+      .title-section p{
+        margin:4px 0 0 0;
+        color:#666;
+        font-size:13px;
+      }
+
+      .summary {
+        display:grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap:16px;
+        margin-bottom:24px;
+      }
+
+      .summary-card {
+        padding:18px;
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        text-align:center;
+        background:#fafafa;
+      }
+
+      .summary-card h3 {
+        margin:0 0 8px 0;
+        font-size:12px;
+        color:#777;
+        text-transform:uppercase;
+      }
+
+      .summary-card p {
+        margin:0;
+        font-size:22px;
+        font-weight:bold;
+        color:#2d4863;
+      }
+
+      table {
+        width:100%;
+        border-collapse:collapse;
+      }
+
+      th {
+        background:#f3f4f6;
+        padding:12px;
+        text-align:left;
+        font-size:12px;
+        color:#666;
+      }
+
+      td {
+        padding:12px;
+        border-bottom:1px solid #eee;
+        font-size:12px;
+      }
+
+      tr:nth-child(even){
+        background:#fafafa;
+      }
+
+      .footer{
+        margin-top:24px;
+        text-align:center;
+        color:#999;
+        font-size:12px;
+      }
+    </style>
+  `;
+
     const content = `
-      <h1>Sales Report</h1>
-      <div class="summary">
-        <div class="summary-card">
-          <h3>Total Orders</h3>
-          <p>${formatNumber(reportToExport.total_orders)}</p>
-        </div>
-        <div class="summary-card">
-          <h3>Total Sales</h3>
-          <p>${formatCurrency(reportToExport.total_sales)}</p>
-        </div>
-        <div class="summary-card">
-          <h3>Total Qty</h3>
-          <p>${formatNumber(reportToExport.total_qty)}</p>
-        </div>
+    <div class="header">
+      <img src="${logo}" class="logo" />
+
+      <div class="title-section">
+        <h1>Sales Report</h1>
+        <p>Generated on ${new Date().toLocaleDateString()}</p>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Product Name</th>
-            <th>Qty</th>
-            <th>Customer Name</th>
-            <th>Phone Number</th>
-            <th>Amount</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${reportToExport.orders.flatMap((order: OrderItem) => 
-            order.products.map(product => `
-              <tr>
-                <td>${product.product_name}</td>
-                <td>${product.qty}</td>
-                <td>${order.customer?.name || '—'}</td>
-                <td>${order.customer?.phone || '—'}</td>
-                <td>${formatCurrency(product.total_price)}</td>
-                <td>${order.date?.split(' ')[0] || '—'}</td>
-              </tr>
-            `)
-          ).join('')}
-        </tbody>
-      </table>
-    `;
-    
+    </div>
+
+    <div class="summary">
+      <div class="summary-card">
+        <h3>Total Orders</h3>
+        <p>${formatNumber(reportToExport.total_orders)}</p>
+      </div>
+
+      <div class="summary-card">
+        <h3>Total Sales</h3>
+        <p>${formatCurrency(reportToExport.total_sales)}</p>
+      </div>
+
+      <div class="summary-card">
+        <h3>Total Qty</h3>
+        <p>${formatNumber(reportToExport.total_qty)}</p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>Qty</th>
+          <th>Customer Name</th>
+          <th>Phone Number</th>
+          <th>Amount</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${reportToExport.orders.flatMap((order: OrderItem) =>
+      order.products.map(product => `
+            <tr>
+              <td>${product.product_name}</td>
+              <td>${product.qty}</td>
+              <td>${order.customer?.name || '—'}</td>
+              <td>${order.customer?.phone || '—'}</td>
+              <td>${formatCurrency(product.total_price)}</td>
+              <td>${order.date?.split(' ')[0] || '—'}</td>
+            </tr>
+          `)
+    ).join('')}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      © ${new Date().getFullYear()} Citizen Prints. All rights reserved.
+    </div>
+  `;
+
     printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Sales Report - ${new Date().toISOString().split('T')[0]}</title>
-          ${styles}
-        </head>
-        <body>${content}</body>
-      </html>
-    `);
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Sales Report</title>
+        ${styles}
+      </head>
+
+      <body>
+        ${content}
+      </body>
+    </html>
+  `);
+
     printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
+
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
   };
 
   const formatCurrency = (value: number) => {
@@ -369,8 +516,8 @@ export default function SalesManagement() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Order Status Distribution', icon: ShoppingCart },
-    { id: 'trends', label: 'Sales Performance Trends', icon: TrendingUp },
+    { id: 'overview', label: 'Order Status ', icon: ShoppingCart },
+    { id: 'trends', label: 'Sales Report ', icon: TrendingUp },
     { id: 'reports', label: 'Custom Report', icon: FileText },
   ];
 
@@ -491,11 +638,10 @@ export default function SalesManagement() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'bg-white shadow-sm text-gray-800'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id
+                  ? 'bg-white shadow-sm text-gray-800'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
@@ -601,22 +747,20 @@ export default function SalesManagement() {
                 <div className="flex bg-gray-100 rounded-xl p-1">
                   <button
                     onClick={() => setTrendView('daily')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      trendView === 'daily'
-                        ? 'bg-white shadow-sm text-gray-800'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${trendView === 'daily'
+                      ? 'bg-white shadow-sm text-gray-800'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     <Calendar className="w-3.5 h-3.5 inline mr-1.5" />
                     Daily
                   </button>
                   <button
                     onClick={() => setTrendView('monthly')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      trendView === 'monthly'
-                        ? 'bg-white shadow-sm text-gray-800'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${trendView === 'monthly'
+                      ? 'bg-white shadow-sm text-gray-800'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     <BarChart3 className="w-3.5 h-3.5 inline mr-1.5" />
                     Monthly
@@ -643,7 +787,7 @@ export default function SalesManagement() {
                       return (
                         <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-6 py-3 font-medium text-gray-700 whitespace-nowrap">
-                            {trendView === 'daily' 
+                            {trendView === 'daily'
                               ? formatDate((item as DailySales).sale_date)
                               : formatMonth((item as MonthlySales).month)
                             }
@@ -742,7 +886,7 @@ export default function SalesManagement() {
                         <p className="text-xl font-bold text-gray-800">{formatNumber(reportData.total_qty)}</p>
                       </div>
                     </div>
-                    
+
                     {/* Export Buttons */}
                     <div className="flex gap-2">
                       <button
@@ -773,17 +917,17 @@ export default function SalesManagement() {
                     </div>
                     <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                       <table className="w-full">
-                        <thead className="bg-gray-50/50 sticky top-0">
+                        <thead className="bg-[#2d4863] sticky top-0">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Delivery</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Products</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase">Order </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase">Status</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-white uppercase">Amount</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-white uppercase">Delivery</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase">Customer</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase">Products</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase">Date</th>
                           </tr>
-                        </thead>
+                        </thead>  
                         <tbody className="divide-y divide-gray-100">
                           {reportData.orders && reportData.orders.length > 0 ? (
                             reportData.orders.map((order: OrderItem) => (
@@ -865,7 +1009,7 @@ interface SummaryCardProps {
 
 function SummaryCard({ title, value, icon: Icon, color, trend }: SummaryCardProps) {
   const isPositiveTrend = trend?.startsWith('+');
-  
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 transition-all hover:shadow-md hover:border-gray-200 cursor-default">
       <div className="flex items-center justify-between mb-2">
@@ -880,7 +1024,7 @@ function SummaryCard({ title, value, icon: Icon, color, trend }: SummaryCardProp
         )}
       </div>
       <p className="text-xl font-bold mb-0.5" style={{ color: '#2d4863' }}>{value}</p>
-      <p className="text-xs text-gray-400">{title}</p>  
+      <p className="text-xs text-gray-400">{title}</p>
     </div>
   );
 }

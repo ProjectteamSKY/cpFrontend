@@ -156,7 +156,7 @@ export function ProductManagements() {
 
         {mode === "list" && (
           <Button
-            className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+            className="bg-[#D73D32] hover:bg-[#D73D32]/90 text-white"
             onClick={() => {
               setEditingProduct(null);
               setMode("add");

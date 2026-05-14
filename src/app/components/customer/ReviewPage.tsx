@@ -19,88 +19,6 @@ interface ReviewApiResponse {
     reviews: Review[];
 }
 
-// ── Mock Reviews ────────────────────────────────────────────────────────────────
-const MOCK_REVIEWS: Review[] = [
-    {
-        id: "mock-1",
-        product_id: "f3b0c07f-0717-433a-a7ec-7a38102cb6a4",
-        user_id: "user-001",
-        customer_name: "Priya Sharma",
-        rating: 5,
-        comment: "Absolutely love this product! The quality is outstanding and it exceeded my expectations. Would definitely recommend to anyone looking for something reliable and stylish.",
-        image_url: null,
-        is_active: 1,
-        is_deleted: 0,
-        created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-        id: "mock-2",
-        product_id: "f3b0c07f-0717-433a-a7ec-7a38102cb6a4",
-        user_id: "user-002",
-        customer_name: "Rahul Mehta",
-        rating: 4,
-        comment: "Good product for the price. Delivery was quick and packaging was secure. The only reason I'm not giving 5 stars is because the instructions could be clearer.",
-        image_url: null,
-        is_active: 1,
-        is_deleted: 0,
-        created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    },
-    {
-        id: "mock-3",
-        product_id: "f3b0c07f-0717-433a-a7ec-7a38102cb6a4",
-        user_id: "user-003",
-        customer_name: "Anjali Nair",
-        rating: 5,
-        comment: "Best purchase I've made this year! The customer service was also very helpful when I had questions. Will definitely buy from this brand again.",
-        image_url: null,
-        is_active: 1,
-        is_deleted: 0,
-        created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 10 * 86400000).toISOString(),
-    },
-    {
-        id: "mock-4",
-        product_id: "f3b0c07f-0717-433a-a7ec-7a38102cb6a4",
-        user_id: "user-004",
-        customer_name: "Vikram Singh",
-        rating: 3,
-        comment: "Decent product but had some minor issues. The build quality is good but the performance could be better. Still, it serves its purpose well enough.",
-        image_url: null,
-        is_active: 1,
-        is_deleted: 0,
-        created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-    },
-    {
-        id: "mock-5",
-        product_id: "f3b0c07f-0717-433a-a7ec-7a38102cb6a4",
-        user_id: "user-005",
-        customer_name: "Neha Gupta",
-        rating: 5,
-        comment: "Amazing! The design is elegant and it works perfectly. I've already recommended it to three of my friends. Worth every penny!",
-        image_url: null,
-        is_active: 1,
-        is_deleted: 0,
-        created_at: new Date(Date.now() - 20 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 20 * 86400000).toISOString(),
-    },
-    {
-        id: "mock-6",
-        product_id: "f3b0c07f-0717-433a-a7ec-7a38102cb6a4",
-        user_id: "user-006",
-        customer_name: "Amit Patel",
-        rating: 4,
-        comment: "Very satisfied with this purchase. The quality is consistent and the features are exactly what I needed. Shipping was faster than expected.",
-        image_url: null,
-        is_active: 1,
-        is_deleted: 0,
-        created_at: new Date(Date.now() - 25 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 25 * 86400000).toISOString(),
-    },
-];
-
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const AVATAR_TINTS = [
@@ -113,60 +31,113 @@ const AVATAR_TINTS = [
 ];
 
 function getAvatarTint(initials: string) {
-    const idx = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % AVATAR_TINTS.length;
+    const idx =
+        (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) %
+        AVATAR_TINTS.length;
+
     return AVATAR_TINTS[idx];
 }
 
 function formatDate(dateStr: string): string {
     const d = new Date(dateStr);
+
     if (isNaN(d.getTime())) return dateStr;
+
     const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays <= 7) return `${diffDays} days ago`;
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+    return d.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+    });
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-const StarRow = ({ rating, size = 18 }: { rating: number; size?: number }) => (
+const StarRow = ({
+    rating,
+    size = 18,
+}: {
+    rating: number;
+    size?: number;
+}) => (
     <div className="flex items-center gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (
-            <svg key={i} width={size} height={size} viewBox="0 0 24 24"
+            <svg
+                key={i}
+                width={size}
+                height={size}
+                viewBox="0 0 24 24"
                 fill={i < Math.round(rating) ? "#FBBF24" : "none"}
                 stroke={i < Math.round(rating) ? "#FBBF24" : "#E5E7EB"}
-                strokeWidth="1.5">
+                strokeWidth="1.5"
+            >
                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
             </svg>
         ))}
     </div>
 );
 
-const RatingBar = ({ star, count, total, active, onClick }: {
-    star: number; count: number; total: number; active: boolean; onClick: () => void;
+const RatingBar = ({
+    star,
+    count,
+    total,
+    active,
+    onClick,
+}: {
+    star: number;
+    count: number;
+    total: number;
+    active: boolean;
+    onClick: () => void;
 }) => {
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
     return (
-        <button onClick={onClick}
+        <button
+            onClick={onClick}
             className={`flex items-center gap-3 w-full group rounded-lg px-2 py-1.5 transition-all
-        ${active ? "bg-amber-50" : "hover:bg-neutral-50"}`}>
-            <span className={`text-sm font-bold w-5 shrink-0 text-right transition-colors
-        ${active ? "text-amber-600" : "text-neutral-400 group-hover:text-neutral-600"}`}>
+            ${active ? "bg-amber-50" : "hover:bg-neutral-50"}`}
+        >
+            <span
+                className={`text-sm font-bold w-5 shrink-0 text-right transition-colors
+                ${
+                    active
+                        ? "text-amber-600"
+                        : "text-neutral-400 group-hover:text-neutral-600"
+                }`}
+            >
                 {star}
             </span>
-            <svg width="14" height="14" viewBox="0 0 24 24"
+
+            <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
                 fill={active ? "#FBBF24" : "#E5E7EB"}
                 stroke={active ? "#FBBF24" : "#D1D5DB"}
-                strokeWidth="1.5" className="shrink-0">
+                strokeWidth="1.5"
+                className="shrink-0"
+            >
                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
             </svg>
+
             <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-500
-          ${active ? "bg-amber-400" : "bg-neutral-300"}`}
-                    style={{ width: `${pct}%` }} />
+                <div
+                    className={`h-full rounded-full transition-all duration-500
+                    ${active ? "bg-amber-400" : "bg-neutral-300"}`}
+                    style={{ width: `${pct}%` }}
+                />
             </div>
-            <span className={`text-xs font-semibold w-7 shrink-0 text-right
-        ${active ? "text-amber-600" : "text-neutral-400"}`}>
+
+            <span
+                className={`text-xs font-semibold w-7 shrink-0 text-right
+                ${active ? "text-amber-600" : "text-neutral-400"}`}
+            >
                 {count}
             </span>
         </button>
@@ -176,14 +147,30 @@ const RatingBar = ({ star, count, total, active, onClick }: {
 const Skeleton = () => (
     <div className="space-y-4">
         {[100, 80, 90].map((w, i) => (
-            <div key={i} className="p-6 rounded-2xl border border-neutral-100 bg-white">
+            <div
+                key={i}
+                className="p-6 rounded-2xl border border-neutral-100 bg-white"
+            >
                 <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-full bg-neutral-100 animate-pulse shrink-0" />
+
                     <div className="flex-1 space-y-3">
-                        <div className="h-4 rounded-full bg-neutral-100 animate-pulse" style={{ width: `${w * 0.4}px` }} />
+                        <div
+                            className="h-4 rounded-full bg-neutral-100 animate-pulse"
+                            style={{ width: `${w * 0.4}px` }}
+                        />
+
                         <div className="h-3 rounded-full bg-neutral-100 animate-pulse w-24" />
-                        <div className="h-4 rounded-full bg-neutral-100 animate-pulse" style={{ width: `${w}%` }} />
-                        <div className="h-4 rounded-full bg-neutral-100 animate-pulse" style={{ width: `${w * 0.7}%` }} />
+
+                        <div
+                            className="h-4 rounded-full bg-neutral-100 animate-pulse"
+                            style={{ width: `${w}%` }}
+                        />
+
+                        <div
+                            className="h-4 rounded-full bg-neutral-100 animate-pulse"
+                            style={{ width: `${w * 0.7}%` }}
+                        />
                     </div>
                 </div>
             </div>
@@ -191,38 +178,57 @@ const Skeleton = () => (
     </div>
 );
 
-const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
+const ReviewCard = ({
+    review,
+    index,
+}: {
+    review: Review;
+    index: number;
+}) => {
     const [helpful, setHelpful] = useState(0);
     const [voted, setVoted] = useState(false);
 
     const initials = review.customer_name
-        .split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
     const tint = getAvatarTint(initials);
 
     return (
         <div
             className="p-6 rounded-2xl border border-neutral-200 bg-white shadow-sm
-        hover:shadow-md hover:border-neutral-300 transition-all duration-200
-        opacity-0 animate-[reviewFadeIn_0.4s_ease_forwards]"
-            style={{ animationDelay: `${index * 60}ms` }}>
-
+            hover:shadow-md hover:border-neutral-300 transition-all duration-200
+            opacity-0 animate-[reviewFadeIn_0.4s_ease_forwards]"
+            style={{ animationDelay: `${index * 60}ms` }}
+        >
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center
-            text-sm font-bold shrink-0 tracking-wider"
-                        style={{ background: tint.bg, color: tint.text }}>
+                    <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center
+                        text-sm font-bold shrink-0 tracking-wider"
+                        style={{
+                            background: tint.bg,
+                            color: tint.text,
+                        }}
+                    >
                         {initials}
                     </div>
+
                     <div>
                         <p className="text-base font-bold text-neutral-800 leading-none mb-1.5">
                             {review.customer_name}
                         </p>
+
                         <p className="text-xs text-neutral-400 font-medium">
                             {formatDate(review.created_at)}
                         </p>
                     </div>
                 </div>
+
                 <div className="shrink-0 pt-0.5">
                     <StarRow rating={review.rating} size={16} />
                 </div>
@@ -236,34 +242,59 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
             {/* Review image */}
             {review.image_url && (
                 <img
-                    src={`http://127.0.0.1:8000/${review.image_url}`}
+                    src={`https://api.citizenprintz.in/${review.image_url}`}
                     alt="Review"
                     className="mt-4 max-w-[140px] rounded-xl border border-neutral-100 object-cover"
                 />
             )}
 
-            {/* Footer: verified + helpful */}
+            {/* Footer */}
             <div className="mt-5 pt-4 border-t border-neutral-50 flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100
-          text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full tracking-wide">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2.5">
+                <span
+                    className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100
+                    text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full tracking-wide"
+                >
+                    <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                    >
                         <polyline points="20,6 9,17 4,12" />
                     </svg>
+
                     Verified Purchase
                 </span>
+
                 <button
-                    onClick={() => { if (!voted) { setHelpful(h => h + 1); setVoted(true); } }}
+                    onClick={() => {
+                        if (!voted) {
+                            setHelpful((h) => h + 1);
+                            setVoted(true);
+                        }
+                    }}
                     className={`flex items-center gap-1.5 text-xs font-semibold
-            px-3 py-1.5 rounded-lg transition-all
-            ${voted
+                    px-3 py-1.5 rounded-lg transition-all
+                    ${
+                        voted
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                            : "text-neutral-400 hover:text-neutral-700 hover:bg-neutral-50 border border-transparent"}`}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2">
+                            : "text-neutral-400 hover:text-neutral-700 hover:bg-neutral-50 border border-transparent"
+                    }`}
+                >
+                    <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                    >
                         <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
                         <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
                     </svg>
+
                     Helpful{helpful > 0 ? ` (${helpful})` : ""}
                 </button>
             </div>
@@ -271,143 +302,202 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
     );
 };
 
-// ── Badge for Mock Data Indicator (Optional) ────────────────────────────────────
-// const MockDataBadge = () => (
-//     <div className="mb-5 flex justify-end">
-//         <div className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-full px-3 py-1.5">
-//             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2">
-//                 <circle cx="12" cy="12" r="10" />
-//                 <path d="M12 16v-4M12 8h.01" />
-//             </svg>
-//             <span className="text-xs font-medium text-blue-600">Showing demo reviews</span>
-//         </div>
-//     </div>
-// );
+// ── Main Component ─────────────────────────────────────────────────────────────
 
-// ── Main exported component ────────────────────────────────────────────────────
-
-const ProductReviews = ({ PRODUCT_ID }: { PRODUCT_ID: string }) => {
-    const API_URL = `http://127.0.0.1:8000/api/review/product/${PRODUCT_ID}/latest`;
+const ProductReviews = ({
+    PRODUCT_ID,
+}: {
+    PRODUCT_ID: string;
+}) => {
+    const API_URL = `https://api.citizenprintz.in/api/review/product/${PRODUCT_ID}/latest`;
 
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<number | null>(null);
     const [showAll, setShowAll] = useState(false);
-    const [isMockData, setIsMockData] = useState(false);
 
     useEffect(() => {
-        setLoading(true);
-        setError(null);
-        setIsMockData(false);
-        
-        fetch(API_URL)
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.json() as Promise<ReviewApiResponse>;
-            })
-            .then(data => {
-                if (data.status === "success") {
-                    const activeReviews = data.reviews.filter(r => r.is_active === 1 && r.is_deleted === 0);
-                    
-                    if (activeReviews.length === 0) {
-                        console.log("No reviews from API, using mock data");
-                        setReviews(MOCK_REVIEWS);
-                        setIsMockData(true);
-                    } else {
-                        setReviews(activeReviews);
-                        setIsMockData(false);
-                    }
-                } else {
-                    throw new Error("API returned non-success status");
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching reviews:", err);
-                setReviews(MOCK_REVIEWS);
-                setIsMockData(true);
+        const fetchReviews = async () => {
+            try {
+                setLoading(true);
                 setError(null);
-            })
-            .finally(() => setLoading(false));
+
+                const res = await fetch(API_URL);
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const data: ReviewApiResponse = await res.json();
+
+                if (data.status !== "success") {
+                    throw new Error("Failed to fetch reviews");
+                }
+
+                const activeReviews = data.reviews.filter(
+                    (r) => r.is_active === 1 && r.is_deleted === 0
+                );
+
+                setReviews(activeReviews);
+            } catch (err: any) {
+                console.error("Review fetch error:", err);
+                setError(err.message || "Something went wrong");
+                setReviews([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (PRODUCT_ID) {
+            fetchReviews();
+        }
     }, [PRODUCT_ID]);
 
     const totalReviews = reviews.length;
-    const avgRating = totalReviews > 0
-        ? reviews.reduce((s, r) => s + r.rating, 0) / totalReviews : 0;
 
-    const ratingCounts = [5, 4, 3, 2, 1].map(star => ({
+    const avgRating =
+        totalReviews > 0
+            ? reviews.reduce((s, r) => s + r.rating, 0) / totalReviews
+            : 0;
+
+    const ratingCounts = [5, 4, 3, 2, 1].map((star) => ({
         star,
-        count: reviews.filter(r => r.rating === star).length,
+        count: reviews.filter((r) => r.rating === star).length,
     }));
 
-    const filtered = filter !== null ? reviews.filter(r => r.rating === filter) : reviews;
-    const visibleCount = showAll ? filtered.length : Math.min(4, filtered.length);
+    const filtered =
+        filter !== null
+            ? reviews.filter((r) => r.rating === filter)
+            : reviews;
+
+    const visibleCount = showAll
+        ? filtered.length
+        : Math.min(4, filtered.length);
+
     const visibleReviews = filtered.slice(0, visibleCount);
 
     // ── Loading ────────────────────────────────────────────────────────────────
-    if (loading) return (
-        <>
-            <style>{`@keyframes reviewFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
-            <Skeleton />
-        </>
-    );
+
+    if (loading) {
+        return (
+            <>
+                <style>{`
+                    @keyframes reviewFadeIn{
+                        from{
+                            opacity:0;
+                            transform:translateY(10px)
+                        }
+                        to{
+                            opacity:1;
+                            transform:translateY(0)
+                        }
+                    }
+                `}</style>
+
+                <Skeleton />
+            </>
+        );
+    }
 
     // ── Error ──────────────────────────────────────────────────────────────────
-    if (error && reviews.length === 0) return (
-        <div className="flex flex-col items-center justify-center py-16 text-center
-      rounded-2xl border border-dashed border-red-200 bg-red-50">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
-                stroke="#EF4444" strokeWidth="1.5" className="mb-4 opacity-60">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <p className="text-base font-semibold text-red-600">Could not load reviews</p>
-            <p className="text-sm text-red-400 mt-1">{error}</p>
-        </div>
-    );
+
+    if (error) {
+        return (
+            <div
+                className="flex flex-col items-center justify-center py-16 text-center
+                rounded-2xl border border-dashed border-red-200 bg-red-50"
+            >
+                <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#EF4444"
+                    strokeWidth="1.5"
+                    className="mb-4 opacity-60"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+
+                <p className="text-base font-semibold text-red-600">
+                    Could not load reviews
+                </p>
+
+                <p className="text-sm text-red-400 mt-1">{error}</p>
+            </div>
+        );
+    }
 
     // ── Empty ──────────────────────────────────────────────────────────────────
-    if (totalReviews === 0) return (
-        <div className="flex flex-col items-center justify-center py-20 text-center
-      rounded-2xl border border-dashed border-neutral-200 bg-neutral-50">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none"
-                stroke="#D1D5DB" strokeWidth="1.2" className="mb-4">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <p className="text-base font-semibold text-neutral-400">No reviews yet</p>
-            <p className="text-sm text-neutral-300 mt-1">Be the first to share your experience!</p>
-        </div>
-    );
 
-    // ── Content ────────────────────────────────────────────────────────────────
+    if (totalReviews === 0) {
+        return (
+            <div
+                className="flex flex-col items-center justify-center py-20 text-center
+                rounded-2xl border border-dashed border-neutral-200 bg-neutral-50"
+            >
+                <svg
+                    width="44"
+                    height="44"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#D1D5DB"
+                    strokeWidth="1.2"
+                    className="mb-4"
+                >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+
+                <p className="text-base font-semibold text-neutral-400">
+                    No reviews yet
+                </p>
+
+                <p className="text-sm text-neutral-300 mt-1">
+                    Be the first to share your experience!
+                </p>
+            </div>
+        );
+    }
+
+    // ── Main UI ────────────────────────────────────────────────────────────────
+
     return (
         <>
-            <style>{`@keyframes reviewFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
+            <style>{`
+                @keyframes reviewFadeIn{
+                    from{
+                        opacity:0;
+                        transform:translateY(10px)
+                    }
+                    to{
+                        opacity:1;
+                        transform:translateY(0)
+                    }
+                }
+            `}</style>
 
-            {/* {isMockData && <MockDataBadge />} */}
-
-            {/* Two-column layout: summary sidebar + cards */}
             <div className="flex flex-col lg:flex-row gap-10">
-
-                {/* ── Left: Rating Summary ── */}
+                {/* Left Summary */}
                 <div className="lg:w-72 lg:shrink-0">
                     <div className="lg:sticky lg:top-20 space-y-6">
-
-                        {/* Average score */}
                         <div className="text-center py-8 rounded-2xl bg-neutral-50 border border-neutral-100">
                             <p className="text-6xl font-bold text-neutral-900 tracking-tight leading-none">
                                 {avgRating.toFixed(1)}
                             </p>
+
                             <div className="flex justify-center mt-3">
                                 <StarRow rating={avgRating} size={20} />
                             </div>
+
                             <p className="text-sm text-neutral-400 font-semibold mt-3">
-                                {totalReviews} review{totalReviews !== 1 ? "s" : ""}
+                                {totalReviews} review
+                                {totalReviews !== 1 ? "s" : ""}
                             </p>
                         </div>
 
-                        {/* Bar chart */}
                         <div className="space-y-2">
                             {ratingCounts.map(({ star, count }) => (
                                 <RatingBar
@@ -416,92 +506,69 @@ const ProductReviews = ({ PRODUCT_ID }: { PRODUCT_ID: string }) => {
                                     count={count}
                                     total={totalReviews}
                                     active={filter === star}
-                                    onClick={() => { setFilter(f => f === star ? null : star); setShowAll(false); }}
+                                    onClick={() => {
+                                        setFilter((f) =>
+                                            f === star ? null : star
+                                        );
+                                        setShowAll(false);
+                                    }}
                                 />
                             ))}
                         </div>
 
-                        {/* Clear filter */}
                         {filter !== null && (
                             <button
-                                onClick={() => { setFilter(null); setShowAll(false); }}
+                                onClick={() => {
+                                    setFilter(null);
+                                    setShowAll(false);
+                                }}
                                 className="w-full text-sm font-semibold text-neutral-500 hover:text-neutral-900
-                  border border-neutral-200 rounded-xl py-2.5 transition-all hover:border-neutral-400">
+                                border border-neutral-200 rounded-xl py-2.5 transition-all hover:border-neutral-400"
+                            >
                                 Clear filter · Show all
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* ── Right: Review Cards ── */}
+                {/* Right Reviews */}
                 <div className="flex-1 min-w-0">
-
-                    {/* Active filter badge */}
-                    {filter !== null && (
-                        <div className="flex items-center gap-3 mb-6">
-                            <span className="text-sm text-neutral-500 font-medium">Showing</span>
-                            <span className="flex items-center gap-1.5 text-sm font-bold text-amber-700
-                bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="#FBBF24" stroke="#FBBF24" strokeWidth="1.5">
-                                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-                                </svg>
-                                {filter}-star reviews
-                            </span>
-                            <span className="text-sm text-neutral-400">({filtered.length})</span>
-                        </div>
-                    )}
-
-                    {/* No matches for this filter */}
                     {filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center
-              rounded-2xl bg-neutral-50 border border-dashed border-neutral-200">
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
-                                stroke="#E5E7EB" strokeWidth="1.5" className="mb-4">
-                                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-                            </svg>
+                        <div
+                            className="flex flex-col items-center justify-center py-20 text-center
+                            rounded-2xl bg-neutral-50 border border-dashed border-neutral-200"
+                        >
                             <p className="text-base font-semibold text-neutral-400">
-                                No {filter}-star reviews yet
+                                No matching reviews found
                             </p>
-                            <button onClick={() => setFilter(null)}
-                                className="mt-4 text-sm text-neutral-500 underline underline-offset-2
-                  hover:text-neutral-900 transition-colors">
-                                Show all reviews
-                            </button>
                         </div>
                     ) : (
                         <>
-                            {/* Cards — 1 col on mobile, 2 on xl */}
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                 {visibleReviews.map((review, i) => (
-                                    <ReviewCard key={review.id} review={review} index={i} />
+                                    <ReviewCard
+                                        key={review.id}
+                                        review={review}
+                                        index={i}
+                                    />
                                 ))}
                             </div>
 
-                            {/* Load more / Show less */}
                             {filtered.length > 4 && (
                                 <div className="mt-8 flex justify-center">
                                     <button
-                                        onClick={() => setShowAll(s => !s)}
+                                        onClick={() =>
+                                            setShowAll((s) => !s)
+                                        }
                                         className="inline-flex items-center gap-2 text-sm font-bold text-neutral-600
-                      hover:text-neutral-900 border border-neutral-200 hover:border-neutral-400
-                      px-6 py-3 rounded-xl transition-all hover:shadow-sm">
-                                        {showAll ? (
-                                            <>
-                                                Show less
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                                                    stroke="currentColor" strokeWidth="2.5">
-                                                    <polyline points="18,15 12,9 6,15" />
-                                                </svg>
-                                            </>
-                                        ) : (
-                                            <>
-                                                Load {filtered.length - 4} more
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                                                    stroke="currentColor" strokeWidth="2.5">
-                                                    <polyline points="6,9 12,15 18,9" />
-                                                </svg>
-                                            </>
-                                        )}
+                                        hover:text-neutral-900 border border-neutral-200 hover:border-neutral-400
+                                        px-6 py-3 rounded-xl transition-all hover:shadow-sm"
+                                    >
+                                        {showAll
+                                            ? "Show less"
+                                            : `Load ${
+                                                  filtered.length - 4
+                                              } more`}
                                     </button>
                                 </div>
                             )}

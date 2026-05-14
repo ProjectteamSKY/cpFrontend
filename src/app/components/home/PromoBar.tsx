@@ -1,7 +1,7 @@
 export function PromoBar() {
   return (
-    <div className="bg-[#EC7063] text-white text-[12.5px] font-medium text-center px-4 py-[10px] tracking-[0.01em]">
-      🖨️ Citizen Prints — Delivering Excellence in Every Print
+    <div className="bg-[#D73D32] text-white text-[12.5px] font-medium text-center px-4 py-[10px] tracking-[0.01em]">
+       Citizen Prints — Delivering Excellence in Every Print
       &nbsp;·&nbsp;
       Precision · Quality · Reliability
       &nbsp;·&nbsp;
