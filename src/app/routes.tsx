@@ -159,7 +159,6 @@ import ContactManagement from "./components/admin/ContactManagement";
 // import { ProductSetupManagement } from "../components/admin/ProductSetupManagement";
 // import { FAQManagement } from "../components/admin/FaqManagement";
 // import { DesignManagement } from "../components/admin/DesignManagement";
-
 // // Auth
 // import { LoginPage } from "../components/Auth/LoginPage";
 export const router = createBrowserRouter([

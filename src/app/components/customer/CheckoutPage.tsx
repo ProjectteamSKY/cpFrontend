@@ -46,7 +46,7 @@ import { getPickupLocations } from "../../service/shippingApiService";
 
 const API_BASE = "https://api.citizenprintz.in/api";
 const MEDIA_BASE = "https://api.citizenprintz.in/";
-
+ 
 export function CheckoutPage() {
   const navigate = useNavigate();
   const userId = getUserId();
@@ -102,6 +102,7 @@ export function CheckoutPage() {
       navigate("/address");
     }
   }, []);
+  
 
   useEffect(() => {
     fetchPickupPincode();
@@ -422,74 +423,250 @@ export function CheckoutPage() {
   };
 
   // Fetch Hyperlocal Delivery Charges (Internal)
+  // Fetch Hyperlocal Delivery Charges (Internal)
   const fetchHyperlocalDeliveryChargesInternal = async () => {
     if (!selectedAddress?.postal_code) {
       return [];
     }
 
     try {
-      const pickupPostcode = selectedPickupPincode || "600100";
-      const deliveryPostcode = selectedAddress.postal_code;
+      // =========================
+      // FETCH PICKUP LOCATION
+      // =========================
+      const pickupRes = await getPickupLocations();
+
+      const pickupAddress =
+        pickupRes?.pickup_locations?.shipping_address?.[0] || {};
+
+      console.log("Pickup Address:", pickupAddress);
+      console.log("Selected Delivery Address:", selectedAddress);
+
       const codValue = paymentMethod === "cod" ? 1 : 0;
 
-      const res = await axios.get(`${API_BASE}/shipping/hyperlocal/serviceability`, {
-        params: {
-          pickup_postcode: pickupPostcode,
-          delivery_postcode: deliveryPostcode,
-          cod: codValue,
+      // =========================
+      // PREPARE PAYLOAD
+      // =========================
+      const payload = {
+        cod: codValue,
+
+        pickup: {
+          address: [
+            pickupAddress?.address,
+            pickupAddress?.address_2,
+            pickupAddress?.city,
+            pickupAddress?.state,
+            pickupAddress?.country,
+          ]
+            .filter(Boolean)
+            .join(", "),
+
+          // IMPORTANT FIX
+          latitude: pickupAddress?.lat
+            ? String(pickupAddress.lat)
+            : null,
+
+          longitude: pickupAddress?.long
+            ? String(pickupAddress.long)
+            : null,
+
+          postal_code: String(
+            pickupAddress?.pin_code || ""
+          ),
         },
-      });
+        delivery: {
+          address: [
+            selectedAddress?.address,
+            selectedAddress?.address_2,
+            selectedAddress?.city,
+            selectedAddress?.state,
+            selectedAddress?.country,
+          ]
+            .filter(Boolean)
+            .join(", "),
+
+          postal_code: String(
+            selectedAddress?.postal_code || ""
+          ),
+        },
+      };
+
+      console.log(
+        "FINAL HYPERLOCAL PAYLOAD:",
+        JSON.stringify(payload, null, 2)
+      );
+
+      // =========================
+      // API CALL
+      // =========================
+      const res = await axios.post(
+        `${API_BASE}/shipping/hyperlocal/serviceability`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log(
+        "Hyperlocal Serviceability Response:",
+        res.data
+      );
 
       let options = [];
 
-      if (res.data.all_couriers && res.data.all_couriers.length > 0) {
-        options = res.data.all_couriers.map((courier, index) => {
-          const isExpress = courier.courier_name.includes("Quick") ||
-            courier.estimated_delivery_time_hours <= 24;
+      // =========================
+      // MULTIPLE COURIERS
+      // =========================
+      if (
+        Array.isArray(res.data?.all_couriers) &&
+        res.data.all_couriers.length > 0
+      ) {
+        options = res.data.all_couriers.map(
+          (courier, index) => {
+            const estimatedHours = Number(
+              courier?.estimated_delivery_time_hours || 24
+            );
 
-          return {
-            id: `hyperlocal_${index}`,
-            name: courier.courier_name,
-            type: "hyperlocal",
-            delivery_type: "hyperlocal",
-            cost: Number(courier.total_cost || 0),
-            estimated_hours: courier.estimated_delivery_time_hours,
-            estimated_days: Math.ceil(courier.estimated_delivery_time_hours / 24),
-            distance_km: courier.distance_km,
-            etd: courier.etd,
-            is_hyperlocal: true,
-            description: isExpress ?
-              `🚀 Express delivery in ${courier.estimated_delivery_time_hours} hours` :
-              `🏠 Hyperlocal delivery • ${courier.distance_km} km away`,
-            courier_id: courier.courier_id || courier.courier_company_id || null,
-          };
-        });
-      } else if (res.data.best_courier) {
-        const bestCourier = res.data.best_courier;
-        const isExpress = bestCourier.courier_name.includes("Quick") ||
-          bestCourier.estimated_delivery_time_hours <= 24;
+            const isExpress =
+              courier?.courier_name?.includes("Quick") ||
+              estimatedHours <= 24;
 
-        options = [{
-          id: "hyperlocal_0",
-          name: bestCourier.courier_name,
-          type: "hyperlocal",
-          delivery_type: "hyperlocal",
-          cost: Number(bestCourier.total_cost || 0),
-          estimated_hours: bestCourier.estimated_delivery_time_hours,
-          estimated_days: Math.ceil(bestCourier.estimated_delivery_time_hours / 24),
-          distance_km: bestCourier.distance_km,
-          etd: bestCourier.etd,
-          is_hyperlocal: true,
-          description: isExpress ?
-            `🚀 Express delivery in ${bestCourier.estimated_delivery_time_hours} hours` :
-            `🏠 Hyperlocal delivery • ${bestCourier.distance_km} km away`,
-          courier_id: bestCourier.courier_id || bestCourier.courier_company_id || null,
-        }];
+            return {
+              id: `hyperlocal_${index}`,
+
+              name:
+                courier?.courier_name ||
+                `Hyperlocal Courier ${index + 1}`,
+
+              type: "hyperlocal",
+
+              delivery_type: "hyperlocal",
+
+              cost: Number(
+                courier?.total_cost ||
+                courier?.rate ||
+                0
+              ),
+
+              estimated_hours: estimatedHours,
+
+              estimated_days: Math.ceil(
+                estimatedHours / 24
+              ),
+
+              distance_km: Number(
+                courier?.distance_km || 0
+              ),
+
+              etd:
+                courier?.etd ||
+                `${estimatedHours} Hours`,
+
+              is_hyperlocal: true,
+
+              description: isExpress
+                ? `🚀 Express delivery in ${estimatedHours} hours`
+                : `🏠 Hyperlocal delivery • ${courier?.distance_km || 0
+                } km away`,
+
+              courier_id:
+                courier?.courier_id ||
+                courier?.courier_company_id ||
+                null,
+
+              raw_data: courier,
+            };
+          }
+        );
       }
+
+      // =========================
+      // BEST COURIER
+      // =========================
+      else if (res.data?.best_courier) {
+        const bestCourier = res.data.best_courier;
+
+        const estimatedHours = Number(
+          bestCourier?.estimated_delivery_time_hours || 24
+        );
+
+        const isExpress =
+          bestCourier?.courier_name?.includes("Quick") ||
+          estimatedHours <= 24;
+
+        options = [
+          {
+            id: "hyperlocal_0",
+
+            name:
+              bestCourier?.courier_name ||
+              "Hyperlocal Delivery",
+
+            type: "hyperlocal",
+
+            delivery_type: "hyperlocal",
+
+            cost: Number(
+              bestCourier?.total_cost ||
+              bestCourier?.rate ||
+              0
+            ),
+
+            estimated_hours: estimatedHours,
+
+            estimated_days: Math.ceil(
+              estimatedHours / 24
+            ),
+
+            distance_km: Number(
+              bestCourier?.distance_km || 0
+            ),
+
+            etd:
+              bestCourier?.etd ||
+              `${estimatedHours} Hours`,
+
+            is_hyperlocal: true,
+
+            description: isExpress
+              ? `🚀 Express delivery in ${estimatedHours} hours`
+              : `🏠 Hyperlocal delivery • ${bestCourier?.distance_km || 0
+              } km away`,
+
+            courier_id:
+              bestCourier?.courier_id ||
+              bestCourier?.courier_company_id ||
+              null,
+
+            raw_data: bestCourier,
+          },
+        ];
+      }
+
+      console.log(
+        "Formatted Hyperlocal Options:",
+        options
+      );
 
       return options;
     } catch (err) {
-      console.error("Hyperlocal delivery charge fetch failed", err);
+      console.error(
+        "Hyperlocal delivery charge fetch failed:",
+        err
+      );
+
+      console.error(
+        "API Error Response:",
+        err?.response?.data
+      );
+
+      toast.error(
+        err?.response?.data?.error ||
+        err?.response?.data?.detail ||
+        "Failed to fetch hyperlocal delivery options"
+      );
+
       return [];
     }
   };
@@ -525,7 +702,7 @@ export function CheckoutPage() {
     }
   };
 
-  
+
 
   // Initialize cart and delivery fetch on mount
   useEffect(() => {
